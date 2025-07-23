@@ -1,0 +1,157 @@
+1. Reaver là gì?
+
+    Reaver là công cụ CLI giúp brute-force mã PIN WPS (Wi-Fi Protected Setup) trên router Wi-Fi.
+
+    Nếu AP bật WPS (rất phổ biến ở router gia đình, công ty nhỏ, quán cafe...), Reaver có thể dò được WPS PIN, từ đó trích xuất passphrase WPA/WPA2 không cần bắt handshake.
+
+    Tấn công hoàn toàn offline (không cần victim đang kết nối).
+
+2. Điều kiện sử dụng Reaver
+
+    AP bật WPS (không bị disable/harden).
+
+    Card Wi-Fi hỗ trợ monitor mode và injection (Atheros/Realtek/MediaTek USB thường ổn nhất).
+
+    Đủ quyền root, tốt nhất dùng Linux (Kali, Parrot, Ubuntu...).
+
+3. Cài đặt Reaver
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install reaver
+
+B. Kiểm tra
+
+reaver --help
+
+4. Quy trình tấn công WPS với Reaver (thực chiến)
+A. Chuẩn bị card Wi-Fi monitor mode
+
+sudo airmon-ng start wlan1
+
+(card chuyển sang wlan1mon hoặc mon0)
+B. Scan tìm AP có bật WPS
+
+    Dùng wash (đi kèm với reaver):
+
+    sudo wash -i wlan1mon
+
+        Liệt kê các AP bật WPS, cột "WPS Locked" nên là No.
+
+C. Brute-force WPS PIN bằng Reaver
+
+sudo reaver -i wlan1mon -b <BSSID> -c <channel> -vv
+
+    -i: interface monitor
+
+    -b: BSSID AP
+
+    -c: channel
+
+    -vv: verbose, xem chi tiết quá trình
+
+Ví dụ:
+
+sudo reaver -i wlan1mon -b 00:11:22:33:44:55 -c 6 -vv
+
+    Reaver sẽ brute từng PIN, nếu thành công sẽ hiện WPS PIN và passphrase WPA/WPA2.
+
+5. Nâng cao – tối ưu brute, bypass lock, tự động resume
+A. Tiếp tục brute-force khi dừng giữa chừng
+
+sudo reaver -i wlan1mon -b <BSSID> -c <channel> -vv -s session.txt
+
+    Dùng -s lưu session, có thể resume bằng -S.
+
+B. Tăng delay tránh bị lock WPS
+
+sudo reaver -i wlan1mon -b <BSSID> -c <channel> -vv -d 10
+
+    -d 10: delay 10 giây mỗi lần thử PIN (tùy router, thử tăng nếu bị lock).
+
+C. Tùy chọn nâng cao
+Option	Ý nghĩa
+-a	Brute-force auto mode
+-p <PIN>	Thử 1 PIN cụ thể
+-x	Thời gian nghỉ giữa các request
+-L	Ignore locked state (tấn công AP có WPS Locked, đôi khi vẫn thành công)
+-N	Không kiểm tra NACK (giảm noise trên router yếu)
+-S	Resume session từ file
+6. Automation & workflow thực chiến
+
+    Batch scan – brute nhiều AP một lúc:
+
+    for bssid in $(cat bssid.txt); do
+      reaver -i wlan1mon -b $bssid -c 6 -vv -d 10 -s $bssid.session &
+    done
+
+    Script detect & brute WPS auto:
+
+        Dùng wash xuất danh sách AP → loop reaver tự động, save log lại.
+
+    Kết hợp với crunch/cupp tạo list PIN phổ biến nếu brute thủ công (thường WPS PIN mặc định cực yếu: toàn 12345670, 00005678, 11112222…).
+
+7. Hiểu bản chất & kỹ thuật WPS brute
+
+    WPS PIN chỉ có 8 số (00000000 - 99999999), chia làm 2 nửa:
+
+        Brute tối đa 11,000 PIN thay vì 100 triệu (do thuật toán, check digit, error response của WPS protocol).
+
+        Thường mất vài giờ đến vài ngày, tùy tốc độ network và delay AP.
+
+    Sau khi có WPS PIN, có thể dùng lại trên các thiết bị khác hoặc vào router config để đổi pass Wi-Fi.
+
+8. Khắc phục lỗi thường gặp
+Lỗi	Cách xử lý
+"WPS Locked"	AP khóa WPS do brute quá nhanh. Đợi vài phút – vài giờ rồi brute lại, tăng delay -d, dùng -L, hoặc thử AP khác.
+Không thấy AP với wash	Card Wi-Fi không support monitor, hoặc AP đã tắt WPS, thử card khác, đổi channel, di chuyển gần AP hơn.
+Không ra pass	AP đã fix/harden WPS (disable, patch, dùng lock-out), brute thủ công hoặc thử các PIN default thường gặp.
+Quá chậm	Giảm delay, đổi card, đổi vị trí, batch brute nhiều AP song song nếu nhiều máy
+AP disconnect khi brute	Router yếu, delay brute tăng lên, brute vào đêm (ít ai dùng mạng).
+AP báo lỗi protocol	Thử reaver với các option khác (-N, -S, đổi delay, update reaver bản mới nhất)
+9. Một số mẹo thực chiến
+
+    Nên brute các SSID phổ biến/đại trà (TP-LINK, Tenda, Dlink, ...) – thường để WPS mặc định, PIN cực yếu.
+
+    Luôn kiểm tra passphrase lấy được trên nhiều thiết bị, nhiều khi AP còn chưa đổi pass mặc định.
+
+    Phối hợp với pixiewps nếu router yếu/vulnerable với Pixie-Dust Attack (instant offline crack WPS PIN, chỉ mất vài giây!).
+
+        reaver -i wlan1mon -b <BSSID> -c <channel> -K 1 -vv (K=1: enable Pixie-Dust).
+
+    Kết hợp với aircrack-ng, cowpatty, hashcat để crack WPA offline nếu có handshake.
+
+    Automation: log output/pass, thử PIN default trước khi brute toàn bộ.
+
+10. So sánh Reaver với các tool khác
+Tool	Ưu điểm Reaver	Khác biệt
+Reaver	Brute-force WPS PIN trực tiếp, không cần handshake, script hóa tốt, resume session	Không crack WPA handshake, chỉ hiệu quả khi AP bật WPS
+Pixiewps	Crack WPS offline (Pixie Dust), nhanh hơn, nhưng chỉ với AP vulnerable	Cần kết hợp với reaver hoặc wifite
+Wifite/airgeddon	Automation GUI/script, detect WPS, tự động brute, tích hợp reaver/pixiewps	Không tùy biến sâu, nhưng dùng cực tiện cho beginner
+aircrack-ng	Crack WPA/WPA2 handshake	Cần handshake, không tấn công WPS PIN
+11. Tài liệu, link hữu ích
+
+    Reaver GitHub
+
+    Pixiewps GitHub
+
+    Hacktricks – WiFi attacks
+
+    PayloadAllTheThings – WiFi Attacks
+
+    Wifite
+
+    aircrack-ng
+
+    [reaver --help]
+
+Tóm tắt nhanh
+
+    Reaver là tool brute-force WPS PIN mạnh nhất, chỉ cần AP bật WPS, không cần client, không cần handshake.
+
+    Trích xuất passphrase WPA/WPA2, automation dễ, kết hợp với pixiewps cực nhanh nếu AP yếu.
+
+    Thích hợp audit bảo mật nội bộ, CTF, training Wi-Fi, check router gia đình/quán net/công ty.
+
+    Luôn kiểm tra WPS status, log pass, batch brute, script workflow, tôn trọng pháp luật khi audit!
+

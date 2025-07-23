@@ -1,0 +1,199 @@
+1. az là gì?
+
+    Azure CLI (az) là công cụ dòng lệnh quản trị, tự động hóa và thao tác toàn bộ Azure Cloud: VM, storage, network, security, identity, resource group, policy, billing…
+
+    Hỗ trợ cross-platform (Windows, macOS, Linux, container).
+
+    Được dùng nhiều cho devops, pentest cloud, red team, automation, thay vì thao tác thủ công trên Portal.
+
+    Có thể kết hợp script Bash/Python/PowerShell, API, pipeline CI/CD.
+
+2. Cài đặt Azure CLI
+2.1. Trên Linux (Debian/Ubuntu/Kali)
+
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+Hoặc:
+
+sudo apt update
+sudo apt install azure-cli
+
+2.2. Trên macOS
+
+brew update && brew install azure-cli
+
+2.3. Trên Windows
+
+    Dùng file .msi hoặc qua Chocolatey:
+
+choco install azure-cli
+
+2.4. Chạy container
+
+docker run -it mcr.microsoft.com/azure-cli
+
+3. Cấu hình & đăng nhập
+
+az login
+# Mở browser, scan QR code hoặc dùng device code để login
+
+    Hỗ trợ --use-device-code, service principal (cho automation), managed identity.
+
+    Xem account:
+
+az account show
+az account list
+az account set --subscription "<SUBSCRIPTION_ID>"
+
+4. Lệnh cơ bản (Core command)
+Nhóm lệnh	Chức năng
+az group	Quản lý resource group
+az vm	Quản lý máy ảo
+az storage	Quản lý storage account, blob, file, queue, table
+az network	Quản lý VNet, subnet, NSG, public IP, vNIC
+az aks	Quản lý Kubernetes Service (AKS)
+az sql	SQL Database (server, db, firewall...)
+az ad / az identity	Quản lý AAD, user, app, group, RBAC, role, policy
+az monitor	Logging, alert, metrics, diagnostic
+az security	Defender, policy, scan, compliance
+5. Quản trị resource thực tế (Thường gặp)
+5.1. Resource Group
+
+az group list
+az group create --name myRG --location "East US"
+az group delete --name myRG --yes
+
+5.2. Virtual Machine
+
+# Liệt kê VM
+az vm list -o table
+
+# Tạo nhanh VM Ubuntu
+az vm create \
+  --resource-group myRG \
+  --name myVM \
+  --image UbuntuLTS \
+  --admin-username azureuser \
+  --generate-ssh-keys
+
+# Dừng, xóa, start, reboot VM
+az vm stop --resource-group myRG --name myVM
+az vm start --resource-group myRG --name myVM
+az vm delete --resource-group myRG --name myVM --yes
+
+5.3. Storage (blob, file, container)
+
+# Liệt kê storage account
+az storage account list -o table
+
+# Tạo storage
+az storage account create --name mystorage01 --resource-group myRG --location "East US" --sku Standard_LRS
+
+# Lấy key
+az storage account keys list --account-name mystorage01
+
+# Liệt kê blob container
+az storage container list --account-name mystorage01 --account-key <key>
+
+5.4. Network (VNet, NSG, Public IP)
+
+# Liệt kê VNet, subnet
+az network vnet list
+az network vnet subnet list --vnet-name myVnet --resource-group myRG
+
+# Tạo public IP
+az network public-ip create --resource-group myRG --name myPublicIP
+
+5.5. Identity, RBAC, AAD
+
+# Liệt kê user
+az ad user list
+
+# Tạo service principal (dùng automation/bot)
+az ad sp create-for-rbac --name myApp --role Contributor --scopes /subscriptions/<id>
+
+6. Nâng cao: Automation & Scripting
+6.1. Sử dụng --output (JSON, table, tsv, yaml)
+
+az vm list -o table
+az vm list -o json
+az group show --name myRG -o yaml
+
+6.2. Lọc kết quả với JMESPath
+
+# Chỉ lấy tên VM
+az vm list --query "[].name" -o tsv
+
+# Lọc VM trạng thái running
+az vm list --query "[?powerState=='VM running'].name" -o tsv
+
+# Liệt kê IP public
+az vm list-ip-addresses --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" -o tsv
+
+6.3. Script Bash/Python tự động hóa
+
+for vm in $(az vm list --query "[].name" -o tsv); do
+  az vm stop --name $vm --resource-group myRG
+done
+
+7. Bảo mật & kiểm thử (Security & Pentest)
+7.1. Liệt kê quyền, role, access
+
+az role assignment list --all
+az ad sp list
+az ad signed-in-user show
+
+7.2. Phát hiện resource public, misconfig
+
+    Liệt kê storage có public blob
+
+az storage account list --query "[?allowBlobPublicAccess==true]"
+
+    Liệt kê NSG mở port 0.0.0.0/0 (Internet exposure)
+
+az network nsg rule list --resource-group myRG --nsg-name myNSG --query "[?sourceAddressPrefix=='*']"
+
+    Tìm VM public IP
+
+az vm list-ip-addresses --query "[].virtualMachine.network.publicIpAddresses[].ipAddress" -o tsv
+
+7.3. Automation kiểm thử bảo mật
+
+    Kết hợp với ScoutSuite, Pacu, cloudsplaining, Azucar, hoặc viết script bash tự động scan.
+
+8. CI/CD, DevOps, IaC
+
+    Kết hợp az vào pipeline GitHub Actions, Azure DevOps, GitLab CI để deploy app, infra, rollback.
+
+    Dùng với Terraform, Bicep, ARM template để quản lý resource dưới dạng code.
+
+    Gọi az trực tiếp trong script/batch khi cần task ad-hoc automation.
+
+9. Mẹo thực chiến, trick & best practice
+
+    Dùng az interactive để bật shell tự động suggest lệnh.
+
+    az find <command> để tra cứu nhanh ví dụ thực tế.
+
+    Sử dụng az config set để lưu setting (default group, region...).
+
+    Script kết hợp output JSON/JMESPath + jq để automation mạnh hơn.
+
+    Kiểm soát truy cập CLI: Đổi/rotate credential, hạn chế lưu thông tin nhạy cảm (service principal, secrets).
+
+    Audit activity: Kết hợp az monitor và az activity-log.
+
+10. Tài liệu & nguồn học tập
+
+    Azure CLI documentation
+
+    Command reference
+
+    Az find (search example command)
+
+    Microsoft Learn – Azure CLI
+
+    GitHub Actions for Azure
+
+    ScoutSuite (Cloud Sec Audit)
+

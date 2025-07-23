@@ -1,0 +1,92 @@
+amass là một công cụ mạnh mẽ để thu thập thông tin (recon), chuyên về liệt kê subdomain, map hạ tầng mạng (attack surface mapping) và thực hiện OSINT (Open Source Intelligence) cho các mục tiêu lớn nhỏ.
+Nó được dùng nhiều trong pentest, bug bounty, CTF, và cả trong quy trình kiểm thử bảo mật chuyên nghiệp.
+1. Tác dụng của amass
+
+    Liệt kê subdomain (phổ biến nhất, mạnh hơn nhiều tool khác nhờ tích hợp nhiều kỹ thuật: passive, active, brute-force, scraping).
+
+    Map hạ tầng mạng: Thu thập IP, ASN, các mối quan hệ mạng, phát hiện asset ẩn.
+
+    Kiểm tra các lỗ hổng tiềm ẩn qua việc tìm domain phụ, host ẩn.
+
+    Kết hợp với các API (VirusTotal, Shodan, Censys, ...), dữ liệu WHOIS, certificate transparency... để thu thập thông tin tối đa.
+
+    Xuất ra file JSON, txt, Graphviz, ... dễ dùng cho automation và trực quan hóa.
+
+2. Cách sử dụng amass cơ bản
+1. Liệt kê subdomain theo phương pháp “passive” (không gây tiếng động)
+
+amass enum -passive -d example.com
+
+    Dùng chỉ các nguồn dữ liệu công khai, không gửi traffic đến target.
+
+2. Liệt kê subdomain kết hợp brute-force (tích cực, có thể bị log)
+
+amass enum -brute -d example.com
+
+    Kết hợp với wordlist mạnh, scan sâu hơn.
+
+3. Quét tất cả các kỹ thuật, lưu ra file
+
+amass enum -d example.com -o subdomains.txt
+
+    Dùng mặc định: passive, active, scraping, certificate transparency, API, v.v.
+
+    -o: lưu kết quả ra file.
+
+4. Vẽ đồ thị hạ tầng
+
+amass viz -d3 -f amass_output.json -o amass_graph.html
+
+    Xuất ra file HTML trực quan hóa mối quan hệ giữa subdomain, IP, ASN.
+
+5. Quét sâu (Active Recon, phát hiện host sống)
+
+amass enum -active -d example.com
+
+    Sử dụng phương pháp DNS probing, ping, port scan, v.v.
+
+3. Một số option hữu ích
+Tuỳ chọn	Ý nghĩa
+-d	Domain mục tiêu
+-o	Lưu output ra file
+-brute	Bật brute-force subdomain
+-passive	Chỉ dùng phương pháp thụ động
+-src	Hiện nguồn dữ liệu lấy được subdomain
+-active	Quét chủ động (probe host sống)
+-config	Dùng file config để tích hợp các API key
+-ip	Hiện cả IP của subdomain
+4. Ví dụ thực tế
+
+    Thu thập subdomain cho pentest/bug bounty:
+
+amass enum -d target.com -o sub.txt
+
+Brute-force với wordlist tự chọn:
+
+amass enum -brute -d target.com -w mywords.txt -o subs.txt
+
+Chỉ passive cho scan stealth:
+
+amass enum -passive -d target.com -o passive.txt
+
+Liệt kê subdomain, kèm IP, hiện nguồn:
+
+    amass enum -d target.com -ip -src
+
+5. Kinh nghiệm thực chiến
+
+    Nên kết hợp với API key (cấu hình qua amass configure) để khai thác tối đa dữ liệu từ các nguồn như VirusTotal, Shodan, Censys, ... (miễn phí hoặc trả phí).
+
+    Luôn dùng passive scan khi muốn stealth, không gây chú ý.
+
+    Sau khi tìm subdomain, kết hợp scan port (nmap, masscan) để phát hiện service ẩn.
+
+    Output của amass rất thích hợp để automation và tích hợp với các pipeline recon.
+
+6. Tài liệu tham khảo
+
+    Amass GitHub
+
+    OWASP Amass Docs
+
+    HackTricks Subdomain Enumeration

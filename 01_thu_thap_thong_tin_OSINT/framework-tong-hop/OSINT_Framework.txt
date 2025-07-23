@@ -1,0 +1,80 @@
+OSINT Framework là một tập hợp hệ thống các công cụ, website, dịch vụ và tài nguyên giúp thu thập thông tin công khai (OSINT – Open Source Intelligence) về cá nhân, tổ chức, domain, IP, mạng xã hội, email, tài khoản, dữ liệu rò rỉ...
+Đây là bản đồ tổng hợp nổi tiếng nhất thế giới dành cho pentester, investigator, phóng viên điều tra, threat hunter, và cộng đồng OSINT.
+1. OSINT Framework là gì?
+
+    Là trang web dạng cây (tree) trực quan, tổng hợp các công cụ/dịch vụ OSINT theo từng chủ đề:
+
+        Domain, IP, Email
+
+        Username
+
+        Social Networks (Facebook, Instagram, Twitter/X, TikTok…)
+
+        People Search
+
+        Public Records
+
+        Metadata, Darkweb, Geolocation, Leak lookup…
+
+    Mỗi node/nhánh là một đường link đến công cụ cụ thể, từ tool tự động, script, API, tới search engine, dịch vụ tìm kiếm miễn phí hoặc trả phí.
+
+2. Cách sử dụng OSINT Framework
+
+    Truy cập:
+    https://osintframework.com/
+
+    Tìm kiếm theo chủ đề:
+
+        Chọn chủ đề (ví dụ: “Domain Name”, “Email Address”, “Social Networks”).
+
+        Chọn tiếp nhánh nhỏ để đến tool chuyên biệt (ví dụ: “WHOIS”, “Subdomain”, “Breach Data”, “Find User on Facebook”, “Reverse Image Search”, ...).
+
+        Click vào link để sử dụng tool – sẽ chuyển hướng tới website/tool/script đó.
+
+    Sử dụng cho các mục đích:
+
+        Footprinting, pentest, bug bounty
+
+        Truy vết tài khoản, điều tra rò rỉ dữ liệu, profile mục tiêu
+
+        Threat hunting, phân tích tấn công, điều tra mối liên hệ
+
+        Tìm kiếm dữ liệu công khai về cá nhân, doanh nghiệp, tổ chức, hacker…
+
+3. Điểm mạnh của OSINT Framework
+
+    Không cần cài đặt: chỉ là một trang web tổng hợp link, update liên tục.
+
+    Cực kỳ đa dạng, dễ dùng: Từ người mới đến chuyên gia đều có thể dùng.
+
+    Mở rộng dễ dàng: Có thể đóng góp tool/link mới qua GitHub.
+
+    Hiển thị trực quan dạng mindmap: Tìm kiếm tool cực nhanh.
+
+4. Các chủ đề chính trên OSINT Framework
+
+    Username / Profile search (tìm username trên nhiều nền tảng)
+
+    Domain, DNS, IP lookup
+
+    Email search/verify, breach check
+
+    Social media investigation (Facebook, Twitter/X, Instagram, TikTok, LinkedIn…)
+
+    People Search (dò tìm theo tên thật, số điện thoại, ảnh, geo, metadata)
+
+    Image/video reverse search
+
+    Deepweb/Darkweb, pastebin, leak database
+
+    Geolocation tools
+
+    Public record search (công cụ tra cứu giấy tờ, dữ liệu công khai, blacklist, spamlist…)
+
+5. Tài liệu/tham khảo
+
+    https://osintframework.com/
+
+    GitHub: OSINT Framework
+
+    HackTricks: OSINT

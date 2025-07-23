@@ -1,0 +1,145 @@
+1. DIRB là gì?
+
+    DIRB là công cụ mã nguồn mở, chạy dòng lệnh, chuyên brute-force (dò tìm) file và thư mục ẩn trên web server bằng cách thử nhiều từ khóa (wordlist).
+
+    Phát hiện được admin, backup, file cấu hình, file nhạy cảm, shell, API, subdir bí mật….
+
+    Hỗ trợ HTTP/HTTPS, nhiều kiểu wordlist, quét tự động.
+
+2. Cài đặt DIRB
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install dirb
+
+B. Tải và build từ source (hiếm cần)
+
+git clone https://github.com/v0re/dirb.git
+cd dirb
+make
+sudo make install
+
+3. Sử dụng DIRB cơ bản
+Quét một website đơn giản:
+
+dirb http://target.com
+
+(Mặc định dùng wordlist /usr/share/dirb/wordlists/common.txt)
+Chỉ định wordlist khác:
+
+dirb http://target.com /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
+Quét HTTPS:
+
+dirb https://secure.com
+
+4. Các tùy chọn nâng cao và tối ưu scan
+Tham số	Ý nghĩa
+-w	Không dừng khi gặp lỗi 404 quá nhiều
+-x .php,.bak	Thử thêm extension khi brute
+-r	Không theo redirect
+-u	In mỗi URL tìm được (ngắn gọn)
+-o file	Xuất kết quả ra file
+-S	Chế độ silent, chỉ in kết quả ra màn hình
+-t N	Đa luồng (multi-thread, tăng tốc scan)
+-z <delay>	Delay giữa các request (tránh bị block)
+-a	Thêm user-agent tuỳ ý
+-p	Dùng proxy (Burp/ZAP)
+
+Ví dụ:
+
+dirb http://target.com -w -x .php,.bak -o result.txt
+dirb https://site.com /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -S
+dirb http://target.com -t 20 -x .php -a "Googlebot"
+
+5. Bypass, brute-force extension, custom wordlist
+
+    Thử nhiều extension cùng lúc:
+
+dirb http://target.com -x .php,.html,.bak,.zip,.txt
+
+Dùng wordlist riêng (custom):
+
+    Tạo file mylist.txt, mỗi dòng 1 từ khóa.
+
+    Chạy:
+
+        dirb http://target.com mylist.txt
+
+    Brute cả file lẫn thư mục:
+
+        Trong wordlist, thêm cả admin, admin.php, backup.zip… hoặc kết hợp extension.
+
+6. Automation – quét nhiều site hàng loạt
+
+    Tạo file bash quét hàng loạt:
+
+    while read url; do
+        dirb $url /usr/share/dirb/wordlists/common.txt -o "dirb_$(basename $url).txt"
+    done < urls.txt
+
+    Kết hợp với nmap/whatweb để lấy list domain, rồi cho dirb scan từng cái.
+
+7. Kết hợp proxy, bypass WAF/CDN
+
+    Dùng với Burp Suite, ZAP để phân tích traffic, thử payload lạ:
+
+proxychains dirb http://target.com
+
+Đổi User-Agent, fake bot:
+
+    dirb http://target.com -a "Mozilla/5.0"
+
+8. Hiểu đúng về kết quả
+
+    200 OK: Đúng là file/thư mục có tồn tại.
+
+    403 Forbidden: File/thư mục có thể tồn tại, nhưng bị chặn truy cập.
+
+    301/302 Redirect: Đôi khi là folder, hãy kiểm tra kỹ.
+
+    Kiểm tra false positive: Có site cấu hình trả 200 cho mọi request, cần kiểm tra lại thủ công.
+
+    Kết hợp với ffuf, gobuster, wfuzz: Để brute param, vhost, API endpoint, speed cao hơn.
+
+9. Một số mẹo tối ưu scan
+
+    Chọn wordlist phù hợp (dirb, dirbuster, raft, sec-list…).
+
+    Không brute full khi biết rõ app chỉ dùng PHP hoặc chỉ backup zip, rar, tar…
+
+    Scan vào lúc thấp điểm (ban đêm), tránh block rate-limit.
+
+    Không quét quá sâu site production (nên có permission).
+
+    Kết hợp script kiểm tra response size, để lọc false positive.
+
+10. Một số lỗi thường gặp và cách fix
+Lỗi	Cách xử lý
+Scan chậm	Tăng thread với -t 20, chọn wordlist nhỏ hơn
+Toàn trả về 200	Site trả 200 cho mọi request, thử với ffuf/gobuster, check response body
+Lỗi SSL	Dùng https đúng, update OpenSSL, thử với -S
+Bị block IP	Đổi proxy, giảm tốc độ, thử UA khác
+Không tìm được gì	Thay wordlist, thử extension mới, brute cả subdir
+11. Tài liệu, link hữu ích
+
+    DIRB Official
+
+    SecLists wordlists
+
+    PayloadAllTheThings Directory Brute-Force
+
+    DIRB GitHub
+
+    man dirb, dirb --help
+
+Tóm tắt nhanh
+
+    DIRB: tool mạnh dò file/thư mục ẩn web, phù hợp bước reconnaissance/enum trong pentest/bug bounty.
+
+    Đơn giản, dễ dùng, automation tốt, nhiều wordlist hỗ trợ.
+
+    Kết hợp với Burp, ffuf, gobuster, wfuzz để tối ưu toàn diện.
+
+    Chú ý chọn wordlist và extension đúng nhu cầu, kiểm tra kỹ false positive.
+

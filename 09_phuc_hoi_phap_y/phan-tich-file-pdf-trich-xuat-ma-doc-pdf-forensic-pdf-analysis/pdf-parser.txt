@@ -1,0 +1,178 @@
+1. pdf-parser là gì?
+
+    pdf-parser.py là tool mã nguồn mở (tác giả Didier Stevens) dùng để phân tích cấu trúc bên trong file PDF: object, stream, JavaScript, shellcode, các thành phần ẩn, exploit...
+
+    Chạy trên Python, không cần cài đặt phức tạp.
+
+    Được dùng rộng rãi trong forensic, malware analysis, CTF.
+
+2. Cài đặt pdf-parser
+
+    Download từ GitHub gốc:
+    https://github.com/DidierStevens/DidierStevensSuite
+
+    Hoặc download trực tiếp file pdf-parser.py.
+
+Chạy:
+
+python3 pdf-parser.py -h
+
+Không cần cài đặt gì thêm nếu đã có Python.
+3. Cấu trúc file PDF (lý thuyết cực ngắn)
+
+    File PDF là tập hợp các object (obj): text, hình, JavaScript, embedded file, stream...
+
+    Mỗi object có dạng:
+
+    obj_num 0 obj
+      << ... >>
+    endobj
+
+    Các đối tượng thường cần chú ý:
+
+        /JS, /JavaScript: JavaScript ẩn, exploit.
+
+        /OpenAction: auto action khi mở file.
+
+        /AA: auto action khác.
+
+        /Launch, /EmbeddedFile: có thể chứa file thực thi.
+
+        /Stream: có thể chứa dữ liệu mã hóa, shellcode, script.
+
+4. Các lệnh cơ bản của pdf-parser
+4.1. Xem cấu trúc tổng quát của file PDF
+
+python3 pdf-parser.py sample.pdf
+
+    Liệt kê các object, tham số, type (có bao nhiêu object, object nào có stream, object nào chứa JS...)
+
+4.2. Tìm object nghi vấn (ví dụ: có JavaScript, OpenAction, Launch...)
+
+python3 pdf-parser.py -s /JavaScript sample.pdf
+python3 pdf-parser.py -s /JS sample.pdf
+python3 pdf-parser.py -s /OpenAction sample.pdf
+python3 pdf-parser.py -s /Launch sample.pdf
+
+    Option -s: search keyword (không phân biệt hoa/thường, hỗ trợ regex).
+
+4.3. Xem chi tiết object
+
+Giả sử lệnh trên ra object số 8 có /JS:
+
+python3 pdf-parser.py -o 8 sample.pdf
+
+    Hiện nội dung object số 8.
+
+4.4. Xem nội dung stream (nếu object có stream):
+
+python3 pdf-parser.py -o 8 -f sample.pdf
+
+    Option -f: giải nén (deflate, ASCIIHexDecode...), xem rõ JS, shellcode, file ẩn bên trong.
+
+4.5. Trích xuất JavaScript, embedded file, shellcode
+
+    Tìm object chứa /JS, /EmbeddedFile, /Launch, /OpenAction, /RichMedia...
+
+    Sau đó, dump stream, copy đoạn mã ra file riêng, dùng tool khác (js-beautify, CyberChef, unhex, ...)
+
+5. Thực chiến: Phân tích file PDF nghi ngờ (malware, CTF, pentest)
+5.1. Bước 1: Xem tổng quan, đếm object
+
+python3 pdf-parser.py suspect.pdf
+
+5.2. Bước 2: Tìm object bất thường
+
+python3 pdf-parser.py -s /JS suspect.pdf
+python3 pdf-parser.py -s /OpenAction suspect.pdf
+python3 pdf-parser.py -s /Launch suspect.pdf
+python3 pdf-parser.py -s /RichMedia suspect.pdf
+python3 pdf-parser.py -s /EmbeddedFile suspect.pdf
+
+5.3. Bước 3: Xem chi tiết object nghi vấn
+
+python3 pdf-parser.py -o <obj_number> suspect.pdf
+python3 pdf-parser.py -o <obj_number> -f suspect.pdf  # Nếu có stream
+
+5.4. Bước 4: Giải mã JavaScript, shellcode
+
+    Nếu thấy JS bị mã hóa (obfuscate, hex, base64), copy code ra file .js, dùng CyberChef hoặc js-beautify.
+
+    Nếu gặp shellcode, copy raw hex/byte, dùng CyberChef/unhex/extract shellcode (có thể dùng binwalk, file, strings để nhận dạng mã độc nhúng).
+
+6. Các trick và mẹo thực chiến pdf-parser
+
+    Kết hợp tìm multiple keyword:
+    python3 pdf-parser.py -s "/JS|/Launch|/OpenAction" suspect.pdf
+
+    Dùng option -a để phân tích tất cả object, in ra thuộc tính:
+
+python3 pdf-parser.py -a suspect.pdf
+
+Tìm các object có stream (dễ bị nhúng shellcode):
+
+python3 pdf-parser.py -S suspect.pdf
+
+Extract toàn bộ stream ra file để kiểm tra (automation):
+
+    python3 pdf-parser.py suspect.pdf | grep -E "obj [0-9]+" | awk '{print $2}' | xargs -I{} python3 pdf-parser.py -o {} -f suspect.pdf > all_streams.txt
+
+    Tích hợp automation (trong bash, python), lặp qua hàng loạt PDF.
+
+7. Phân tích CTF, malware real-world, forensic
+
+    Thường flag/indicator sẽ nằm trong object chứa JS, comment, embedded file, stream.
+
+    Có thể gặp PDF dropper (embed exe, script) hoặc trigger exploit thông qua JS, launch, macro.
+
+    pdf-parser giúp phát hiện exploit CVE (Adobe Reader, Zero-Day...) qua JS xấu.
+
+8. Các công cụ kết hợp mạnh với pdf-parser
+
+    pdfid.py: Scan nhanh, thống kê các keyword nghi vấn trong PDF (cùng tác giả Didier Stevens).
+
+    peepdf, Origami, PDFStreamDumper, qpdf: Chuyên sâu hơn, có GUI, extract file.
+
+    CyberChef: Decode, beautify JavaScript, shellcode.
+
+    JSDetox, js-beautify: Beautify/deobfuscate JavaScript độc hại.
+
+    strings, binwalk, file: Phân tích stream, embedded file.
+
+9. Automation, script nâng cao
+
+Ví dụ: Script tự động tìm JS/Launch/OpenAction trong hàng loạt PDF:
+
+for file in *.pdf; do
+  python3 pdf-parser.py -s /JS "$file"
+  python3 pdf-parser.py -s /Launch "$file"
+  python3 pdf-parser.py -s /OpenAction "$file"
+done
+
+10. Tài nguyên, hướng dẫn, video lab
+
+    Repo chính thức & tài liệu
+
+    pdfid.py – scan nhanh PDF độc hại
+
+    Blog Didier Stevens – Hàng loạt case PDF malware
+
+    CTF: Malware Traffic Analysis – Phân tích PDF dropper, exploit
+
+    Video phân tích PDF malware bằng pdf-parser
+
+11. Một số lưu ý pháp lý và an toàn
+
+    Không mở PDF nghi vấn trên Windows/macOS thật! Dùng máy ảo/lab.
+
+    Không thử chạy JS, shellcode trích xuất từ PDF trên máy thật.
+
+    Luôn tách biệt môi trường forensic, không truyền file lạ qua email/công ty.
+
+12. Kết luận
+
+pdf-parser là tool cơ bản nhưng cực mạnh, gọn nhẹ, cần biết cho mọi pentester, analyst, sysadmin, forensic, CTF-er:
+
+    Dùng để khám phá cấu trúc PDF, phát hiện mã độc, extract flag, kiểm tra embedded code/file.
+
+    Kết hợp với các tool khác để phân tích, decode, giải mã, extract.

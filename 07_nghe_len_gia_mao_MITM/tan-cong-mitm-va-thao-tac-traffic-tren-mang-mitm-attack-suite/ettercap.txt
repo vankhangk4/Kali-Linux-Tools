@@ -1,0 +1,181 @@
+1. Ettercap là gì?
+
+    Ettercap là công cụ MITM (Man-in-the-Middle) đa năng trên LAN:
+
+        Sniff: Ghi lại mọi traffic trên mạng, phân tích mọi giao thức (HTTP, FTP, POP3, SMTP, Telnet, IMAP, SMB...)
+
+        MITM: ARP spoof, ICMP redirect, DHCP spoof, Port Stealing
+
+        Fake DNS, Filter/modify traffic, inject code (script, JS, HTML...)
+
+        GUI/TUI/CLI: Có giao diện đồ họa (ettercap -G), TUI (ettercap -C), hoặc chỉ lệnh (ettercap -T)
+
+        Plugin mạnh: viết filter (ECF), custom script, automation attack, cảnh báo
+
+        Cross-platform: Linux, Windows, MacOS
+
+2. Cài đặt Ettercap
+A. Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install ettercap-graphical
+
+    Lệnh chạy GUI: sudo ettercap -G
+
+    TUI: sudo ettercap -C
+
+    CLI: sudo ettercap -T
+
+B. Windows/MacOS:
+
+    Tải về tại https://www.ettercap-project.org/downloads.html
+
+3. Thực chiến MITM với Ettercap – GUI nhanh
+A. Khởi động và cấu hình
+
+    Chạy: sudo ettercap -G
+
+    Chọn interface (eth0, wlan0, v.v.)
+
+    Scan hosts trên mạng:
+
+        Hosts > Scan for hosts
+
+        Hosts > Host List để xem các máy hiện có
+
+B. Chọn victim/gateway
+
+    Thêm gateway vào Target 1, victim vào Target 2 (hoặc MITM toàn mạng)
+
+    MITM > ARP poisoning...
+
+        Chọn: “Sniff remote connections” (tức relay giữa gateway và victim)
+
+C. Bắt đầu MITM
+
+    Start > Start sniffing
+
+    Phân tích packet (info xuất hiện trong mục "Messages", "Connections")
+
+4. Sniff password, session, cookie, parse file
+
+    Ettercap auto parse credential, password, session, cookie gửi qua HTTP/FTP/POP3/SMTP/IMAP/Telnet, v.v.
+
+    View > Passwords (hiện password sniff được)
+
+    Messages/Log: lưu lại toàn bộ traffic, có thể export PCAP để phân tích sâu bằng Wireshark/tshark
+
+5. Tấn công nâng cao: Fake DNS, Inject Code, SSLSTRIP
+A. Fake DNS/DHCP
+
+    Sử dụng Plugins:
+
+        dns_spoof (fake IP domain bất kỳ)
+
+        dhcp_spoof (fake DHCP, chiếm quyền cấp IP)
+
+    Cách dùng DNS spoof:
+
+        Chỉnh file /usr/share/ettercap/etter.dns
+
+        facebook.com     A    192.168.1.100
+        *.facebook.com   A    192.168.1.100
+
+        Plugins > Manage the plugins > dns_spoof > Load
+
+B. Inject code vào traffic
+
+    Dùng EtterFilter (ECF): viết script để tự động chỉnh sửa, inject code, redirect, fake login, v.v.
+
+    Ví dụ inject JS alert:
+
+        Tạo file inject.ecf:
+
+if (ip.proto == TCP && tcp.dst == 80) {
+  if (search(DATA.data, "</body>")) {
+    replace("</body>", "<script>alert('Hacked!')</script></body>");
+    msg("JS injected!");
+  }
+}
+
+Biên dịch filter:
+
+        etterfilter inject.ecf -o inject.ef
+
+        Load filter trong Ettercap (GUI: Filters > Load filter hoặc CLI: -F inject.ef)
+
+C. SSLSTRIP – downgrade HTTPS sang HTTP
+
+    Ettercap không “strip” HTTPS chuẩn như sslstrip, nhưng có thể MITM SSL, ghi lại cert, redirect traffic về attacker.
+
+    Kết hợp với sslstrip hoặc proxy ngoài để hoàn thiện attack HTTPS.
+
+6. Scripting, automation, filter mạnh
+
+    EtterFilter: automation sửa traffic, log keyword, inject/fuzz, phát hiện/chặn exploit payload, training, demo.
+
+    Plugin: automation, trigger cảnh báo, parse protocol, custom exploit.
+
+    Batch CLI:
+
+        MITM toàn mạng, không cần GUI:
+
+sudo ettercap -T -i eth0 -M arp:remote // //
+
+MITM giữa 2 IP:
+
+sudo ettercap -T -i eth0 -M arp:remote /192.168.1.1/ /192.168.1.50/
+
+Load filter:
+
+        sudo ettercap -T -i eth0 -F inject.ef -M arp:remote // //
+
+7. Forensic, blue team, phát hiện và phòng chống
+
+    Dùng Ettercap ở chế độ passive để theo dõi network, tìm bất thường, detect ARP/DNS spoof, log password/credential rò rỉ.
+
+    Monitor log, phân tích file PCAP, phát hiện exploit, đào tạo user, hunt network anomaly.
+
+    Phòng chống:
+
+        Tắt LLMNR/NBT-NS/WPAD/DHCP broadcast không cần thiết
+
+        Enforce HTTPS, dùng HSTS, VPN nội bộ
+
+        Switch port security, dynamic ARP inspection
+
+        Dùng IDS (Snort, Suricata) để detect ARP/DNS spoof
+
+8. Fix lỗi thực tế
+Lỗi	Fix
+Không sniff được traffic	Chạy sudo/root, chọn đúng interface, victim/gateway trên cùng subnet, enable IP forwarding
+Không inject được code	Filter syntax lỗi, chưa biên dịch đúng, traffic không đúng HTTP, HSTS
+Không thấy password	Trang chỉ dùng HTTPS/HSTS, app encrypt payload, chỉ sniff được HTTP
+Không fake DNS thành công	Sửa đúng file etter.dns, load đúng plugin, nạn nhân dùng DoH/DoT
+GUI bị lag/lỗi	Dùng TUI/CLI, update ettercap, chạy X11 hoặc remote desktop chuẩn
+Không relay traffic	Chọn “Sniff remote connections”, bật IP forwarding, check firewall
+9. So sánh Ettercap với các tool MITM khác
+Tool	Ưu điểm Ettercap	Khác biệt
+Ettercap	MITM đa năng, GUI/TUI/CLI, filter/plugin mạnh, sniff mọi giao thức, fake DNS/DHCP, inject code	GUI lỗi thời, không MITM WiFi, không automation mạnh bằng Bettercap, khó bẻ HTTPS chuẩn
+Bettercap	MITM all-in-one, script, WiFi, BLE, automation, REST API	CLI-centric, phải học command
+mitmproxy	MITM HTTP(S), script Python, sửa request/response	Không spoof ARP/DNS, không sniff nhiều giao thức thấp
+Responder	Bắt hash, broadcast Windows mạnh	Không MITM traffic app, không inject code
+arpspoof/sslstrip	Đơn giản, script tốt, tấn công classic	Không filter/inject code, không fake DNS/DHCP
+10. Tài liệu, link hữu ích
+
+    Ettercap Project
+
+    Ettercap Github
+
+    PayloadAllTheThings – Network Sniffing
+
+    Hacktricks Ettercap
+
+    EtterFilter Examples
+
+Tóm tắt nhanh
+
+    Ettercap: công cụ MITM mạnh, truyền thống, GUI/TUI/CLI, sniff credential, fake DNS/ARP, inject code, automation filter, script plugin, forensic, demo, phòng chống tấn công mạng LAN.
+
+    Nên kết hợp với sslstrip/Responder/Wireshark, dùng filter/plugin để automation, scripting, detect anomaly, dùng cho lab/CTF/training, hoặc hỗ trợ blue team monitor.
+

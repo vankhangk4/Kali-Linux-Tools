@@ -1,0 +1,198 @@
+1. Sleuth Kit (TSK) là gì?
+
+    TSK là tập hợp các công cụ dòng lệnh mã nguồn mở (CLI tools) để phân tích, điều tra, trích xuất dữ liệu từ disk image (file .dd, .img, .E01, raw…).
+
+    Có thể phân tích hệ thống file (FAT, NTFS, exFAT, ext2/3/4, HFS+...), phân vùng, file đã xóa, metadata, timeline, carver file, lấy thông tin registry...
+
+    TSK được dùng làm nền tảng cho Autopsy (giao diện GUI mạnh, cũng rất phổ biến).
+
+2. Cài đặt Sleuth Kit
+
+    Trên Ubuntu/Kali:
+
+    sudo apt update
+    sudo apt install sleuthkit
+
+    Trên MacOS: brew install sleuthkit
+
+    Windows: Download tại trang chủ hoặc dùng Autopsy.
+
+    Source code: https://github.com/sleuthkit/sleuthkit
+
+3. Các công cụ chính trong Sleuth Kit
+Disk/partition analysis
+
+    mmls: Liệt kê phân vùng trong image
+
+    fdisk, parted, gparted: Công cụ hỗ trợ ngoài
+
+Volume/file system analysis
+
+    fsstat: Thông tin hệ thống file (NTFS, FAT, ext...)
+
+    fls: Liệt kê file và folder (cả đã xóa)
+
+    istat: Thông tin metadata của 1 file (inode)
+
+    icat: Extract nội dung file theo inode
+
+    blkstat: Thông tin 1 block
+
+    blkls: Trích xuất block chưa gán (unallocated)
+
+File carving & recover
+
+    tsk_recover: Recover file đã xóa (tự động)
+
+    tsk_loaddb: Index image cho database forensic
+
+    tsk_gettimes: Trích xuất timeline
+
+Timeline analysis
+
+    mactime: Dựng timeline (MAC time: Modified, Accessed, Created)
+
+    bodyfile: File đầu vào cho mactime (từ fls xuất ra)
+
+4. Workflow phân tích image cơ bản – thực chiến
+
+Giả sử bạn có file ổ cứng: disk.img
+4.1. Xác định phân vùng với mmls
+
+mmls disk.img
+
+    Thấy offset của phân vùng NTFS/EXT/FAT (ví dụ: bắt đầu tại sector 2048).
+
+4.2. Xem info hệ thống file (fsstat)
+
+fsstat -o 2048 disk.img
+
+    Thông tin OS, loại hệ thống file, thời gian mount, volume label, số lượng file, v.v.
+
+4.3. Liệt kê tất cả file/folder (fls)
+
+fls -o 2048 -r -p disk.img
+
+    -r: đệ quy, -p: full path
+
+    Kết quả: danh sách file (cả deleted file, chỉ deleted: -d)
+
+4.4. Tìm file đặc biệt (flag, .docx, .jpg, key...)
+
+fls -o 2048 -r -p disk.img | grep "flag\|.jpg\|.docx"
+
+4.5. Xem thông tin metadata của file (istat)
+
+istat -o 2048 disk.img <inode_number>
+
+    Thông tin: MAC time, size, allocated/unallocated, linked filename...
+
+4.6. Extract (copy) file ra ngoài (icat)
+
+icat -o 2048 disk.img <inode_number> > extracted_file.docx
+
+    Dùng để phục hồi file, extract flag CTF, file malware...
+
+4.7. Recover all deleted file tự động
+
+tsk_recover -o 2048 disk.img ./recovered_files/
+
+    Dùng để carve all file chưa bị ghi đè.
+
+4.8. Tạo timeline forensic
+(1) Tạo bodyfile bằng fls
+
+fls -o 2048 -m C:/ -r disk.img > bodyfile.txt
+
+(2) Dựng timeline với mactime
+
+mactime -b bodyfile.txt > timeline.csv
+
+    Dễ dàng filter file bị sửa/xóa/thêm theo thời gian (giả lập các vụ phá hoại, lấy cắp dữ liệu...).
+
+5. Trick phân tích nhanh trong CTF, forensics thực tế
+
+    Tìm file ảnh đã xóa:
+
+fls -o 2048 -r disk.img | grep ".jpg"
+
+Sau đó dùng icat extract ra test bằng file hoặc exiftool.
+
+Tìm file ẩn (không có tên):
+List deleted file (không tên):
+
+fls -o 2048 -r -d disk.img
+
+Tìm Registry, System file (Windows):
+
+fls -o 2048 -r disk.img | grep -i 'system\|sam\|ntuser.dat'
+
+Carving unallocated data (phục hồi file chưa bị index):
+
+    blkls -o 2048 disk.img > unallocated.img
+
+    Sau đó dùng photorec, foremost, binwalk để carve file trong unallocated.img.
+
+6. Automation/script nâng cao với Sleuth Kit
+
+    Viết bash script tự động extract tất cả file loại đặc biệt:
+
+    for inode in $(fls -o 2048 -r disk.img | grep ".pdf" | awk '{print $2}'); do
+      icat -o 2048 disk.img $inode > "file_$inode.pdf"
+    done
+
+    Parse timeline, tự động gửi về SIEM, alert khi có event lạ.
+
+7. Kết hợp với các tool khác
+
+    Autopsy: GUI cho Sleuth Kit, mạnh về index, search, timeline, carving, reporting.
+
+    Bulk Extractor: Dò số thẻ tín dụng, email, keyword trong disk image.
+
+    Plaso/Log2Timeline: Timeline analysis đa dạng, nhiều artifact hơn.
+
+    Foremost, Photorec: Carving file nâng cao từ unallocated.
+
+    binwalk, exiftool: Extract file ẩn trong ảnh, phân tích metadata.
+
+8. Use-case thực tế & CTF
+
+    Phục hồi file đã xóa (flag CTF, file log, ảnh, docx…)
+
+    Truy vết hành động: Khi nào file bị xóa, file nào bị ghi đè, chỉnh sửa lần cuối.
+
+    Dò tìm malware persistence: Autorun, script lạ, file bị đổi tên.
+
+    Điều tra insider threat: Trích log, tìm tài liệu bị leak/xóa.
+
+    Bẻ khóa pass Word/Excel: Carve file đã xóa, extract key file.
+
+    Phân tích disk lạ (USB, thẻ nhớ): Phục hồi dữ liệu, tìm dữ liệu ẩn/steganography.
+
+9. Các lưu ý pháp lý, an toàn
+
+    Luôn mount image dạng readonly, không phân tích trực tiếp trên máy thật.
+
+    Không ghi đè lên image gốc, luôn làm việc trên bản copy.
+
+    Đảm bảo ghi log, báo cáo hash MD5/SHA1 của image khi làm forensic.
+
+10. Tài nguyên, reference, cheat sheet
+
+    TSK Doc & Download
+
+    TSK Cheat Sheet PDF
+
+    Autopsy (GUI for TSK)
+
+    DFIR blog hướng dẫn Sleuth Kit thực chiến
+
+11. Kết luận
+
+Sleuth Kit là bộ CLI tool không thể thiếu cho điều tra số, forensic, pentest, blue team, CTF:
+
+    Trích xuất, phân tích, phục hồi dữ liệu cực chi tiết trên mọi disk image.
+
+    Dùng độc lập hoặc tích hợp automation, workflow lớn.
+
+    Kết hợp với GUI (Autopsy) hoặc các tool khác để tăng hiệu quả.

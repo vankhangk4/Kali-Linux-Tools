@@ -1,0 +1,151 @@
+1. Wifite là gì?
+
+    Wifite/Wifite2 là tool automation pentest Wi-Fi mã nguồn mở, chạy CLI, giúp:
+
+        Scan & lọc các AP (WEP, WPA, WPA2, WPA3-Transition, WPS)
+
+        Tự động bắt handshake, deauth client, fake AP (Evil Twin), fake captive portal
+
+        Brute-force pass với wordlist, check WPS với Reaver/Bully/Pixiewps, auto retry, save log/report
+
+        Hỗ trợ cả batch pentest nhiều AP liên tục
+
+2. Cài đặt Wifite/Wifite2
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install wifite
+
+    Kali Linux luôn có bản mới (wifite2).
+
+B. Cài bản mới nhất (github)
+
+git clone https://github.com/derv82/wifite2.git
+cd wifite2
+sudo python3 setup.py install
+# hoặc chạy luôn: sudo python3 wifite.py
+
+C. Kiểm tra
+
+wifite --help
+
+3. Workflow sử dụng Wifite cơ bản
+A. Scan và chọn target
+
+sudo wifite
+
+    Tự động detect card Wi-Fi hỗ trợ monitor mode
+
+    Scan toàn bộ Wi-Fi, show bảng AP, loại mã hóa (WEP, WPA, WPS...), cường độ sóng, client kết nối.
+
+B. Chọn mục tiêu (AP) để tấn công
+
+    Dùng phím số/space chọn nhiều AP cùng lúc (batch attack)
+
+    Có thể lọc chỉ attack WPA/WPA2/WEP/WPS bằng option hoặc config
+
+C. Attack – Bắt handshake & brute-force
+
+    Wifite sẽ:
+
+        Deauth client để ép reconnect (tự động thu handshake WPA)
+
+        Nếu có WPS, tự động attack WPS (Reaver, Bully, Pixiewps)
+
+        Nếu là WEP, tự động gather IV, attack ARP replay, crack key auto
+
+        Khi có handshake, tự động brute-force bằng wordlist (mặc định hoặc custom)
+
+    Khi crack pass thành công, pass sẽ hiển thị & lưu về log/report
+
+4. Tùy chọn nâng cao, automation mạnh của Wifite
+A. Custom wordlist brute-force
+
+wifite --dict /path/to/wordlist.txt
+
+    Dùng bất kỳ wordlist (rockyou.txt, custom, CEWL, crunch, weakpass…)
+
+B. Chọn attack mode
+Option	Ý nghĩa
+--wep	Chỉ attack WEP
+--wpa	Chỉ attack WPA/WPA2
+--wps	Chỉ attack WPS (Reaver/Bully/Pixiewps)
+--pmkid	Thu thập PMKID attack (crack WPA2 mới, không cần client)
+C. Tùy chỉnh scan & attack
+
+wifite --kill                 # Kill NetworkManager, tránh xung đột card
+wifite --no-wpa               # Bỏ qua WPA
+wifite --no-wps               # Bỏ qua WPS
+wifite --force                # Bỏ warning, ép chạy (card yếu)
+wifite --pixie-dust           # Bật PixieDust Attack cho WPS vulnerable
+wifite --clients-only         # Chỉ attack AP có client đang kết nối
+wifite --timeout 900          # Set timeout (giây) cho từng attack
+
+# Kết hợp: sudo wifite --wpa --clients-only --dict mylist.txt
+
+D. Lưu, quản lý report
+
+    Log file, handshake .cap, pass crack, AP info lưu vào thư mục mặc định (thường ~/wifite/)
+
+    Có thể lấy .cap để brute-force ngoài bằng hashcat/aircrack-ng
+
+5. Fake AP, captive portal, Evil Twin nâng cao
+
+    Wifite2 tích hợp sẵn fake AP + captive portal:
+
+        Khi chọn Evil Twin, Wifite tự động fake 1 AP giống AP thật → ép client connect → hiển thị trang phishing bắt credential (dạng portal hoặc pass Wi-Fi)
+
+        Log lại credential nhập vào, hỗ trợ brute-force thông qua pass victim nhập
+
+6. Một số mẹo automation, tối ưu, workflow mạnh
+
+    Batch pentest nhiều AP tự động: chọn nhiều AP, để Wifite auto attack từng AP → tiết kiệm thời gian pentest lab, nội bộ.
+
+    Kết hợp nhiều tool: Wifite sẽ tự động dùng aircrack-ng, cowpatty, reaver, bully, pixiewps, hashcat nếu có cài (không cần tự gọi thủ công).
+
+    Dùng output .cap để brute ngoài (hashcat mạnh hơn):
+
+    hashcat -m 22000 /path/to/handshake.hc22000 wordlist.txt
+
+    Tích hợp với crunch/cewl/wordlistctl để generate wordlist phù hợp từng mục tiêu, tăng xác suất crack pass
+
+    Script hóa toàn bộ lab pentest với nhiều card Wi-Fi: chạy song song, tự động log, export report.
+
+7. Fix lỗi thực tế & best practice
+Lỗi	Cách xử lý
+Không detect card Wi-Fi	Card không hỗ trợ monitor/injection, thử USB khác, cài driver, tắt NetworkManager
+Scan không ra AP	Để gần AP, chọn channel, tăng thời gian scan
+Không bắt được handshake	Dùng --clients-only, ép deauth, chờ có client kết nối, thử fake AP nếu vẫn không ra
+Brute không ra pass	Wordlist yếu, cần custom list, chuyển sang hashcat brute ngoài
+Không attack được WPS	AP đã patch/harden, WPS lock, thử PixieDust, hoặc brute thủ công
+Tool treo/lỗi GUI	Restart, kill NetworkManager, chạy sudo, update Python/Pyqt
+Không lưu được handshake	Kiểm tra permission, không đủ disk, check output folder
+8. So sánh Wifite với các tool khác
+Tool	Ưu điểm Wifite/Wifite2	Khác biệt
+Wifite/Wifite2	Tự động hóa, batch pentest, fake AP, brute nhiều AP, log đẹp	Không GUI, cần card tốt, brute mask yếu
+aircrack-ng	Mạnh về brute, script hóa, mask attack	Không automation toàn bộ workflow, không fake AP
+airgeddon	CLI menu, fake AP mạnh, phishing đa dạng	Không batch attack nhiều AP dễ như wifite, không brute WPA mạnh
+Fern WiFi Cracker	GUI, friendly cho newbie	Không mạnh batch automation, fake AP yếu hơn
+9. Tài liệu, link hữu ích
+
+    Wifite2 Github
+
+    Aircrack-ng
+
+    Pixiewps (WPS attack)
+
+    PayloadAllTheThings – WiFi
+
+    Hacktricks WiFi
+
+    SecLists Wordlist
+
+    hashcat
+
+Tóm tắt nhanh
+
+    Wifite/Wifite2: tool automation pentest Wi-Fi mạnh nhất cho beginner/CTF/pentest lab, batch attack, bắt handshake, brute-force, fake AP, attack WEP/WPA/WPA2/WPS, save log/report, script hóa toàn bộ workflow pentest.
+
+    Nên phối hợp wordlist custom, chọn AP có client, brute .cap với hashcat, chọn card Wi-Fi mạnh hỗ trợ monitor/injection.
+
+    Phối hợp với aircrack-ng, hashcat, reaver, bully, wifiphisher để hoàn thiện workflow pentest Wi-Fi chuyên nghiệp.

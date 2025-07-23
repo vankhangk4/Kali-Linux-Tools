@@ -1,0 +1,230 @@
+1. Hashcat là gì?
+
+    Hashcat là tool crack hash mạnh nhất hiện nay (support cả CPU & GPU), đa nền tảng, cực nhiều thuật toán:
+
+        NTLM/LM, MD5, SHA1/2/3, bcrypt, scrypt, PBKDF2, HMAC, MySQL, MSSQL, Kerberos, WPA/WPA2, Office, PDF, ZIP, RAR, Ethereum, v.v.
+
+    Hỗ trợ brute-force, dictionary, combinator, hybrid, rule-based, mask attack (theo pattern), wordlist tùy chỉnh, filter, script tự động hóa.
+
+    Hiệu suất rất cao (nhanh hơn John the Ripper), dùng tốt với GPU (Nvidia/AMD/Intel).
+
+2. Cài đặt Hashcat
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install hashcat
+
+(Luôn nên update driver GPU nếu dùng GPU crack)
+B. Tải bản mới nhất (mọi OS)
+
+    https://hashcat.net/hashcat/
+
+    Giải nén, chạy trực tiếp (Windows/Mac/Linux đều hỗ trợ).
+
+C. Kiểm tra
+
+hashcat --help
+
+3. Các mode crack cơ bản
+Mode	Ý nghĩa
+0	Dictionary attack (wordlist)
+3	Mask attack (pattern brute-force)
+6	Combinator (2 wordlist)
+7	Hybrid (wordlist + mask)
+1	Brute-force
+-a 0	Dictionary attack
+-a 3	Mask attack
+4. Crack hash cơ bản – workflow chuẩn
+A. Chuẩn bị:
+
+    File chứa hash (hash.txt), mỗi dòng 1 hash.
+
+    Wordlist (rockyou.txt, SecLists, custom list...).
+
+B. Xác định loại hash
+
+Thường sẽ là:
+
+    NTLM: Windows (mode 1000)
+
+    MD5: Web, CTF (mode 0)
+
+    SHA1: Web, API (mode 100)
+
+    WPA2: WiFi (mode 22000/2500/16800)
+
+    bcrypt: Linux $2y$... (mode 3200)
+
+    Kerberos AS-REP: mode 18200, 13100...
+
+Danh sách mã mode:
+https://hashcat.net/wiki/doku.php?id=example_hashes
+C. Crack dictionary cơ bản
+
+hashcat -m 0 -a 0 -o found.txt hash.txt wordlist.txt
+
+    -m: loại hash (vd: 0=MD5, 1000=NTLM, 22000=WPA2)
+
+    -a: mode attack (0=dictionary)
+
+    -o: lưu kết quả
+
+Ví dụ:
+
+    MD5:
+
+hashcat -m 0 -a 0 hash.txt rockyou.txt
+
+NTLM:
+
+hashcat -m 1000 -a 0 hash.txt rockyou.txt
+
+WPA2 (hccapx/22000):
+
+    hashcat -m 22000 -a 0 wifi.hc22000 rockyou.txt
+
+5. Crack nâng cao – mask attack, rule-based, hybrid
+A. Mask attack (brute pattern)
+
+hashcat -m 0 -a 3 hash.txt ?d?d?d?d?d?d
+
+    ?d: số, ?l: chữ thường, ?u: chữ hoa, ?s: ký tự đặc biệt, ?a: mọi ký tự.
+
+    Ví dụ: Crack pass 6 số: ?d?d?d?d?d?d
+
+    Ví dụ: Pass có dạng Abc123!:
+
+    hashcat -m 0 -a 3 hash.txt ?u?l?l?d?d?d?s
+
+B. Rule-based attack (biến thể wordlist)
+
+hashcat -m 0 -a 0 hash.txt rockyou.txt -r rules/best64.rule
+
+    Rule file: biến thể wordlist (thêm số, hoa/thường, nối chuỗi...)
+
+C. Hybrid attack (wordlist + mask)
+
+hashcat -m 0 -a 6 hash.txt wordlist.txt ?d?d
+
+    Thử từng wordlist nối thêm 2 số phía sau.
+
+6. Crack hash Windows, WiFi, Office, AD, Kerberos...
+A. Windows NTLM hash
+
+hashcat -m 1000 -a 0 ntlm.txt wordlist.txt
+
+B. WPA2 (WiFi)
+
+    Dùng hashcat với file .22000 (từ hcxpcaptool):
+
+    hashcat -m 22000 -a 0 wifi.22000 rockyou.txt
+
+C. Office (Excel/Word/Powerpoint)
+
+    Crack file Office 2007+ (mode 9500+):
+
+    office2john.py secret.docx > hash.txt
+    hashcat -m 9600 hash.txt wordlist.txt
+
+D. Kerberos AS-REP Roasting
+
+    Crack hash dump từ kerbrute/impacket:
+
+    hashcat -m 18200 hash.txt wordlist.txt
+
+7. Tối ưu hiệu suất, GPU/CPU, session
+
+    Xem device:
+
+hashcat -I
+
+Chạy trên GPU cụ thể:
+
+hashcat -d 1 -m 0 hash.txt wordlist.txt
+
+Pause/Resume session:
+
+    Dừng: nhấn q hoặc p
+
+    Resume:
+
+hashcat --restore
+
+Session name:
+
+    hashcat --session mycrack -m 0 hash.txt wordlist.txt
+    hashcat --session mycrack --restore
+
+Benchmark tốc độ:
+
+    hashcat -b
+
+8. Filter, log, automation, phân tích output
+
+    Lọc pass chưa crack:
+
+hashcat --show --left -m 0 hash.txt found.txt
+
+Chỉ log pass thành công:
+
+hashcat -m 0 -a 0 -o cracked.txt hash.txt wordlist.txt
+
+Batch script nhiều file:
+
+    for file in *.txt; do
+      hashcat -m 0 -a 0 "$file" wordlist.txt
+    done
+
+    Xuất log chi tiết, kết quả đẹp:
+
+        -o result.txt
+
+        Dùng Python, awk, Excel để phân tích.
+
+9. Crack kết hợp với tool khác (workflow pentest/CTF)
+
+    Samdump2 + hashcat:
+
+        Dump hash Windows:
+
+        samdump2 SYSTEM SAM > ntlm.txt
+        hashcat -m 1000 -a 0 ntlm.txt wordlist.txt
+
+    kerbrute/impacket + hashcat:
+
+        Crack AS-REP roast, TGT hash, Kerberos...
+
+    WiFi:
+
+        hcxpcapngtool (convert .cap/.pcap sang 22000) → hashcat.
+
+10. Các lỗi thường gặp và fix nhanh
+Lỗi	Cách xử lý
+“No hashes loaded”	Hash format sai, thiếu dòng trống, sai mode
+Crack chậm	Check GPU driver, giảm wordlist, thử mask/rule
+Hash quá mạnh (bcrypt/scrypt)	Chỉ nên crack CPU, brute từng phần, chọn wordlist tốt
+“Hashcat exhausted”	Đã thử hết, không tìm thấy pass
+“Permission denied”	Chạy với sudo/root hoặc folder write
+11. Tài liệu, link hữu ích
+
+    Hashcat Official
+
+    Hashcat Examples
+
+    Hashcat Modes List
+
+    SecLists Wordlists
+
+    PayloadAllTheThings Password Cracking
+
+    CrackStation (hash identify)
+
+Tóm tắt nhanh
+
+    Hashcat: tool crack hash mạnh nhất, support cực nhiều loại hash (Windows, Linux, web, WiFi, office, Kerberos…).
+
+    Hỗ trợ attack đa dạng: dictionary, mask, hybrid, rule, combinator, session, filter, batch automation.
+
+    Tối ưu GPU/CPU, script hoá mọi workflow, cực hữu ích pentest/CTF/audit nội bộ.
+
+    Luôn xác định đúng loại hash, mode, chọn wordlist chuẩn và biết giới hạn của brute-force (hash mạnh, pass dài cần attack đặc biệt).

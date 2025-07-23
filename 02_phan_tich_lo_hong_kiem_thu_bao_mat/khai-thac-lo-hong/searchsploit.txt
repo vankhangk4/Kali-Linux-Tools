@@ -1,0 +1,143 @@
+1. Giới thiệu SearchSploit là gì?
+
+SearchSploit là một công cụ dòng lệnh giúp bạn tìm kiếm nhanh các exploit, PoC (Proof of Concept) có sẵn từ Exploit-DB (Database nổi tiếng chứa hàng chục nghìn exploit/public vulnerability script).
+
+    Có sẵn trên Kali Linux, Parrot OS hoặc cài qua GitHub.
+
+    Không cần mạng vì nó lưu database local (tìm kiếm cực nhanh, không cần truy cập web).
+
+2. Cài đặt & cập nhật SearchSploit
+Cài đặt (nếu chưa có):
+
+sudo apt update
+sudo apt install exploitdb
+
+Cập nhật database Exploit-DB:
+
+searchsploit -u
+
+Lưu ý: Nên update thường xuyên để có exploit mới.
+3. Các lệnh cơ bản
+Tìm kiếm exploit theo từ khóa
+
+searchsploit <keyword>
+
+Ví dụ:
+
+searchsploit samba
+searchsploit windows 10
+searchsploit apache struts
+searchsploit ms17-010
+
+Tip: Từ khóa càng cụ thể càng tốt. Có thể tìm theo phần mềm, CVE, OS, năm...
+Tìm kiếm chính xác với nhiều từ khoá:
+
+searchsploit openbsd 6.6
+searchsploit 'phpmyadmin 4.8'
+
+Tìm kiếm theo CVE:
+
+searchsploit CVE-2017-0144
+
+4. Các tùy chọn nâng cao
+Lệnh	Mô tả
+-w	Hiện link Exploit-DB trên web
+-x	Xem nội dung exploit nhanh trên terminal
+-p	Hiện đường dẫn tuyệt đối file exploit trên máy
+-t	Hiển thị kết quả dạng bảng đơn giản (table)
+-j	Xuất ra định dạng JSON (lập trình tự động hóa)
+-c	Phân biệt hoa/thường
+-s	Chỉ show script liên quan (bỏ giấy tờ, doc v.v)
+
+Ví dụ thực tế:
+
+searchsploit -w apache struts      # Tìm + có link web
+searchsploit -x 42315             # Xem nội dung exploit 42315 trực tiếp
+searchsploit -p samba 3.0         # Tìm và hiện path tuyệt đối
+searchsploit -t ms17-010          # Hiện bảng đơn giản
+searchsploit -j 'ftp server'      # Xuất json, tiện parse script
+
+5. Trích xuất, sao chép hoặc sử dụng exploit
+Sao chép exploit vào thư mục làm việc:
+
+searchsploit -m <ID hoặc path>
+
+Ví dụ:
+
+searchsploit -m 42315
+searchsploit -m exploits/windows/remote/42315.py
+
+Sau đó bạn sẽ có bản copy ở thư mục hiện tại để tùy ý chỉnh sửa, chạy thử.
+6. Kết hợp SearchSploit với Metasploit
+
+    SearchSploit sẽ báo nếu exploit đã có module Metasploit, bạn chỉ việc search theo tên trong msfconsole:
+
+        Ví dụ: Kết quả search thấy msf:exploit/windows/smb/ms17_010_eternalblue
+
+        Vào msfconsole:
+
+        use exploit/windows/smb/ms17_010_eternalblue
+
+7. Một số mẹo và trick nâng cao
+Tìm lỗ hổng theo phiên bản cụ thể
+
+    Rất hữu ích khi scan ra banner version (vd: Apache 2.4.49)
+
+searchsploit apache 2.4.49
+
+Tìm kiếm phân biệt hoa/thường
+
+searchsploit -c MySQL
+
+Chỉ tìm PoC code, không lấy giấy tờ/whitepaper:
+
+searchsploit -s phpunit
+
+Xem nội dung nhanh, không cần sao chép:
+
+searchsploit -x exploits/unix/webapps/46635.py
+
+Tích hợp vào script hoặc automation
+
+    Dùng kết quả định dạng JSON để tự động lọc, parse.
+
+searchsploit -j 'apache 2.4' | jq .
+
+Tìm kiếm bằng regex (advanced)
+
+    Tìm các lỗ hổng có pattern đặc biệt (dùng grep lọc lại):
+
+searchsploit samba | grep -i "remote"
+
+8. Update SearchSploit thường xuyên
+
+Cực kỳ quan trọng với pentester:
+
+searchsploit -u
+
+Và luôn note lại exploit mới khi gặp hệ thống mới, version mới.
+9. Một số vấn đề thường gặp
+
+    Database quá cũ: Cứ 2-3 tuần nên update.
+
+    Tìm không ra: Từ khóa chưa đúng, thử tên viết tắt/phổ biến, hoặc thử theo cve.
+
+    Một số PoC là “giấy tờ” hoặc ngôn ngữ khó chạy: Phải chỉnh sửa code, hoặc đọc kỹ hướng dẫn đi kèm.
+
+10. Tài liệu tham khảo
+
+    Exploit-DB Online
+
+    Searchsploit Wiki
+
+    man searchsploit hoặc searchsploit -h
+
+Tổng kết:
+
+    SearchSploit là vũ khí tra cứu exploit mạnh mẽ cho mọi pentester và red teamer.
+
+    Luôn update database mới.
+
+    Kết hợp tìm kiếm thông minh (version, cve, os).
+
+    Sử dụng cùng với Metasploit, hoặc tích hợp vào tool/script pentest riêng.

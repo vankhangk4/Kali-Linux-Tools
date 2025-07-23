@@ -1,0 +1,225 @@
+1. wget là gì?
+
+    wget là công cụ dòng lệnh dùng để tải file từ Internet qua HTTP, HTTPS, FTP (và một số giao thức khác).
+
+    Ưu điểm: Tự động hóa, hỗ trợ resume, tải recursive, chạy trên Linux/Mac/Windows, không cần giao diện đồ họa.
+
+2. Cài đặt wget
+
+    Ubuntu/Debian:
+
+sudo apt update && sudo apt install wget
+
+CentOS/RHEL:
+
+    sudo yum install wget
+
+    Windows:
+    Có thể dùng qua Gow, GnuWin32, hoặc WSL.
+
+3. Cách dùng cơ bản
+Tải 1 file:
+
+wget http://example.com/file.zip
+
+Tải và đổi tên:
+
+wget -O tenmoi.zip http://example.com/file.zip
+
+Tải nhiều file từ danh sách:
+
+wget -i danhsach.txt
+# danhsach.txt: mỗi dòng 1 link
+
+4. Tùy chọn quan trọng nhất
+Tham số	Ý nghĩa
+-O FILE	Lưu file với tên FILE
+-c	Resume tải file dở dang (nếu hỗ trợ)
+-b	Chạy nền (background)
+-q	Yên lặng, không hiện log
+-nv	Giảm log ra mức cơ bản
+-P DIR	Lưu file vào thư mục DIR
+--limit-rate=xxx	Giới hạn tốc độ tải (VD: --limit-rate=200k)
+--user/--password	Đăng nhập khi cần authentication
+--no-check-certificate	Bỏ qua kiểm tra SSL (nên cẩn thận, chỉ dùng khi bắt buộc)
+--continue	Như -c, tiếp tục tải file đã tải dở
+--retry-connrefused	Tự động retry nếu server từ chối
+5. Tải recursive (tải nhiều file, tải cả website)
+Tải toàn bộ website về local:
+
+wget --mirror -p --convert-links -P ./local_dir http://example.com
+
+    --mirror: Chế độ mirror (như backup)
+
+    -p: Lấy đủ các file cần cho 1 trang web (ảnh, CSS, JS...)
+
+    --convert-links: Chuyển link sang local
+
+    -P ./local_dir: Lưu toàn bộ vào thư mục local_dir
+
+Tải thư mục (trên FTP/HTTP có directory listing)
+
+wget -r ftp://user:pass@ftp.example.com/pub/
+
+    -r: Recursive download
+
+Tải file cùng định dạng (ví dụ: pdf)
+
+wget -r -A pdf http://example.com/docs/
+
+    -A pdf: Chỉ lấy file .pdf
+
+6. Resume tải file (tiếp tục tải nếu bị ngắt)
+
+wget -c http://example.com/bigfile.iso
+
+7. Giới hạn tốc độ tải
+
+wget --limit-rate=200k http://example.com/largefile.iso
+
+8. Tải qua proxy
+
+wget -e use_proxy=yes -e http_proxy=ip:port http://example.com/file.zip
+
+    Đặt biến môi trường để tự động:
+
+    export http_proxy=http://ip:port
+    export https_proxy=https://ip:port
+
+9. Download file cần đăng nhập
+Đăng nhập HTTP basic:
+
+wget --user=USERNAME --password=PASSWORD http://example.com/secure/file.zip
+
+Dùng cookie:
+
+    Đăng nhập web trên trình duyệt, xuất cookie.txt (có thể dùng EditThisCookie)
+
+    Sau đó:
+
+    wget --load-cookies cookie.txt http://example.com/protectedfile.zip
+
+10. User-Agent, Referrer & Header
+
+    Đổi User-Agent:
+
+wget --user-agent="Mozilla/5.0" http://example.com
+
+Thêm referrer:
+
+wget --referer="http://google.com" http://example.com
+
+Thêm header tuỳ ý:
+
+    wget --header="X-My-Header: value" http://example.com
+
+11. Bỏ qua SSL cert (thường gặp khi site có SSL self-signed)
+
+wget --no-check-certificate https://selfsigned.example.com/file.zip
+
+12. Tự động tải nhiều lần khi lỗi, tự động reconnect
+
+wget --tries=10 --wait=3 --retry-connrefused http://example.com
+
+    --tries: Số lần thử
+
+    --wait: Đợi mấy giây giữa các lần
+
+    --retry-connrefused: Retry khi server từ chối
+
+13. Automation (cronjob, shell script)
+
+Ví dụ script tải dữ liệu mỗi ngày:
+
+#!/bin/bash
+wget -q -O /tmp/daily.csv http://example.com/data/daily.csv
+if [ $? -eq 0 ]; then
+  echo "Download thành công" >> /var/log/wget.log
+else
+  echo "Download thất bại" >> /var/log/wget.log
+fi
+
+    Đặt vào crontab -e để tự động chạy định kỳ.
+
+14. Tải file qua HTTPS với password trên link (cần chú ý bảo mật)
+
+wget "https://user:password@example.com/file.zip"
+
+    Cảnh báo: Password sẽ xuất hiện trong history!
+
+15. Một số trick nâng cao
+
+    Tải nhiều file song song:
+    wget bản gốc không hỗ trợ, dùng aria2c nếu cần song song thật sự, hoặc chạy nhiều wget trong background:
+
+wget URL1 & wget URL2 & wget URL3 &
+
+Tải toàn bộ ảnh trên 1 trang (sử dụng -r, -l, -A):
+
+wget -r -l1 -A jpg,jpeg,png,gif http://example.com/gallery/
+
+    -l1: Độ sâu tối đa 1 cấp.
+
+Không lưu thư mục gốc khi tải recursive:
+
+    wget -r -np -nH --cut-dirs=1 http://example.com/dir/
+
+        -np: Không "ngược" lên thư mục cha
+
+        -nH: Không lưu theo hostname
+
+        --cut-dirs=N: Bỏ qua N cấp thư mục đầu khi lưu local
+
+16. Các lỗi thường gặp & xử lý
+
+    SSL Certificate Error:
+    Thường do self-signed cert, fix bằng --no-check-certificate (không an toàn nếu là site lạ!)
+
+    Timeout/network error:
+    Dùng --timeout=seconds để tăng thời gian timeout.
+
+    Bị block User-Agent:
+    Dùng --user-agent giả mạo UA của trình duyệt.
+
+    Tải file bị gián đoạn:
+    Dùng -c để resume, kiểm tra đủ dung lượng ổ đĩa.
+
+17. Bảo mật khi dùng wget
+
+    Không dùng tài khoản mật khẩu trực tiếp trên command line nếu có thể.
+
+    Không dùng --no-check-certificate trừ khi biết chắc site đó an toàn.
+
+    Cảnh giác với file tải về từ web lạ.
+
+18. Một số câu lệnh thực tế cực nhanh
+
+# Tải toàn bộ site, max depth 2:
+wget -r -l2 http://example.com
+
+# Tải về và giải nén luôn (nếu file zip)
+wget -O file.zip URL && unzip file.zip
+
+# Tải 1 file lớn nhưng chỉ lấy 10MB đầu
+wget --limit-rate=1m --quota=10m URL
+
+# Kiểm tra URL còn sống không (không tải file)
+wget --spider http://example.com/file.zip
+
+19. Tài liệu và tham khảo
+
+    man wget
+
+    GNU wget official
+
+    explainshell.com
+
+    wget cheat sheet (TLDR)
+
+20. Tổng kết
+
+    wget là công cụ cực mạnh, nên biết của mọi admin, dev, pentester, dân IT!
+
+    Nắm chắc các option, kết hợp script, tự động hóa, xử lý đa dạng các bài toán tải file/web/data.
+
+    Đừng quên bảo mật, kiểm tra kỹ các script tải file về máy.

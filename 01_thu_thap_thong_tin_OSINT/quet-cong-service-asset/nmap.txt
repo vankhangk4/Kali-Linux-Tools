@@ -1,0 +1,117 @@
+nmap (Network Mapper) là công cụ quét mạng/port scanner nổi tiếng nhất thế giới, “must-have” cho pentester, sysadmin, admin mạng và cả dân CTF. Nó cho phép khám phá hệ thống, phát hiện port/service, xác định OS, scan lỗ hổng, brute-force, scripting... và nhiều hơn nữa.
+1. Tác dụng của nmap
+
+    Quét port, xác định dịch vụ đang chạy trên host (service detection).
+
+    Xác định hệ điều hành (OS detection), version service, script scan (NSE), check lỗ hổng.
+
+    Xác định host nào đang online (ping sweep).
+
+    Brute-force credential, enumerate thông tin (SMB, RDP, HTTP, DNS, FTP, SSH...).
+
+    Lập sơ đồ mạng, kiểm thử firewall, kiểm tra bảo mật.
+
+2. Cách dùng nmap cơ bản
+1. Quét port phổ biến trên một IP
+
+nmap <ip>
+
+    Quét ~1,000 port phổ biến (TCP) trên host.
+
+2. Quét tất cả các port
+
+nmap -p- <ip>
+
+    Quét tất cả 65535 port TCP.
+
+3. Xác định dịch vụ & phiên bản
+
+nmap -sV <ip>
+
+    Dò service/version trên các port mở.
+
+4. Xác định hệ điều hành
+
+nmap -O <ip>
+
+    OS fingerprinting (nên chạy cùng với các flag khác).
+
+5. Quét nhanh toàn mạng (ping sweep)
+
+nmap -sn 192.168.1.0/24
+
+    Chỉ check host nào đang online, không quét port.
+
+6. Quét port UDP
+
+nmap -sU -p 53,161 <ip>
+
+    Quét UDP port (DNS, SNMP v.v.)
+
+7. Quét với script (NSE - Nmap Scripting Engine)
+
+    Script SMB enum:
+
+nmap --script=smb-enum-users -p445 <ip>
+
+Quét lỗ hổng CVE:
+
+nmap --script=vuln <ip>
+
+Brute-force FTP:
+
+    nmap --script=ftp-brute -p21 <ip>
+
+8. Quét stealth (khó bị phát hiện hơn)
+
+nmap -sS <ip>
+
+    SYN scan, ít “ồn” hơn connect scan.
+
+9. Xuất kết quả ra file
+
+nmap -oN output.txt <ip>
+nmap -oX output.xml <ip>
+
+    -oN: text, -oX: XML (import sang nhiều tool khác).
+
+3. Một số tùy chọn hữu ích
+Tùy chọn	Ý nghĩa
+-p	Chỉ định port/dải port quét
+-A	Quét full: OS detect, version, script, trace
+-T4	Quét nhanh hơn (hoặc T5: rất nhanh, dễ bị phát hiện)
+-Pn	Bỏ qua ping, quét luôn dù host không trả lời ICMP
+--script=<name>	Chạy script NSE (dò lỗ hổng, brute-force, enum...)
+-iL <file>	Đọc list IP từ file
+-oN/-oX	Xuất kết quả ra file (txt, xml)
+4. Ví dụ thực tế
+
+    Quét full service, OS, script cho CTF/HTB:
+
+nmap -A -T4 <ip>
+
+Quét 100 port đầu cho toàn mạng:
+
+nmap -p1-100 192.168.1.0/24
+
+Scan UDP, kết hợp brute-force:
+
+    nmap -sU --script=snmp-brute -p 161 <ip>
+
+5. Kinh nghiệm thực chiến
+
+    Nên scan nhanh (ping sweep) trước để xác định host sống, sau đó quét sâu từng host.
+
+    Tùy bài pentest/CTF, script NSE là vũ khí cực mạnh!
+
+    Có thể bị tường lửa block, nên kết hợp với stealth scan, randomize port, tăng/giảm tốc độ.
+
+    Xuất kết quả xml dùng được với nhiều tool automation.
+
+6. Tài liệu tham khảo
+
+    Nmap Official Docs
+
+    Nmap Cheat Sheet
+
+    HackTricks Nmap

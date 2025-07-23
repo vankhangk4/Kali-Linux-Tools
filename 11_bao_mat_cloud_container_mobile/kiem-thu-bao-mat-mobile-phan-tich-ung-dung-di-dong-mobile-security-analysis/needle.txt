@@ -1,0 +1,193 @@
+1. Needle là gì?
+
+    Needle là framework pentest, mobile app security auditing cho iOS (tương tự drozer cho Android).
+
+    Được phát triển bởi MWR InfoSecurity/NCC Group.
+
+    Hỗ trợ dynamic analysis mạnh: runtime hook, memory, keychain, binary patch, SSL pinning bypass, code injection...
+
+    Kết nối thiết bị iOS jailbreak qua SSH và sử dụng module/script tự động để pentest app dễ dàng.
+
+2. Điểm mạnh của Needle
+
+    Automation: Hàng trăm module built-in – audit file, keychain, plist, memory, class dump, database, URL scheme, NSUserDefaults, SQLi, network traffic, SSL pinning bypass...
+
+    Runtime instrumentation: Kết hợp Frida để hook function, bypass, inject code.
+
+    Tích hợp tốt với tool khác: Frida, Cycript, class-dump, radare2...
+
+    UI đơn giản, scripting mạnh, log rõ ràng, dễ viết module mới.
+
+    Hỗ trợ iOS từ 8.0+ (tốt nhất từ 9 đến 12, các bản iOS mới cần trick hơn).
+
+3. Yêu cầu trước khi dùng Needle
+
+    Thiết bị iOS đã jailbreak (hoặc simulator jailbreak nếu muốn)
+
+    Máy tính chạy Linux/Mac (Windows dùng WSL/VM)
+
+    Python 3.6+
+
+    SSH từ máy tính tới iOS (cài OpenSSH trên iOS), nên đổi port 2222, root/alpine (mặc định).
+
+    Frida-server đã chạy trên iOS (dùng Frida mới nhất, bản phù hợp với iOS kernel)
+
+    Một số tool phụ: class-dump, cycript, iproxy, scp, radare2 (tùy nhu cầu)
+
+4. Cài đặt Needle
+4.1. Cài trên máy tính (host)
+
+git clone https://github.com/mwrlabs/needle.git
+cd needle
+sudo pip3 install -r requirements.txt
+python3 setup.py install
+# Hoặc dùng pip: pip3 install needle
+
+4.2. Cài Frida-server trên iOS
+
+    Tải Frida-server phù hợp với iOS version
+
+    Upload vào /usr/sbin/ trên thiết bị, chmod +x, chạy background.
+
+scp frida-server-*-iphoneos-arm64 root@DEVICEIP:/usr/sbin/frida-server
+ssh root@DEVICEIP
+chmod +x /usr/sbin/frida-server
+frida-server &
+
+5. Cấu hình kết nối Needle
+
+    Needle mặc định SSH vào root@localhost:2222 hoặc config khác trong file cấu hình.
+
+    Nếu iOS không dùng port 2222:
+
+    needle --ip DEVICE_IP --port 22 --username root --password alpine
+
+    Nếu dùng USB: nên cài iproxy để forward cổng.
+
+iproxy 2222 22
+
+    Sử dụng file cấu hình custom:
+    needle --config config.cfg
+
+6. Các module & thao tác cơ bản (enumeration, static, dynamic)
+
+    list modules — Liệt kê tất cả module có sẵn (theo category: file, keychain, binary, dynamic, network, etc)
+
+    use <module> — Chọn module để khai thác (ví dụ: use binary/info/plist)
+
+    show options — Xem các tùy chọn của module hiện tại
+
+    set <option> <value> — Cấu hình tham số module
+
+    run — Chạy module đã chọn
+
+Ví dụ kiểm tra keychain:
+
+use keychain/basicdump
+set BUNDLE_ID com.example.target
+run
+
+7. Khai thác thực chiến với Needle
+7.1. Static Analysis
+
+    Plist/NSUserDefaults:
+    use binary/info/plist
+    use binary/info/userdefaults
+
+    Info.plist, cấu hình insecure, hardcoded secret
+    use binary/info/strings
+
+7.2. Keychain Extraction
+
+    use keychain/basicdump
+    Dump toàn bộ keychain cho app/bundle ID (cả password, token, API key nếu lưu local)
+
+7.3. Binary Analysis & Patch
+
+    use binary/info/class-dump
+    Dump class Objective-C, phân tích API expose.
+
+    use binary/patcher/injectdylib
+    Inject custom dylib vào binary app.
+
+7.4. Runtime Hooking (Dynamic/Fuzzing/Frida)
+
+    Frida scripting:
+    use runtime/frida/script_inject
+    Viết custom Frida script, inject vào process app đang chạy (hook function, dump param, bypass check).
+
+    Cycript:
+    use runtime/cycript/interactive
+    Thao tác runtime với Cycript.
+
+7.5. SSL Pinning Bypass
+
+    use runtime/ssl/mitm
+    Tự động patch SSL pinning, cho phép intercept traffic bằng Burp/ZAP/Charles...
+
+    use runtime/ssl/frida_ios13
+    (patch mới cho iOS >= 13).
+
+7.6. Network Traffic/Proxy
+
+    use network/traffic/capture
+    Tự động cấu hình proxy, MITM, ghi log traffic (HTTP/S).
+
+7.7. Memory Dump/Analysis
+
+    use memory/dump
+    Dump toàn bộ memory space của app (tìm token, secret, crypto key...).
+
+7.8. Database/SQLite Extraction
+
+    use storage/db/sqlite
+    Dump và truy vấn database SQLite nội bộ của app.
+
+8. Automation & scripting nâng cao
+
+    Có thể viết module mới cho Needle (Python), tái sử dụng các API có sẵn.
+
+    Kết hợp với Frida script để làm automation fuzzing, function enumeration, hook event...
+
+    Dùng Needle trong CI/CD cho Mobile DevSecOps pipeline (test tự động insecure storage, SSL, API, code injection...)
+
+9. Trick thực chiến / mẹo cho pentester
+
+    Khi test SSL pinning, dùng combo mitm + custom Frida script nếu gặp app obfuscate, nhiều lớp pinning.
+
+    Tích hợp Burp/ZAP/Charles với proxy của Needle, dễ log và fuzz traffic.
+
+    Nên kiểm tra tất cả app cài trên máy:
+    use app/list
+
+    Dùng module memory để tìm secret runtime mà static analysis không thấy.
+
+    Khi app nhiều binary, có thể dump hết class, function để map toàn bộ API surface.
+
+    Khi gặp lỗi Frida (do version hoặc patch iOS), thử rebuild lại frida-server đúng bản kernel.
+
+    Luôn backup file, dump log trước khi patch/inject để dễ revert hoặc phân tích sâu.
+
+10. So sánh Needle với các tool khác
+Tool	Ưu điểm	Nhược điểm
+Needle	Automation, dynamic analysis, Frida	Cần jailbreak, iOS mới support trickier
+Frida	Runtime hook, fuzz mạnh, đa nền tảng	Không automation workflow, cần script tay
+Objection	Dynamic, Frida, iOS/Android, user-friendly	Chưa automation sâu, không static mạnh
+class-dump	Dump class nhanh, static mạnh	Không dynamic
+Cycript	Runtime, interactive shell, trực quan	Chậm cập nhật, không mạnh như Frida
+11. Tài nguyên thực chiến, học tập
+
+    Needle GitHub (official)
+
+    Needle documentation
+
+    Frida (official)
+
+    Objection (Sensepost)
+
+    Burp Suite/ZAP Proxy
+
+    Tuts4You, Youtube: Needle tutorial
+
+    iOS Security Testing Guide
+

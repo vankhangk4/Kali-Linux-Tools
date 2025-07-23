@@ -1,0 +1,170 @@
+1. Crunch là gì?
+
+    Crunch là tool dòng lệnh chuyên tạo wordlist dựa theo pattern tùy biến – số lượng, ký tự, độ dài, charset tự chọn, pattern mask, nối wordlist, v.v.
+
+    Dùng cho brute-force (WiFi, SSH, hashcat, john, hydra, zip, v.v.), custom wordlist khi các list public không đủ hiệu quả.
+
+2. Cài đặt Crunch
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install crunch
+
+B. Kiểm tra
+
+crunch --help
+
+3. Cấu trúc lệnh cơ bản Crunch
+
+crunch <min> <max> [options]
+
+    <min>: độ dài tối thiểu của pass
+
+    <max>: độ dài tối đa
+
+4. Crunch cơ bản – tạo wordlist đơn giản
+A. Tất cả pass 6 ký tự số
+
+crunch 6 6 0123456789 -o pass6num.txt
+
+    Sẽ tạo tất cả pass từ 000000 đến 999999.
+
+B. Tất cả pass 8 ký tự chữ thường
+
+crunch 8 8 abcdefghijklmnopqrstuvwxyz -o pass8low.txt
+
+C. Pass 5-8 ký tự, chữ + số
+
+crunch 5 8 abcdefghijklmnopqrstuvwxyz0123456789 -o pass.txt
+
+5. Nâng cao – tạo wordlist theo pattern (mask)
+
+    Sử dụng placeholder (mask pattern):
+
+        @: chữ thường (abcdefghijklmnopqrstuvwxyz)
+
+        ,: chữ hoa (ABCDEFGHIJKLMNOPQRSTUVWXYZ)
+
+        %: số (0123456789)
+
+        ^: ký tự đặc biệt (!@#$%^&*()_+...)
+
+        Ví dụ: muốn pattern kiểu AA0000, thì pattern là ,,%%%%
+
+A. Ví dụ pattern: pass dạng 2 hoa, 4 số
+
+crunch 6 6 -t ,,%%%% -o pass_pattern.txt
+
+(Ví dụ output: AB1234, QR8765, ... )
+B. Pass bắt đầu bằng "admin" + 3 số
+
+crunch 8 8 -t admin%%% -o admin_pass.txt
+
+(Output: admin123, admin987, ... )
+C. Pass dạng 2 số - 2 hoa - 2 số
+
+crunch 6 6 -t %%,,%% -o custom.txt
+
+(VD: 12AB34, 99XR01...)
+6. Sử dụng charset custom
+
+    Dùng file charset (mỗi dòng 1 ký tự)
+
+crunch 4 4 -f /usr/share/crunch/charset.lst mixalpha-numeric-all-space -o word.txt
+
+Kết hợp ký tự tự chọn
+
+    crunch 6 6 abc123XYZ!@# -o customset.txt
+
+7. Giới hạn output (chống full disk, stream trực tiếp)
+
+    Giới hạn số lượng dòng
+
+crunch 8 8 -t admin%%% -c 1000 -o admin.txt
+
+(Chia file output, mỗi file 1000 dòng)
+
+Pipe trực tiếp vào tool brute-force (không ghi file)
+
+    crunch 8 8 abc123 | john --stdin hash.txt
+    crunch 8 8 abc123 | hashcat -m 0 hash.txt
+    crunch 6 6 0123456789 | hydra -l admin -P - ssh://192.168.1.1
+
+8. Ghép từ list – tạo pass biến thể (hybrid)
+
+    Ghép 2 list (dạng word1 + word2)
+
+    crunch 8 8 -t @@@@%%%% -o hybrid.txt
+
+    (Nếu cần ghép wordlist thật, nên dùng comboleetor, python, hoặc mask rule của hashcat/john)
+
+9. Một số tuỳ chọn mạnh khác
+Tham số	Ý nghĩa
+-t <pattern>	Định nghĩa pattern mask (như trên)
+-o <file>	File output
+-c <số dòng>	Chia file output
+-z <algo>	Nén file output khi tạo (gzip, bzip2, lzma)
+-b <MB>	Chia file theo size MB
+-l	Dòng dài nhất
+-s <start>	Bắt đầu từ chuỗi chỉ định
+-e <end>	Kết thúc tại chuỗi chỉ định
+
+Ví dụ:
+
+    Output ra file nén:
+
+    crunch 8 8 abc123 -z gzip -o - > pass.gz
+
+10. Workflow automation với crunch
+
+    Tạo wordlist tùy biến cho brute-force thực tế
+
+    crunch 8 8 -t User2024 -o custompass.txt
+    crunch 6 8 -t @@%%%% -o pattern.txt
+
+    Ghép biến thể wordlist đã crawl bằng CEWL/CUPP
+
+        Dùng script bash hoặc python để nối từ + số, hoặc pattern.
+
+11. Tính toán số lượng wordlist (không tạo file)
+
+crunch 6 6 0123456789 -q
+
+    Hiện ra số lượng pass sẽ sinh ra (giúp tránh full disk).
+
+12. Lưu ý khi dùng crunch (best-practice)
+
+    Cực kỳ cẩn thận với wordlist quá lớn! Có thể tạo file vài TB chỉ với pattern nhỏ.
+
+    Chỉ nên dùng crunch khi pattern pass của target đã khá rõ, hoặc cần brute mạnh (PIN, số, biến thể user, biến thể pass pattern công ty).
+
+    Nếu muốn “biến thể hóa” wordlist, nên dùng kết hợp rule của hashcat/john (đỡ tốn disk, sinh pass lúc brute).
+
+    Tận dụng pattern/pipe để tiết kiệm resource.
+
+13. So sánh crunch với các tool khác
+Tool	Ưu điểm Crunch	Khác biệt
+Crunch	Chủ động tạo pass theo pattern bất kỳ, cực nhanh, stream trực tiếp, nén file	Không crawl wordlist từ web, không hỗ trợ biến thể complex như hashcat rule
+Cupp	Tạo wordlist cá nhân hóa (tên, ngày sinh, pet...)	Không pattern mask, không brute lớn
+Mentalist	GUI tạo pass	Không stream, không pattern mask
+Hashcat mask	Sinh pass lúc brute, không tốn disk	Không output file wordlist
+14. Tài liệu, link hữu ích
+
+    Crunch Github
+
+    PayloadAllTheThings – Wordlist
+
+    SecLists
+
+    hashcat mask attack
+
+    crunch --help
+
+Tóm tắt nhanh
+
+    Crunch: tool tạo wordlist theo pattern cực mạnh, đa dạng, linh hoạt nhất khi brute-force (WiFi, hash, web, ssh...).
+
+    Hỗ trợ mask, charset, output file lớn, nén, pipe trực tiếp sang brute tool.
+
+    Nên dùng khi cần pass pattern rõ ràng, brute PIN, brute hybrid, biến thể brute mạnh, script hóa quy trình brute-force.
+

@@ -1,0 +1,180 @@
+1. Giới thiệu cURL là gì?
+
+    cURL (Client URL) là công cụ dòng lệnh dùng để gửi request HTTP, HTTPS, FTP, FTPS, SCP, SFTP, LDAP… và nhận về kết quả.
+
+    Phù hợp để test API, download/upload file, kiểm tra headers, brute-force, tự động hóa trong shell script, pentest, CTF…
+
+2. Cú pháp cơ bản
+
+curl [tùy chọn] [url]
+
+3. Những lệnh cURL cơ bản nhất
+Gửi GET request (mặc định)
+
+curl http://example.com
+
+Lưu output vào file
+
+curl http://example.com -o tenfile.html
+
+Hiển thị toàn bộ header
+
+curl -i http://example.com
+
+Chỉ lấy header
+
+curl -I http://example.com
+
+Tăng/giảm độ chi tiết
+
+curl -v http://example.com    # verbose, debug mọi request/response
+curl -s http://example.com    # silent, không hiện progress
+curl -S http://example.com    # hiện lỗi khi -s được bật
+
+4. Gửi dữ liệu với POST/PUT/PATCH
+POST với form (application/x-www-form-urlencoded)
+
+curl -X POST -d "username=test&password=123" http://example.com/login
+# hoặc:
+curl -d "username=test&password=123" http://example.com/login
+
+POST với JSON
+
+curl -X POST -H "Content-Type: application/json" -d '{"user":"test", "pass":"123"}' http://example.com/api
+
+PUT/PATCH
+
+curl -X PUT -d "name=newname" http://example.com/api/item/1
+curl -X PATCH -d "name=editname" http://example.com/api/item/1
+
+5. Đính kèm header (User-Agent, Token, Cookie, Referer, v.v.)
+
+curl -H "User-Agent: Mozilla/5.0" -H "Authorization: Bearer <token>" http://example.com
+curl -H "Cookie: PHPSESSID=abc123" http://example.com
+curl -e "https://google.com" http://example.com # Referer
+
+6. Download/upload file với cURL
+Download file
+
+curl -O http://example.com/file.zip      # giữ nguyên tên file
+curl -o myfile.zip http://example.com/file.zip # đổi tên file tải về
+
+Resume download (tải tiếp khi bị ngắt)
+
+curl -C - -O http://example.com/largefile.zip
+
+Upload file (form-data)
+
+curl -F "file=@/path/to/file.txt" http://example.com/upload
+
+Upload file (PUT)
+
+curl -T /path/to/file.txt http://example.com/upload
+
+7. Xử lý HTTPS, SSL
+Bỏ qua kiểm tra SSL (không nên dùng cho production)
+
+curl -k https://example.com
+
+Dùng cert client để xác thực
+
+curl --cert mycert.pem --key mykey.pem https://example.com
+
+8. Chạy cURL với proxy
+
+curl -x http://proxy:port http://example.com
+curl -x socks5://127.0.0.1:9050 http://example.com    # qua Tor
+
+9. Timeout và retry
+
+curl --connect-timeout 5 --max-time 10 --retry 3 http://example.com
+
+10. Lấy thông tin chi tiết request/response
+Hiển thị chi tiết thời gian, tốc độ, status code
+
+curl -w "@curl-format.txt" -o /dev/null -s http://example.com
+# Hoặc đơn giản:
+curl -w "%{http_code}\n" -o /dev/null -s http://example.com
+curl -w "Status: %{http_code}, Time: %{time_total}s\n" -o /dev/null -s http://example.com
+
+11. Lấy nhiều URL một lúc
+
+curl http://site1.com http://site2.com
+
+12. Theo dõi chuyển hướng (redirect)
+
+curl -L http://bit.ly/something
+
+13. Sử dụng proxy với username/password
+
+curl -x http://proxy:port -U user:pass http://example.com
+
+14. Lưu và gửi cookie
+Lưu cookie ra file
+
+curl -c cookies.txt http://example.com
+
+Dùng lại cookie
+
+curl -b cookies.txt http://example.com/profile
+
+15. Một số trick & thực chiến
+Brute-force login (dùng wordlist)
+
+for pass in $(cat pass.txt); do
+  curl -s -X POST -d "user=admin&pass=$pass" http://example.com/login | grep "Welcome" && echo "[+] Password found: $pass"
+done
+
+Lấy source code ẩn phía backend (lỗi config)
+
+curl http://example.com/.git/config
+curl http://example.com/.env
+
+Tạo custom request (raw request)
+
+curl -X POST --raw -d @request.txt http://example.com/api
+
+Fake IP (X-Forwarded-For)
+
+curl -H "X-Forwarded-For: 1.2.3.4" http://example.com
+
+16. Kết hợp với jq để xử lý JSON
+
+curl -s http://api.example.com/data | jq '.users[] | select(.role=="admin")'
+
+17. Lấy response header cụ thể
+
+curl -I http://example.com | grep Server
+
+18. Lấy token (bearer, jwt) tự động từ login API
+
+token=$(curl -s -X POST -d '{"user":"admin","pass":"123"}' -H "Content-Type: application/json" http://example.com/api/login | jq -r '.token')
+curl -H "Authorization: Bearer $token" http://example.com/api/secure
+
+19. Một số lỗi hay gặp và cách fix
+
+    Lỗi SSL: Dùng -k hoặc --insecure
+
+    Lỗi 301/302: Dùng -L
+
+    Lỗi proxy: Kiểm tra syntax -x, đổi proxy khác
+
+    Timeout: Tăng --max-time
+
+20. cURL nâng cao: Script hóa, automation
+
+    Tự động đăng nhập, crawl web
+
+    Check health endpoint API
+
+    Pentest: brute-force, upload shell, trigger SSRF, test LFI, bypass WAF
+
+    Dùng trong bash/python script để tích hợp automation
+
+21. Tài liệu và cheat sheet
+
+    https://curl.se/docs/manual.html
+
+    Cheat sheet cực gọn
+
+    Tổng hợp thực chiến (pentest)

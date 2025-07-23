@@ -1,0 +1,53 @@
+dnsenum là một công cụ liệt kê thông tin DNS (DNS enumeration) rất phổ biến, chủ yếu dùng để thu thập thông tin về hệ thống tên miền của một tổ chức, một website – cực kỳ hữu ích trong các bước Information Gathering (reconnaissance) khi pentest.
+1. Tác dụng của dnsenum
+
+    Liệt kê các subdomain (tên miền phụ) của một domain.
+
+    Thu thập thông tin DNS Record (A, NS, MX, TXT…).
+
+    Thử chuyển vùng DNS (DNS Zone Transfer).
+
+    Phát hiện các email, host liên quan.
+
+    Tìm thông tin về domain, whois, registrar.
+
+2. Cách sử dụng cơ bản
+1. Quét thông tin DNS đơn giản
+
+dnsenum example.com
+
+2. Quét với wordlist (brute-force subdomain)
+
+dnsenum --enum -f /usr/share/seclists/Discovery/DNS/namelist.txt example.com
+
+    --enum: thực hiện toàn bộ các bước enum
+
+    -f: chỉ định wordlist subdomain
+
+3. Một số tuỳ chọn quan trọng
+Tham số	Ý nghĩa
+-r	Brute-force dải IP đảo ngược
+-s	Brute-force SRV record
+-p	Số lượng subdomain tối đa để brute-force
+--dnsserver	Chỉ định DNS server dùng để truy vấn
+-o	Xuất kết quả ra file XML
+-t	Thử zone transfer (AXFR) với các DNS server tìm được
+Ví dụ nâng cao:
+
+dnsenum --enum -f /usr/share/seclists/Discovery/DNS/namelist.txt -r -s -o result.xml example.com
+
+    Vừa brute-force subdomain, vừa xuất ra file kết quả.
+
+3. Một số lưu ý
+
+    Kết quả sẽ tùy thuộc vào wordlist – wordlist mạnh thì phát hiện subdomain tốt hơn.
+
+    Zone transfer hiếm khi thành công vì các DNS hiện nay thường đã bảo mật tốt.
+
+    Dùng kèm với các tool khác như gobuster, sublist3r, amass để cho kết quả mạnh hơn.
+
+4. Tài liệu tham khảo
+
+    Github: dnsenum
+
+    Kali Linux tool info

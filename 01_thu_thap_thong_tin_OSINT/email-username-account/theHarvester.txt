@@ -1,0 +1,82 @@
+theHarvester là công cụ OSINT nổi tiếng dùng để tìm kiếm email, username, tên miền phụ (subdomain), host, IP... liên quan đến một domain mục tiêu bằng cách khai thác các nguồn dữ liệu công khai (search engine, social network, certificate transparency, v.v.).
+Tool này cực kỳ mạnh cho pentester, bug bounty, red team, OSINT investigator khi làm bước information gathering/footprinting.
+1. Tác dụng của theHarvester
+
+    Thu thập email liên quan đến domain: dò email để tấn công spear phishing, social engineering...
+
+    Tìm subdomain, host, IP công khai: mở rộng attack surface, phát hiện asset ẩn.
+
+    Liệt kê tên user, tổ chức, các thông tin lộ trên Internet.
+
+    Dò tên server, DNS, dữ liệu certificate, thông tin DNS zone, ...
+
+    Kết quả có thể dùng để automation, report hoặc brute-force tiếp.
+
+2. Cách sử dụng theHarvester cơ bản
+1. Cài đặt
+
+sudo apt install theharvester
+# hoặc
+git clone https://github.com/laramies/theHarvester.git
+cd theHarvester
+pip install -r requirements.txt
+
+2. Thu thập email & subdomain cơ bản
+
+theharvester -d example.com -b google
+
+    -d <domain>: domain mục tiêu
+
+    -b <source>: nguồn dữ liệu (google, bing, baidu, bing, certspotter, crtsh, hunter, linkedin, twitter, virustotal, yahoo...)
+
+3. Dùng nhiều nguồn dữ liệu cùng lúc (dùng dấu phẩy)
+
+theharvester -d example.com -b google,bing,crtsh
+
+4. Chỉ định số lượng kết quả
+
+theharvester -d example.com -b google -l 500
+
+    -l: số kết quả tối đa (mặc định 100)
+
+5. Xuất kết quả ra file HTML/JSON
+
+theharvester -d example.com -b google -f output
+
+    -f: tên file output, sẽ có dạng output.html và output.xml hoặc .json (tùy version)
+
+6. Thêm các tuỳ chọn mạnh
+
+    -s <số>: bắt đầu từ kết quả thứ bao nhiêu (paging)
+
+    -v: bật verbose (chi tiết hơn)
+
+    -h: show help
+
+    -e: lấy thông tin email (một số nguồn hỗ trợ tốt)
+
+3. Ví dụ thực tế
+
+    Thu thập email + subdomain qua google và crtsh, xuất HTML:
+
+theharvester -d abc.com -b google,crtsh -l 200 -f abc-com
+
+Tìm asset bằng Bing, Certspotter, Yahoo:
+
+    theharvester -d company.com -b bing,certspotter,yahoo
+
+4. Kinh nghiệm thực chiến
+
+    Nên kết hợp nhiều nguồn để tối đa hóa kết quả.
+
+    Sau khi có email, dùng tool khác để kiểm tra leak, password rò rỉ (HaveIBeenPwned, hunter.io, ...).
+
+    Subdomain tìm được nên kiểm tra sống/chết, scan port tiếp bằng nmap/masscan/gobuster.
+
+    Output có thể dùng để brute-force, social engineering, phishing, v.v.
+
+5. Tài liệu tham khảo
+
+    Github: theHarvester
+
+    HackTricks - theHarvester

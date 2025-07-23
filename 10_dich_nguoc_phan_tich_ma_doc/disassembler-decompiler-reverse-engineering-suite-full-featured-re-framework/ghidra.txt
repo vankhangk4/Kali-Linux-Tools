@@ -1,0 +1,180 @@
+1. Ghidra là gì?
+
+    Ghidra là bộ công cụ reverse engineering mã nguồn mở, miễn phí do NSA phát triển & công bố.
+
+    Hỗ trợ phân tích binary nhiều nền tảng: Windows, Linux, macOS, Android, ARM, MIPS, PPC, x86/x64, firmware nhúng...
+
+    Mạnh về decompiler (chuyển assembly về code giả C), hỗ trợ static & limited dynamic analysis, scripting bằng Python/Java, plugin, batch automation.
+
+    Là đối thủ mạnh của IDA Pro nhưng miễn phí và ngày càng được cập nhật.
+
+2. Cài đặt Ghidra
+
+    Download: https://ghidra-sre.org/
+
+    Yêu cầu: Java 17+ (nên dùng bản Oracle/OpenJDK, hoặc portable kèm sẵn Java)
+
+    Giải nén, chạy ghidraRun hoặc ghidraRun.bat (Windows)
+
+    Có thể cài thêm plugin/extensions (qua marketplace hoặc thủ công)
+
+3. Giao diện & các thành phần chính
+
+    Project Window: Quản lý project, import/export file.
+
+    CodeBrowser: Phân tích mã nguồn (disassembly, decompiler, memory, function...).
+
+    Decompiler: Chuyển assembly sang pseudocode C.
+
+    Symbol Tree: Toàn bộ function, data, string, symbol, class...
+
+    Listing: Xem từng instruction, label, comment.
+
+    Program Trees, Data Type Manager: Quản lý cấu trúc, type, symbol, label.
+
+    Search/Filter: Tìm function, string, reference, xref...
+
+    Script Manager: Viết/running script (Python/Java) để tự động hóa task.
+
+4. Sử dụng cơ bản (Beginner)
+4.1. Tạo project & import binary
+
+    File → New Project → Chọn kiểu Project (Non-Shared/Shared)
+
+    File → Import → Chọn file thực thi (PE/ELF/DLL/firmware...).
+
+    Chọn đúng kiến trúc, OS (Ghidra sẽ auto detect, có thể chỉnh nếu cần).
+
+    Double click vào file → CodeBrowser sẽ mở để phân tích.
+
+4.2. Khám phá mã nguồn
+
+    Listing Window: Hiển thị assembly, các symbol/function.
+
+    Decompiler Window: (Right-click dòng code → Decompile function)
+
+        Rất mạnh để hiểu logic, flow, param, biến local, return.
+
+    Symbol Tree: Xem tất cả function, string, global, data, label...
+
+4.3. Tìm kiếm & xref
+
+    Search → For Strings (Ctrl+Shift+S): Tìm các chuỗi, message, keyword...
+
+    Search → For Instruction Patterns: Tìm opcode đặc biệt (mov, call, cmp...)
+
+    Click double chuột function, variable, string... → Hiện all reference/xref.
+
+    Right-click → Set label, comment, rename function... (giúp phân tích nhanh hơn).
+
+5. Reverse crackme/malware thực chiến
+5.1. Phân tích kiểm tra serial/logic check
+
+    Tìm string như “wrong”, “password”, “serial”, “success” (Ctrl+Shift+S)
+
+    Tìm function nào gọi print/compare những string này.
+
+    Dùng xref, function call graph để trace từ main → check function → call → logic compare.
+
+    Đọc pseudocode trong decompiler: Hiểu nhanh flow điều kiện, branch (if/else), loop, compare.
+
+    Đặt comment, rename biến/hàm, reconstruct lại ý nghĩa logic code.
+
+5.2. Unpacking, anti-debug, anti-VM
+
+    Tìm các hàm dùng check debugger (IsDebuggerPresent, NtQueryInformationProcess...), code kiểm tra ảo hóa (vmware, vbox, qemu).
+
+    Trace call tới API/Opcode đặc biệt (CPUID, RDTSC, SIDT...).
+
+    Ghi chú điểm unpack stub, OEP, flow unpack, dump lại memory (kết hợp với x64dbg/OllyDbg).
+
+5.3. Phân tích malware
+
+    Tìm code inject, shellcode, download file, connect C2 (tìm string API: VirtualAlloc, CreateProcess, InternetOpen...).
+
+    Theo dõi các hàm mã hóa/giải mã, string obfuscation, hàm custom crypto.
+
+    Dùng Data Type Manager để tự định nghĩa cấu trúc (struct, class), hiển thị data, buffer cho dễ đọc.
+
+6. Nâng cao (Advanced)
+6.1. Script automation (Python/Java)
+
+    Ghidra hỗ trợ Jython (Python2) hoặc Java để tự động hóa:
+
+        Batch rename function, comment.
+
+        Extract all string, API, function.
+
+        Static malware indicator scan (ví dụ, tìm pattern PE packer, crypto function).
+
+        Export/import symbol từ project khác.
+
+Ví dụ script Python trích xuất tất cả string:
+
+strings = currentProgram.getListing().getDefinedData(True)
+for data in strings:
+    if data.isDefined() and data.getDataType().getName() == "string":
+        print(data.getValue())
+
+Có thể chạy trong Script Manager.
+6.2. Patch binary, tạo patch file
+
+    Right click instruction → Patch Instruction.
+
+    Modify bytes hoặc assembly → Save as patched binary.
+
+    Export patch hoặc export segment.
+
+6.3. Batch Analysis / Headless mode
+
+    Ghidra hỗ trợ chạy headless (không cần giao diện), automation cho malware farm, massive binary analysis:
+
+    ./analyzeHeadless projectDir myProject -import myBinary.exe -scriptPath myScript.py
+
+6.4. Plugin mở rộng
+
+    BinExport: Export data cho BinDiff, diff 2 binary.
+
+    RetDec: Decompile mạnh cho nhiều nền tảng.
+
+    Ghidrathon: Hỗ trợ Python 3 native cho script.
+
+    ghidra_bridge: Kết nối Ghidra với IDA, x64dbg, hoặc remote automation.
+
+7. Trick & mẹo thực chiến
+
+    Rename function/variable: Đặt lại tên dễ nhớ, chú thích logic (phím N, hoặc Right click → Rename).
+
+    Comment: Dán code, note, giải thích (phím ; hoặc Right click → Comment).
+
+    Bookmarks: Đánh dấu các điểm quan trọng để dễ trace lại.
+
+    Call Graph: Tools → Function Call Graph → Đồ thị các hàm gọi nhau, trace nhanh flow malware lớn.
+
+    Dataflow: Tools → Data Flow, xác định biến truyền đi đâu về đâu, đặc biệt hữu ích cho crypto, packing, unpacking.
+
+    Import/export symbol: Tận dụng cho malware biến thể, reuse lại effort phân tích.
+
+    Search all xref: Double click lên address hoặc right-click → References to/References from.
+
+    Compare binary: Dùng BinDiff/Ghidra để diff 2 bản binary, xem điểm khác biệt (ví dụ patch malware, compare pack/unpack).
+
+8. So sánh Ghidra với các công cụ khác
+Tool	Ưu điểm	Nhược điểm
+Ghidra	Miễn phí, đa nền tảng, decompile mạnh, plugin	GUI hơi “lag”, decompile đôi khi chưa hoàn hảo
+IDA Pro	Chuẩn công nghiệp, nhiều plugin, hỗ trợ sâu	Trả phí cao, không open-source
+x64dbg	Debug động mạnh, automation tốt	Không có decompiler
+Radare2	Free, script mạnh, nhẹ	GUI khó dùng, học lâu
+9. Tài liệu & nguồn thực chiến
+
+    Trang chủ Ghidra
+
+    NSA Ghidra GitHub
+
+    Awesome Ghidra – plugin/script
+
+    Ghidra Cheat Sheet
+
+    Khóa học video Ghidra (YT, miễn phí)
+
+    RetDec plugin

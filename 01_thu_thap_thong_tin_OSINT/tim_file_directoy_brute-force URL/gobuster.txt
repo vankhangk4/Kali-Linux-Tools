@@ -1,0 +1,71 @@
+1. Tác dụng của Gobuster
+
+    Tìm kiếm thư mục và file ẩn trên web server
+    (Directory/File brute-forcing)
+
+    Tìm kiếm các subdomain của một domain
+    (Subdomain brute-forcing)
+
+    Kiểm tra các endpoint trên các API hoặc ứng dụng web
+
+    Phân tích các Virtual Host trên một server
+    (Virtual Host brute-forcing)
+
+2. Cách sử dụng cơ bản
+1. Quét thư mục (Directory scan)
+
+gobuster dir -u http://target.com -w /path/to/wordlist.txt
+
+    dir: chế độ quét thư mục/file
+
+    -u: URL target
+
+    -w: wordlist dùng để brute-force (ví dụ: /usr/share/seclists/Discovery/Web-Content/common.txt)
+
+Ví dụ cụ thể:
+
+gobuster dir -u http://example.com -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-small.txt
+
+2. Quét subdomain
+
+gobuster dns -d example.com -w /path/to/subdomains.txt
+
+    dns: chế độ quét subdomain
+
+    -d: domain
+
+    -w: wordlist subdomain (ví dụ: /usr/share/seclists/Discovery/DNS/namelist.txt)
+
+Ví dụ:
+
+gobuster dns -d example.com -w /usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt
+
+3. Quét file có đuôi mở rộng nhất định
+
+gobuster dir -u http://example.com -w /path/to/wordlist.txt -x php,html,txt
+
+    -x: brute-force thêm các đuôi file (.php, .html, .txt...)
+
+4. Một số tuỳ chọn hữu ích
+
+    -t: Số luồng (thread), ví dụ -t 50 để tăng tốc quét
+
+    -o: Xuất kết quả ra file, ví dụ -o output.txt
+
+    -b: Loại bỏ các mã HTTP code nhất định (ví dụ -b 404 để không hiện các kết quả trả về 404)
+
+    -s: Chỉ hiển thị các mã HTTP nhất định (ví dụ -s 200,204,301,302,307,403)
+
+3. Một số lưu ý khi dùng Gobuster
+
+    Wordlist là yếu tố quyết định – wordlist càng chất lượng càng dò được nhiều.
+
+    Đôi khi có thể bị block hoặc giới hạn nếu quét trên website thật.
+
+    Quét trên các trang có cơ chế bảo mật (WAF, rate-limit, captcha) có thể bị cản trở.
+
+4. Tài liệu tham khảo
+
+    Trang chủ: https://github.com/OJ/gobuster
+
+    Seclists (wordlist mẫu): https://github.com/danielmiessler/SecLists

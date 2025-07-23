@@ -1,0 +1,247 @@
+I. Perl là gì?
+
+    Perl (Practical Extraction and Report Language) là ngôn ngữ lập trình mạnh về xử lý text, chuỗi, log, automation, scripting, phát triển web, bioinformatics...
+
+    Sinh ra từ cuối thập niên 1980, từng là "king of scripting" trên Linux/Unix.
+
+II. Cài đặt Perl
+
+    Linux/macOS: Thường đã cài sẵn (perl -v)
+
+    Cài mới (Ubuntu/Debian):
+
+    sudo apt update
+    sudo apt install perl
+
+    Windows:
+    Strawberry Perl hoặc ActivePerl
+
+III. Chạy thử một script Perl
+1. Tạo file hello.pl:
+
+#!/usr/bin/perl
+print "Hello, world!\n";
+
+    Chạy:
+
+perl hello.pl
+
+Hoặc cấp quyền thực thi:
+
+    chmod +x hello.pl
+    ./hello.pl
+
+IV. Cú pháp cơ bản Perl
+1. Biến:
+
+    Scalar (đơn lẻ): $a, $name
+
+    Array (mảng): @arr
+
+    Hash (map): %hash
+
+2. Gán & In giá trị:
+
+my $age = 23;
+my @arr = (1,2,3);
+my %info = (name => "Khang", age => 23);
+print "$info{name}\n";
+
+3. Khai báo & kiểm tra điều kiện:
+
+if ($age > 18) {
+    print "Adult\n";
+} else {
+    print "Child\n";
+}
+
+4. Vòng lặp:
+
+foreach my $num (@arr) {
+    print "$num\n";
+}
+for (my $i=0; $i<5; $i++) {
+    print "$i\n";
+}
+
+5. Hàm:
+
+sub tong {
+    my ($a, $b) = @_;
+    return $a + $b;
+}
+print tong(3, 5), "\n";
+
+V. Xử lý chuỗi & biểu thức chính quy (Regex)
+
+    Thay thế:
+
+my $s = "abc123";
+$s =~ s/\d/X/g;
+print $s;  # abcXXX
+
+Tìm kiếm:
+
+if ($s =~ /abc/) { print "Có abc\n"; }
+
+Trích xuất:
+
+    if ($s =~ /(\d+)/) { print "Số: $1\n"; }
+
+VI. Đọc & ghi file
+1. Đọc file:
+
+open(F, "<input.txt") or die "Không mở được file!";
+while (<F>) {
+    chomp;
+    print "Dòng: $_\n";
+}
+close(F);
+
+2. Ghi file:
+
+open(F, ">output.txt");
+print F "Ghi vào file\n";
+close(F);
+
+VII. Module phổ biến (thư viện)
+
+    CPAN: kho module khổng lồ, giống pip của Python
+    Cài module:
+
+    cpan install JSON
+
+    Một số module thực tế:
+
+        DBI: Kết nối CSDL
+
+        LWP::UserAgent: Gửi HTTP request
+
+        JSON: Xử lý dữ liệu JSON
+
+        File::Find: Tìm kiếm file
+
+        Getopt::Long: Parse tham số dòng lệnh
+
+        Net::SSH::Perl: SSH automation
+
+VIII. Thao tác với dòng lệnh
+1. Đọc tham số:
+
+my $ten = $ARGV[0];
+print "Xin chào $ten!\n";
+
+2. Script one-liner (dùng như awk, sed):
+
+perl -pe 's/foo/bar/g' file.txt
+perl -ne 'print if /error/' logfile.log
+
+    -p: Lặp từng dòng, tự in
+
+    -e: Script ngắn
+
+    -n: Như -p, nhưng không in dòng (tự print phải code)
+
+IX. Thực chiến Perl – Một số ví dụ nâng cao
+1. Script tìm và thay thế trong hàng loạt file:
+
+use File::Find;
+my $dir = shift @ARGV;
+find(sub {
+    return unless -f;
+    local @ARGV = ($_);
+    local $^I = '';
+    while (<>) { s/foo/bar/g; print }
+}, $dir);
+
+2. Script tự động gửi request web:
+
+use LWP::UserAgent;
+my $ua = LWP::UserAgent->new;
+my $res = $ua->get('https://www.google.com');
+print $res->decoded_content if $res->is_success;
+
+3. Script quét log phát hiện lỗi:
+
+while (<>) {
+    print if /ERROR|FATAL/;
+}
+# Dùng: perl script.pl logfile.log
+
+4. Script backup file hàng loạt:
+
+foreach my $file (glob("*.txt")) {
+    system("cp", $file, "$file.bak");
+}
+
+X. Mẹo nâng cao & thực tiễn
+
+    Viết script Perl portable: Luôn dùng use strict; use warnings; để giảm bug:
+
+use strict;
+use warnings;
+
+Chạy Perl tương thích cả v1 v2 (shebang):
+
+#!/usr/bin/env perl
+
+Dùng Perl để làm CGI script web (dùng module CGI, Mojolicious,...)
+
+Kết hợp Perl với Bash:
+Nhúng Perl vào bash script hoặc chạy shell command trong Perl qua system() hoặc backtick:
+
+    my $output = `ls -l`;
+
+    Xử lý song song (Parallel::ForkManager)
+
+    Quản lý memory, performance cho script lớn: Hạn chế biến toàn cục, dùng hash thay cho array khi xử lý map dữ liệu lớn.
+
+XI. Debug và kiểm tra lỗi
+
+    Thêm use warnings; hoặc chạy với perl -w script.pl
+
+    Debug dòng lệnh:
+
+perl -d script.pl
+
+In giá trị biến khi nghi ngờ:
+
+    use Data::Dumper; print Dumper(\%hash);
+
+XII. Tài liệu, học Perl ở đâu?
+
+    Trang chủ: https://www.perl.org/
+
+    CPAN module: https://metacpan.org/
+
+    Học nhanh: https://perldoc.perl.org/
+
+    Tutorials tiếng Việt:
+
+        https://viblo.asia/tag/perl
+
+        http://vietjack.com/perl/
+
+    Sách:
+
+        Learning Perl (O’Reilly)
+
+        Intermediate Perl
+
+        Modern Perl
+
+XIII. Perl vs Python, Bash...
+
+    Perl cực mạnh xử lý text/regex, automation cũ, dev tool legacy.
+
+    Python mới, dễ học hơn, cú pháp "sạch", nhiều module hiện đại.
+
+    Bash mạnh về automation hệ thống, nhưng xử lý phức tạp khó hơn Perl/Python.
+
+XIV. Tổng kết
+
+    Perl rất mạnh về xử lý text, automation, script phức tạp (nhất là Linux, log, legacy system).
+
+    Dùng tốt cho ai muốn “hack nhanh”, script phức tạp, hoặc maintain hệ thống cũ.
+
+    Nắm vững Perl = thêm 1 “bảo bối” cho sysadmin, pentester, devops!

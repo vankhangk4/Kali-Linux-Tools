@@ -1,0 +1,145 @@
+1. Lynis là gì?
+
+    Lynis là công cụ audit bảo mật hệ thống Linux/Unix (Security Auditing Tool) mã nguồn mở rất mạnh.
+
+    Kiểm tra cấu hình hệ thống, phát hiện lỗ hổng bảo mật, sai sót cấu hình, gợi ý hardening server.
+
+    Dùng cho pentester, sysadmin, devops, SOC analyst.
+
+    Hỗ trợ: Linux, macOS, BSD, Solaris…
+
+2. Cài đặt Lynis
+Cài qua package manager (Kali, Ubuntu, Debian):
+
+sudo apt update
+sudo apt install lynis
+
+Hoặc cài bản mới nhất từ Github:
+
+git clone https://github.com/CISOfy/lynis.git
+cd lynis
+./lynis audit system
+
+3. Kiểm tra nhanh hệ thống (Cơ bản)
+Chạy audit bảo mật toàn hệ thống:
+
+sudo lynis audit system
+
+    Lynis sẽ kiểm tra hơn 200 mục: cấu hình, quyền file, dịch vụ, SSH, Firewall, kernel, user, logging, malware, cryptography, hardening…
+
+    Kết quả hiện ngay trên terminal và lưu log ở /var/log/lynis.log hoặc lynis-report.dat.
+
+4. Giải thích output kết quả
+
+    [WARNING]: Có vấn đề/cảnh báo, cần xử lý gấp.
+
+    [SUGGESTION]: Gợi ý nâng cao bảo mật.
+
+    Hardening index: Điểm bảo mật hệ thống (0-100).
+
+    Tests performed: Số test đã chạy.
+
+    Files, locations, links: Các file cấu hình cần xem xét.
+
+Ví dụ:
+
+[WARNING] SELinux is not enabled.
+[SUGGESTION] Enable SELinux to increase security.
+Hardening index : 69 [##############--------]
+
+5. Một số lệnh cơ bản hữu ích
+Lệnh	Mô tả
+sudo lynis audit system	Audit toàn hệ thống
+sudo lynis audit system --quick	Kiểm tra nhanh
+sudo lynis audit dockerfile	Kiểm tra bảo mật Dockerfile
+sudo lynis show hardening	Show các gợi ý hardening
+sudo lynis show plugins	Liệt kê plugin hỗ trợ
+sudo lynis show tests	Xem các test mà Lynis có thể thực hiện
+6. Sử dụng Lynis nâng cao
+A. Chạy audit từng phần riêng biệt
+
+    Chạy theo category: --tests-from-group <group>
+
+sudo lynis audit system --tests-from-group malware,authentication
+sudo lynis audit system --tests-from-group network
+
+B. Chạy audit một số test cụ thể
+
+sudo lynis audit system --test-from-id FILE-7504,AUTH-9216
+
+C. Xuất kết quả sang file
+
+sudo lynis audit system --report-file /path/to/baocao.txt
+
+D. Audit từ xa (Remote audit)
+
+    Chạy Lynis trên máy remote qua SSH (nên có quyền root/sudo):
+
+ssh user@target 'sudo lynis audit system'
+
+E. Lên lịch tự động hóa với cron
+
+sudo crontab -e
+# Thêm dòng:
+0 1 * * * /usr/bin/lynis audit system --report-file /var/log/lynis-scan-$(date +\%Y\%m\%d).txt
+
+7. Phân tích kết quả, khắc phục và hardening
+
+    Đọc kỹ các [WARNING] và [SUGGESTION].
+
+    Tìm kiếm trong log/report:
+
+        /var/log/lynis.log
+
+        /var/log/lynis-report.dat
+
+    Tăng điểm Hardening index bằng cách fix từng lỗi gợi ý, ví dụ:
+
+        Enable SELinux/AppArmor
+
+        Cấu hình SSH chỉ cho phép key, cấm root login
+
+        Bật firewall, loại bỏ dịch vụ không cần
+
+        Sửa quyền file nhạy cảm
+
+        Đặt password mạnh, hạn chế user, v.v.
+
+8. Tuỳ chỉnh cấu hình Lynis (Advanced)
+A. Ignore warning (bỏ qua check nào đó)
+
+    Tạo file /etc/lynis/custom.prf
+
+skip-test=FILE-7504
+
+B. Tùy biến profile scan
+
+    Sửa file /etc/lynis/lynis.conf để thiết lập rule riêng, thêm/bớt test.
+
+C. Thêm custom plugin hoặc test
+
+    Có thể tự viết plugin (shell script, bash), chép vào thư mục plugins/ hoặc include/.
+
+9. Một số mẹo và tip nâng cao
+
+    Dùng với các công cụ khác: Kết hợp Lynis với OpenSCAP, Nessus, OpenVAS, CIS-CAT để kiểm tra chéo.
+
+    Chạy audit container, docker, cloud instance.
+
+    So sánh báo cáo các lần scan: Để phát hiện thay đổi cấu hình nguy hiểm.
+
+    Automation: Kết hợp script bash/python tự động kiểm tra bảo mật nhiều server.
+
+10. Một số lệnh và tuỳ chọn hữu ích
+Lệnh	Ý nghĩa
+--check-all	Kiểm tra tất cả mọi thứ
+--no-log	Không ghi log ra file
+--debug	Hiện chi tiết debug (khắc phục lỗi Lynis)
+--cronjob	Chạy chế độ cron, xuất report ngắn gọn
+11. Tài liệu và tham khảo
+
+    Trang chủ Lynis
+
+    Github Lynis
+
+    man lynis hoặc lynis --help

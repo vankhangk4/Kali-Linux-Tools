@@ -1,0 +1,12 @@
+aircrack-ng
+wifite
+reaver
+fern-wifi-cracker
+cowpatty
+kismet
+bluetoothctl
+ubertooth
+rfcat
+hackrf
+proxmark3
+ghost-phisher

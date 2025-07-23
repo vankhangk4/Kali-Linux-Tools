@@ -1,0 +1,154 @@
+1. Arachni là gì?
+
+    Arachni là một framework và công cụ quét bảo mật ứng dụng web mã nguồn mở.
+
+    Phát hiện tự động các lỗi: SQL Injection, XSS, Local/Remote File Inclusion, OS Command Injection, CSRF, Path Traversal, weak password, cookie issues, unvalidated redirect, etc.
+
+    Hỗ trợ cả dòng lệnh (CLI) và Web UI.
+
+    Có API, tự động hóa, tạo report PDF/HTML/XML.
+
+2. Cài đặt Arachni
+A. Trên Linux (Kali, Ubuntu, CentOS)
+
+    Tải về bản pre-compiled tại đây (khuyên dùng bản .tar.gz).
+
+Ví dụ:
+
+wget https://github.com/Arachni/arachni-release/releases/download/v1.6.1/arachni-1.6.1-0.5.12-linux-x86_64.tar.gz
+tar -xzvf arachni-1.6.1-0.5.12-linux-x86_64.tar.gz
+cd arachni-1.6.1-0.5.12/bin
+
+B. Chạy trực tiếp
+
+./arachni_console   # Console interactive (Ruby-like shell)
+./arachni           # Scan CLI
+./arachni_web       # Web UI
+
+3. Sử dụng cơ bản – CLI
+A. Quét website đơn giản
+
+./arachni --url https://target.com
+
+B. Xuất báo cáo ra file (HTML, JSON, XML, etc.)
+
+./arachni --url https://target.com --report-save-path=~/scan.afr
+# Sau đó tạo report HTML
+./arachni_reporter ~/scan.afr --reporter=html:outfile=~/report.html
+
+C. Quét đa luồng, scan sâu
+
+./arachni --url https://target.com --scope-page-limit=100 --scope-directory-depth-limit=5 --http-req-limit=40
+
+D. Scan với custom header (token, cookie)
+
+./arachni --url https://target.com --http-cookie-string="SESSION=xxxx" --http-user-agent="CustomUA" --http-request-header="X-API-Key: keyvalue"
+
+4. Các option CLI nâng cao
+Option	Ý nghĩa
+--input-value	Set giá trị mặc định cho input form
+--audit-forms	Bật/tắt quét form
+--audit-cookies	Kiểm tra lỗ hổng liên quan cookie
+--scope-include-pattern	Chỉ scan URL phù hợp pattern
+--scope-exclude-pattern	Loại trừ URL
+--plugins	Chạy thêm plugin nâng cao (eg: anti-CSRF, healthmap, etc.)
+--checks	Chỉ chạy một số check nhất định (eg: xss, sql_injection)
+--reporter	Định dạng báo cáo: html, json, xml, afr, yaml
+
+Ví dụ:
+
+./arachni --url https://site.com --checks=xss,sql_injection --reporter=html:outfile=report.html
+
+5. Sử dụng Web UI
+A. Chạy web interface
+
+./arachni_web
+
+    Mặc định chạy trên: http://127.0.0.1:9292
+
+    Đăng ký tài khoản admin khi mở lần đầu.
+
+B. Các chức năng trên Web UI
+
+    New Scan: Nhập URL, chọn profile (classic, xss, sqli, full audit...), cấu hình scan sâu/nông, plugin, cookie, header...
+
+    Monitor: Theo dõi tiến độ quét real-time.
+
+    Reports: Xem report, xuất PDF/HTML/XML.
+
+    Teamwork: Quản lý user, phân quyền, quản lý scan nhiều user.
+
+6. Tích hợp Automation & API
+
+    Arachni REST API:
+
+        Được tích hợp sẵn khi chạy arachni_web.
+
+        Gửi lệnh scan, lấy kết quả, automation qua HTTP request.
+
+    CI/CD:
+
+        Tích hợp arachni vào pipeline kiểm thử bảo mật tự động với script bash, Python, Jenkins, GitLab CI.
+
+        Quét web mỗi lần deploy/release.
+
+7. Plugin và module nâng cao
+
+    Plugin có sẵn: healthmap, rate_limiter, anti-CSRF, HTTP request stats, etc.
+
+    Custom plugin: Có thể tự viết plugin Ruby để kiểm tra theo logic đặc biệt, hoặc báo động realtime qua Slack, email…
+
+8. Mẹo sử dụng nâng cao
+
+    Chạy multi-thread tối đa:
+    Tăng --http-req-limit để quét nhanh hơn, nhưng tránh DDoS site production.
+
+    Giới hạn scope:
+    Dùng --scope-include-pattern và --scope-exclude-pattern tránh quét site không mong muốn (subdomain, api, file lớn…).
+
+    Scan session-based:
+    Dùng cookie/token, auto login plugin để scan trang có session, login.
+
+    Quét dạng authenticated:
+
+        Login bằng automation plugin (record script, selenium).
+
+        Scan sâu các trang chỉ khi đăng nhập mới thấy.
+
+9. Phân tích và xử lý kết quả
+
+    Xem từng lỗi, đọc kỹ description, PoC, fix suggestion.
+
+    Chọn mức severity (High, Medium, Low) để ưu tiên xử lý.
+
+    Kết hợp báo cáo Arachni với các tool khác (Nessus, Burp, Acunetix…) để so sánh, triệt tiêu false positive.
+
+10. Một số lỗi và cách xử lý
+Lỗi	Nguyên nhân và cách fix
+Không crawl hết site	Cần tăng --scope-page-limit, kiểm tra robots.txt, cần login đúng
+Scan quá chậm	Giảm depth, tăng thread, exclude file tĩnh lớn (jpg, mp4)
+Lỗi SSL	Dùng --no-verify-ssl hoặc thêm chứng chỉ
+Quét bị block (WAF/CDN)	Chạy chậm lại, thay đổi user-agent, proxy qua Burp, thử bypass header
+11. Tài liệu, link tham khảo
+
+    Arachni Official Site
+
+    Arachni GitHub Release
+
+    Arachni CLI Usage
+
+    Arachni Plugins Guide
+
+    ./arachni --help
+
+    man arachni
+
+Tóm tắt nhanh
+
+    Arachni = quét lỗ hổng web mạnh mẽ, chuyên nghiệp, hỗ trợ CLI, Web UI, plugin, automation, API.
+
+    Chạy được trên nhiều OS, quét được cả web login, có thể report PDF chuyên nghiệp.
+
+    Sử dụng tốt cho pentest nội bộ, kiểm thử web app, hoặc automation devsecops.
+
+    Đặc biệt phù hợp với các hệ thống vừa và nhỏ, hoặc dùng để so sánh cross-check với các tool lớn khác.

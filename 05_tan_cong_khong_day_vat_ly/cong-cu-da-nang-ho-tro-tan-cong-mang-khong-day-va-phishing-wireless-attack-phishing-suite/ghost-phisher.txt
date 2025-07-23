@@ -1,0 +1,155 @@
+1. Ghost Phisher là gì?
+
+    Ghost Phisher là một GUI tool Python trên Linux, giúp bạn nhanh chóng dựng:
+
+        Fake Wi-Fi Access Point (Evil Twin Attack)
+
+        Phishing Web Server (cổng đăng nhập giả)
+
+        Fake DHCP, DNS server (MITM, redirect victim)
+
+        ARP poisoning, sniffing traffic
+
+        Captive portal (bắt nạn nhân nhập pass)
+
+    Tích hợp sẵn các attack workflow để tạo lab và demo nhanh.
+
+2. Cài đặt Ghost Phisher
+A. Trên Kali/Ubuntu/Debian
+
+Ghost Phisher từng có sẵn trên Kali, nhưng bản mới thường cần cài thủ công:
+
+sudo apt update
+sudo apt install python3 python3-qtpy python3-scapy aircrack-ng isc-dhcp-server
+git clone https://github.com/savio-code/ghost-phisher.git
+cd ghost-phisher
+sudo python3 ghost_phisher.py
+
+Nếu bị lỗi về python2, hãy tìm bản ghost-phisher python3 hoặc dùng script tương đương.
+B. Trên các bản Linux khác
+
+    Clone và chạy thủ công như trên (cần quyền root để fake AP/DHCP).
+
+3. Sử dụng Ghost Phisher cơ bản
+A. Fake Wi-Fi Access Point (Evil Twin)
+
+    Mở Ghost Phisher:
+
+    sudo python3 ghost_phisher.py
+
+    Chuyển qua tab Fake AP.
+
+    Chọn:
+
+        Interface: card Wi-Fi hỗ trợ monitor mode (thường là wlan0 hoặc wlan1)
+
+        SSID: tên Wi-Fi muốn giả mạo (ví dụ: FREE_WIFI, Cafe_XYZ)
+
+        Channel: chọn kênh phù hợp với môi trường
+
+        Chọn chế độ Open hoặc đặt pass nếu muốn WPA2 giả.
+
+    Start — tool sẽ tạo AP giả y hệt Wi-Fi thật.
+
+B. Fake DHCP và DNS
+
+    Chuyển sang tab DHCP Server:
+
+        IP Range: dải IP cấp cho victim (vd: 10.0.0.10-100)
+
+        Gateway: là IP của máy bạn (đóng vai trò MITM)
+
+        Start DHCP để cấp phát IP tự động khi nạn nhân kết nối.
+
+    Chuyển sang tab DNS Server:
+
+        Trỏ tất cả domain về IP máy attacker (sẵn để redirect victim về portal/phishing page).
+
+C. Captive Portal / Phishing Web Server
+
+    Chọn tab HTTP Server:
+
+        Chỉ định Document Root (chứa file HTML giả login Facebook, Gmail, Office, Wi-Fi…).
+
+        Mẫu có sẵn, hoặc tự code thêm trang HTML login fake.
+
+        Nhập port (thường 80), click Start HTTP Server.
+
+4. Workflow thực chiến tấn công MITM/Phishing Lab
+
+    Chuẩn bị: Card Wi-Fi hỗ trợ monitor mode, quyền root.
+
+    Tạo AP giả (giống tên/sóng Wi-Fi mục tiêu).
+
+    Bật DHCP + DNS: Khi victim kết nối, máy bạn sẽ cấp IP và trỏ mọi domain về portal.
+
+    Bật web server/phishing page: Victim bị redirect về trang login giả (captival portal).
+
+    Sniff traffic (nếu muốn): Dùng Wireshark/tcpdump bắt traffic qua interface AP.
+
+    Thu thập thông tin: Check file log/HTML để lấy credential victim nhập vào.
+
+5. Mẹo nâng cao & automation
+
+    Chỉnh sửa trang login HTML để thu thập user/pass/email/OTP:
+
+        Viết code lưu POST data ra file/text/log riêng.
+
+        Fake đa dạng giao diện: Gmail, Facebook, Wi-Fi voucher, Office365, v.v.
+
+    Tự động gửi credential về máy attacker qua webhook/email/telegram.
+
+    Thêm JavaScript phát hiện victim nhập đúng định dạng email/pass mới lưu lại (anti-fake data).
+
+    Fake thêm captive portal của nhà mạng/công ty để bypass trình duyệt, ép victim phải nhập pass mới vào được Internet.
+
+    Kết hợp ARP spoofing (tab ARP poisoning) để MITM trong LAN hoặc fake DNS cho mạng dây.
+
+6. Một số lỗi thường gặp & cách xử lý
+Lỗi	Cách xử lý
+Không tạo được AP	Card không hỗ trợ monitor, thiếu quyền root, hoặc network manager chiếm card
+Không cấp phát IP cho victim	Check DHCP config, gateway đúng chưa, disable NetworkManager service
+Victim không thấy Wi-Fi giả	Tăng công suất, đổi channel, thử SSID khác
+Victim không bị redirect về captive portal	Check DNS, HTTP server, port, file index.html đúng chưa
+Trình duyệt cảnh báo HTTPS/phishing	Không thể tránh hoàn toàn, fake tốt nhất với site không HTTPS hoặc captive portal (wifi voucher)
+7. Một số lưu ý & best practice thực chiến
+
+    Luôn test lab trên máy ảo/victim test, không dùng với mạng thật nếu không có quyền.
+
+    Custom trang HTML giả mạo cho từng mục tiêu: kiểu login, form, logo công ty, ...
+
+    Luôn check log HTTP, log POST data để lấy pass nhập vào.
+
+    Nên dùng kết hợp với Wireshark, mitmproxy để sniff/lọc thêm thông tin.
+
+    Hạn chế fake HTTPS – tập trung vào mạng Wi-Fi open/captive portal.
+
+    Có thể fake thêm page tải app độc hại, mã độc Office, remote access, v.v.
+
+8. So sánh Ghost Phisher với các tool khác
+Tool	Ưu điểm Ghost Phisher	Khác biệt
+Ghost Phisher	GUI, workflow tích hợp, dễ dùng, all-in-one Wi-Fi + DHCP + DNS + HTTP + ARP	Không mạnh bằng các script evil twin chuyên dụng, ít stealth
+Wifiphisher	CLI, tự động hóa, attack WPA2, kịch bản đa dạng, bypass captive portal	Không có GUI, không fake nhiều server khác cùng lúc
+Airgeddon	Tự động fake AP, WPA handshake, phishing portal mạnh	Yêu cầu nhiều script phụ, phức tạp hơn với người mới
+MITMf, Bettercap	MITM network, injection code, ARP, sniffer	Không chuyên cho fake Wi-Fi/phishing GUI
+9. Tài liệu, link hữu ích
+
+    Ghost Phisher GitHub
+
+    Wifiphisher
+
+    Airgeddon
+
+    Hacktricks WiFi attacks
+
+    PayloadAllTheThings – WiFi Phishing
+
+    Wi-Fi Evil Twin Lab (YouTube)
+
+Tóm tắt nhanh
+
+    Ghost Phisher: GUI tool tạo lab tấn công Evil Twin, fake AP, captive portal, phishing Wi-Fi, DHCP, DNS, ARP spoof, post-exploitation cực nhanh cho pentest, CTF, training.
+
+    Dùng mạnh nhất cho fake Wi-Fi open, captive portal, phishing credential, demo MITM, sniff, phishing.
+
+    Nên tùy biến trang login, script hóa workflow log, luôn test lab an toàn (không dùng với mục tiêu không được phép).

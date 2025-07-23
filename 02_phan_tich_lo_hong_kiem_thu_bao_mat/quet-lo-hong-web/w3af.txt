@@ -1,0 +1,171 @@
+1. w3af là gì?
+
+    w3af (Web Application Attack and Audit Framework) là bộ công cụ quét lỗ hổng ứng dụng web mã nguồn mở mạnh mẽ (Python), tương tự Burp Suite, ZAP, Acunetix, v.v.
+
+    Phát hiện SQL Injection, XSS, CSRF, OS Command Injection, Local/Remote File Inclusion, weak password, misconfiguration, disclosure, directory traversal, v.v.
+
+    Có cả CLI và GUI.
+
+    Hỗ trợ plugin, tự động hóa, scripting Python nâng cao.
+
+2. Cài đặt w3af
+A. Trên Kali/Ubuntu
+
+sudo apt update
+sudo apt install w3af
+
+    (Gói này sẽ có cả w3af cho CLI và w3af-gui)
+
+B. Cài bản mới nhất (từ nguồn)
+
+git clone https://github.com/andresriancho/w3af.git
+cd w3af
+./w3af_console
+
+    (Nếu lỗi missing dependency, cài thêm Python3 + pip, các module theo hướng dẫn của tool.)
+
+3. Sử dụng w3af CLI cơ bản
+A. Khởi động
+
+w3af_console
+
+B. Các lệnh cơ bản
+
+    Thiết lập target:
+
+plugins crawl web_spider
+plugins audit sqli,xss,os_commanding
+target set target http://site.com
+start
+
+Tải/sử dụng profile có sẵn:
+
+profiles
+profile use full_audit
+target set target http://site.com
+start
+
+Lưu, tải cấu hình:
+
+    save myscan.w3af
+    load myscan.w3af
+
+C. Xuất báo cáo
+
+output console,html_file
+output config html_file
+set output_file report.html
+back
+start
+
+4. Sử dụng w3af GUI
+
+    Chạy:
+
+    w3af_gui
+
+    Giao diện rất trực quan: nhập target, chọn plugin crawl/audit/output, run scan, xem báo cáo, export HTML/XML/PDF.
+
+5. Các plugin và tùy chọn nâng cao
+A. Loại plugin (module):
+Loại	Ví dụ
+crawl	web_spider, sitemap_reader, archive_dot_org, etc.
+audit	sqli, xss, csrf, rfi, lfi, os_commanding, etc.
+discovery	server_header, robots_txt, backup, etc.
+bruteforce	basic_auth, form_auth
+evasion	apply_filter, encode, random_case, etc.
+output	console, html_file, text_file, xml_file
+B. Sử dụng nhiều plugin cùng lúc
+
+plugins crawl web_spider,sitemap_reader
+plugins audit sqli,xss,csrf
+
+C. Cấu hình chi tiết plugin
+
+plugins config sqli
+set only_404 False
+back
+
+6. Tối ưu scan, tiết kiệm thời gian
+
+    Chọn crawl & audit phù hợp (không scan full nếu chỉ test 1 loại bug).
+
+    Giới hạn depth, thread:
+
+http-settings set max_depth 5
+http-settings set number_of_threads 20
+
+Scan authenticated (login, session):
+
+    Dùng plugin cookie, hoặc cấu hình custom header/cookie:
+
+    http-settings set cookie PHPSESSID=xxx
+
+    Hoặc dùng plugin login (form_auth, basic_auth).
+
+Loại trừ URL không cần scan:
+
+    misc-settings set excluded_paths /logout
+
+7. Automation và script nâng cao
+
+    Tự động hóa với file script:
+
+        Tạo file myscan.w3af với nội dung:
+
+plugins
+crawl web_spider
+audit sqli
+back
+target
+set target http://site.com
+back
+start
+exit
+
+Chạy bằng:
+
+        w3af_console -s myscan.w3af
+
+    Kết hợp với CI/CD:
+    Tạo script python/bash tự động quét mỗi lần deploy mới.
+
+8. Một số mẹo và trick nâng cao
+
+    Chỉ scan 1 loại bug:
+
+plugins audit xss
+
+Chạy nhiều output (log ra cả html và console):
+
+    output console,html_file
+
+    Scan nhiều mục tiêu:
+    Lặp qua file URL, dùng bash hoặc python script để run từng target.
+
+    Tối ưu false positive:
+    Đọc kỹ kết quả, cross-check với tool khác (Burp, Nikto, Skipfish, Nuclei…).
+
+9. Xem, đọc & phân tích báo cáo
+
+    Báo cáo HTML đầy đủ, highlight theo mức độ nguy hiểm, có PoC, thông tin lỗi, đề xuất fix.
+
+    Xuất ra HTML, XML, text, dùng cho audit, pentest report hoặc lưu trữ lâu dài.
+
+10. Một số lỗi và xử lý
+Lỗi	Xử lý
+Scan chậm	Giảm depth, tăng thread, loại trừ file lớn
+Không scan được HTTPS	Update Python SSL, xác thực cert, dùng --no-verify
+Crash khi scan lớn	Chia nhỏ target, dùng CLI thay GUI
+Scan không thấy lỗi	Chọn đúng plugin, thử đổi phương pháp crawl, xác thực login đúng
+11. Tài liệu & link hữu ích
+
+    w3af Official
+
+    w3af Github
+
+    w3af User Guide (Wiki)
+
+    w3af_console -h
+
+    w3af_gui (nếu cài qua package)

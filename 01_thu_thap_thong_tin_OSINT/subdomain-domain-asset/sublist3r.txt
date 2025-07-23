@@ -1,0 +1,64 @@
+sublist3r là một công cụ dòng lệnh cực kỳ nhanh và đơn giản dùng để liệt kê subdomain của một domain mục tiêu, rất phổ biến trong pentest, bug bounty, CTF và các quy trình OSINT. Tool này “best choice” cho những ai muốn scan nhanh subdomain mà không cần cấu hình phức tạp.
+1. Tác dụng của sublist3r
+
+    Tự động thu thập subdomain của một domain, sử dụng nhiều nguồn dữ liệu công khai khác nhau.
+
+    Nhanh, đơn giản, không cần API key (dùng miễn phí).
+
+    Phù hợp cho bước đầu khi mapping attack surface, recon website, bug bounty, hunting asset.
+
+    Có thể xuất kết quả ra file txt, dùng làm wordlist cho brute-force hoặc scan port.
+
+2. Cách sử dụng sublist3r cơ bản
+1. Cài đặt
+
+git clone https://github.com/aboul3la/Sublist3r.git
+cd Sublist3r
+pip install -r requirements.txt
+python3 sublist3r.py -h
+
+2. Liệt kê subdomain cơ bản
+
+python3 sublist3r.py -d example.com
+
+    -d <domain>: domain mục tiêu
+
+3. Xuất kết quả ra file
+
+python3 sublist3r.py -d example.com -o output.txt
+
+    -o: chỉ định file lưu output
+
+4. Chỉ định số lượng thread (tăng tốc)
+
+python3 sublist3r.py -d example.com -t 50
+
+    -t: số thread (mặc định 10, có thể tăng lên nếu mạng mạnh)
+
+5. Chọn nguồn dữ liệu (engine)
+
+python3 sublist3r.py -d example.com -e Google,Yahoo,Bing,Netcraft,Virustotal,ThreatCrowd,SSL,PassiveDNS
+
+    -e: chọn search engine/source (có thể bỏ trống để lấy hết)
+
+3. Các nguồn dữ liệu mà sublist3r sử dụng
+
+    Google, Yahoo, Bing, Baidu, Ask, Netcraft, Virustotal, ThreatCrowd, DNSdumpster, SSL certificates, PassiveDNS, v.v.
+
+    Kết quả phụ thuộc nhiều vào domain và từng thời điểm (dữ liệu công khai).
+
+4. Kinh nghiệm thực chiến
+
+    Nên chạy sublist3r đầu tiên khi recon domain, sau đó kết hợp với amass, assetfinder, knockpy, ... để có wordlist subdomain mạnh nhất.
+
+    Dùng output làm wordlist cho brute-force với gobuster, ffuf, nmap, v.v.
+
+    Không phát sinh traffic mạnh lên domain mục tiêu (chỉ truy vấn public search engine).
+
+    Kết quả tốt với domain lớn, domain mới thì nên brute-force thêm.
+
+5. Tài liệu tham khảo
+
+    Github: Sublist3r
+
+    HackTricks Subdomain Enumeration

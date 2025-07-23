@@ -1,0 +1,13 @@
+burpsuite
+OWASP ZAP
+dirb
+wfuzz
+sqlmap
+nikto
+wpscan
+whatweb
+gobuster
+arachni
+LFI/RFI payload
+CVE-2021-44228
+JNDI injection

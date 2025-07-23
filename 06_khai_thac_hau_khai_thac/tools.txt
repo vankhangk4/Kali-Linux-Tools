@@ -1,0 +1,17 @@
+metasploit-framework
+msfconsole
+beef-xss
+empire
+weevely
+meterpreter
+shellter
+veil
+msfvenom
+socat
+proxychains
+netcat
+evil-winrm
+psexec.py
+weevely
+BloodyAD
+winPEAS

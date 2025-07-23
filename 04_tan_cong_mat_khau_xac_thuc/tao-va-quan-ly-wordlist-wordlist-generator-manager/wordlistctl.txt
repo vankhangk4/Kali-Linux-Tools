@@ -1,0 +1,148 @@
+1. wordlistctl là gì?
+
+    wordlistctl là một trình quản lý wordlist open-source (dòng lệnh) do @initstring phát triển (Python), giúp bạn:
+
+        Tìm, tải, update, list, quản lý hơn 1000 wordlist chất lượng nhất từ Github, SecLists, Weakpass, PacketStorm, v.v.
+
+        Tự động clone về, kiểm tra hash, lưu metadata, tìm kiếm theo chủ đề (wifi, web, ftp, custom, OSINT…)
+
+        Giúp bạn không phải mò link/tải từng wordlist nữa, chỉ 1 lệnh là xong!
+
+2. Cài đặt wordlistctl
+A. Cài đặt qua pip (khuyên dùng)
+
+pip install wordlistctl
+
+B. Cài đặt manual
+
+git clone https://github.com/initstring/wordlistctl.git
+cd wordlistctl
+pip install -r requirements.txt
+python3 wordlistctl.py --help
+
+C. Kiểm tra
+
+wordlistctl --help
+
+(Nếu lỗi, chạy python3 -m wordlistctl ... hoặc python3 wordlistctl.py ... trong thư mục tool)
+3. Sử dụng wordlistctl cơ bản
+A. Liệt kê tất cả wordlist hỗ trợ
+
+wordlistctl list
+
+    In ra danh sách wordlist theo category (web, wifi, password, names, ssh, custom, leaks…)
+
+    Có thể lọc theo category:
+
+    wordlistctl list | grep wifi
+
+B. Tìm kiếm wordlist theo từ khóa
+
+wordlistctl search wifi
+wordlistctl search vietnam
+wordlistctl search ftp
+
+C. Xem chi tiết 1 wordlist
+
+wordlistctl info <wordlist_name>
+
+Ví dụ:
+
+wordlistctl info seclists_passwords_common
+
+(Sẽ in ra: mô tả, tác giả, đường dẫn, số dòng, hash, ... )
+4. Tải (download) wordlist về máy
+
+wordlistctl get <wordlist_name>
+
+Ví dụ:
+
+wordlistctl get seclists_passwords_common
+
+    File sẽ lưu ở thư mục wordlists/ (hoặc path bạn chỉ định).
+
+    Tự động kiểm tra hash, update nếu có bản mới.
+
+Tải nhiều wordlist một lúc
+
+wordlistctl get rockyou_2021 weakpass_wifi_2019
+
+Chỉ định thư mục lưu
+
+wordlistctl get rockyou_2021 -o /tmp/mywordlists
+
+5. Tự động update, sync wordlist
+
+    Update toàn bộ wordlist đã tải:
+
+wordlistctl update
+
+Kiểm tra version, hash, trạng thái đồng bộ:
+
+    wordlistctl status
+
+6. Workflow automation thực chiến
+A. Tìm – Lọc – Tải – Sử dụng nhanh trong brute-force
+
+Ví dụ:
+
+wordlistctl search ftp
+wordlistctl get darkc0de_ftp
+hydra -L users.txt -P wordlists/darkc0de_ftp.txt ftp://target.com
+
+B. Batch tải tất cả wordlist về WiFi
+
+wordlistctl list | grep wifi | awk '{print $1}' | xargs wordlistctl get
+
+C. Tích hợp script audit pass
+
+for w in rockyou_2021 seclists_passwords_common; do
+  wordlistctl get $w
+  hashcat -m 0 -a 0 myhash.txt wordlists/$w.txt
+done
+
+7. Các mẹo sử dụng nâng cao
+
+    Luôn dùng wordlistctl trước khi brute-force để chọn wordlist “sát” mục tiêu nhất (vd: web/ssh/wifi/leaked).
+
+    Tích hợp vào script, pipeline, CI/CD hoặc lab CTF: tự động fetch wordlist mới nhất về, không cần push file nặng lên repo.
+
+    So sánh size/hash để tránh duplicate và tiết kiệm disk.
+
+    Lọc ra wordlist theo quốc gia/ngôn ngữ:
+
+    wordlistctl search vietnam
+
+    Chỉ dùng wordlist thực sự cần thiết! Không tải full 50GB của Weakpass nếu chỉ cần brute pin 6 số!
+
+8. Fix lỗi thường gặp
+Lỗi	Xử lý
+Không cài được	Update pip, check Python >=3.7, thiếu quyền sudo
+Không chạy được lệnh	Kiểm tra PATH, thử chạy với python3 -m wordlistctl
+File wordlist quá lớn	Chỉ tải file cần, chia nhỏ dùng split, filter bằng head/tail
+Lỗi SSL/Timeout	Đổi DNS, thử lại sau hoặc chuyển link manual
+9. So sánh wordlistctl với tool khác
+Tool	Ưu điểm wordlistctl	Khác biệt
+wordlistctl	Tự động, search, update, đồng bộ wordlist, cực nhanh, tiết kiệm disk, luôn fresh	Không tự generate wordlist
+SecLists	Bộ wordlist lớn, đa dạng, update trên Github	Phải git clone/update thủ công
+Cewl/CUPP	Generate wordlist custom, crawl web/social	Không quản lý, tìm kiếm, sync wordlist public
+10. Tài liệu, link hữu ích
+
+    wordlistctl Github
+
+    SecLists
+
+    Weakpass
+
+    PayloadAllTheThings – Wordlists
+
+    wordlistctl --help
+
+Tóm tắt nhanh
+
+    wordlistctl: “apt-get” cho wordlist! Giúp tìm, tải, quản lý, update các wordlist mạnh nhất phục vụ brute-force/pentest/CTF trong 1 lệnh, không cần mò link thủ công.
+
+    Cực mạnh khi automation với hydra, hashcat, john, wfuzz, ssh, WiFi...
+
+    Nên chọn wordlist phù hợp mục tiêu, luôn update list mới, và tiết kiệm disk.
+

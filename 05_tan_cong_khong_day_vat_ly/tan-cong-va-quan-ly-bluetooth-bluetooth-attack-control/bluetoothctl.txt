@@ -1,0 +1,172 @@
+1. bluetoothctl là gì?
+
+    bluetoothctl là CLI tool mạnh nhất quản lý Bluetooth (classic & BLE) trên Linux.
+
+    Cho phép:
+
+        Scan, pair, connect, trust, disconnect, remove device
+
+        Gửi/nhận file, sửa config, automation pairing, log debug
+
+        Là nền tảng để hacking BLE (pentest, fuzz, MITM, enumerate, spoof, dump info)
+
+2. Cài đặt bluetoothctl
+
+    Thường có sẵn trên Kali, Ubuntu, Debian…
+
+    Nếu chưa có:
+
+sudo apt update
+sudo apt install bluez
+
+Kiểm tra:
+
+    bluetoothctl --version
+
+3. Khởi động và các lệnh cơ bản trong bluetoothctl
+A. Mở interactive shell
+
+bluetoothctl
+
+Prompt chuyển thành [bluetooth]#
+B. Lệnh quản lý Bluetooth adapter
+
+power on               # Bật Bluetooth (nếu đang off)
+agent on               # Bật agent (xác nhận kết nối/pair)
+scan on                # Bắt đầu scan device xung quanh
+scan off               # Dừng scan
+list                   # Liệt kê adapter (nếu nhiều)
+show                   # Xem trạng thái adapter (MAC, alias, powered...)
+discoverable on        # Cho phép thiết bị của bạn hiện lên
+pairable on            # Cho phép thiết bị của bạn pair
+
+C. Kết nối/Quản lý device
+
+devices                # Liệt kê device đã từng thấy
+paired-devices         # Liệt kê thiết bị đã pair
+info <MAC>             # Thông tin chi tiết 1 device
+pair <MAC>             # Ghép đôi thiết bị (nhiều thiết bị cần nhập PIN trên target)
+connect <MAC>          # Kết nối
+trust <MAC>            # Tin tưởng device (tự động connect lần sau)
+remove <MAC>           # Xóa device khỏi list
+disconnect <MAC>       # Ngắt kết nối
+
+Ví dụ:
+
+scan on
+# chờ device xuất hiện, lấy MAC (vd: A1:B2:C3:D4:E5:F6)
+pair A1:B2:C3:D4:E5:F6
+connect A1:B2:C3:D4:E5:F6
+trust A1:B2:C3:D4:E5:F6
+
+D. Gửi file (OBEX, dùng thêm tool)
+
+    Install:
+
+sudo apt install obexftp obexpushd
+
+Gửi file tới device đã pair:
+
+    obexftp --nopath --uuid none --bluetooth <MAC> --channel 12 -p myfile.jpg
+
+4. Tự động hóa với bluetoothctl (automation script)
+
+    Sử dụng here-doc, echo, expect, python-pydbus để script hóa các lệnh pairing, connect, scan, trust...
+
+echo -e 'power on\nagent on\nscan on\n' | bluetoothctl
+
+Tạo file bash để auto pair & connect
+
+    bluetoothctl << EOF
+    power on
+    agent on
+    scan on
+    pair <MAC>
+    connect <MAC>
+    trust <MAC>
+    exit
+    EOF
+
+    Automation connect BLE sensor, BLE IoT lab (ví dụ cho pentest):
+
+        Tích hợp script scan → auto connect → dump info → log output.
+
+        Kết hợp với bluepy, gatttool, hoặc bleah để enumerate BLE services.
+
+5. Quản lý nhiều adapter, debug, hack BLE nâng cao
+A. Đổi alias, cấu hình adapter
+
+system-alias "MyBT"
+discoverable-timeout 0      # Không timeout discoverable
+pairable-timeout 0
+
+B. Debug thông tin kết nối/packet
+
+    journalctl:
+
+sudo journalctl -u bluetooth -f
+
+Enable debug mode:
+
+    sudo btmon
+
+        Hiện packet raw, useful cho pentest BLE, reverse protocol!
+
+C. Scan BLE (Bluetooth Low Energy)
+
+bluetoothctl
+scan on
+# tìm device, dùng info <MAC>
+menu gatt
+list-attributes
+select-attribute <handle>
+read
+
+D. Pentest/hack BLE với các tool ngoài
+
+    hcitool lescan, hcitool scan: scan BLE/classic
+
+    gatttool, bluepy, bleah, btlejack: enumerate, dump, fuzz, spoof BLE service
+
+    Crack pairing, sniff traffic, MITM: dùng Ubertooth, BTlejack, hoặc Wireshark + btmon log
+
+6. Mẹo mạnh và fix lỗi thực chiến
+Lỗi/Thực tế	Xử lý/mẹo
+Không bật được Bluetooth	Kiểm tra hardware switch, BIOS, enable adapter bằng rfkill unblock bluetooth
+Device không hiện khi scan	Đảm bảo thiết bị đã bật discoverable, gần máy, thử reset adapter (sudo systemctl restart bluetooth)
+Pair không thành công	Nhập PIN đúng, nếu cần reset target hoặc xóa khỏi list cũ rồi pair lại
+Không gửi file được	Dùng obexftp, đảm bảo đúng channel (thường 12), thiết bị hỗ trợ OBEX
+Không connect được BLE sensor	Thử connect lại nhiều lần, scan off rồi on lại, trust device, test trên mobile
+Device disconnect liên tục	Kiểm tra power saving, trust lại, keep-alive ping qua script
+Nhiều adapter	Dùng lệnh select <ID> để thao tác đúng device
+7. So sánh bluetoothctl với các tool khác
+Tool	Ưu điểm bluetoothctl	Khác biệt
+bluetoothctl	Quản lý, automation, pentest cơ bản, BLE/classic, script hóa cực dễ	Không enumerate BLE chi tiết như gatttool, không MITM/sniff packet
+bluepy, pygatt	Python API, automation BLE, mạnh cho dev/pentest	Không quản lý classic BT, không CLI
+bleah, btlejack, Ubertooth	Hack, MITM, sniff, fuzz BLE cực mạnh	Phức tạp hơn, chỉ BLE, không quản lý BT truyền thống
+rfkill, hciconfig	Hardware control, debug deep	Không automation được như bluetoothctl
+8. Tài liệu, link hữu ích
+
+    BlueZ official
+
+    bluetoothctl cheat sheet
+
+    Pentest BLE cheat sheet
+
+    bluepy
+
+    bleah (BLE hacking)
+
+    btlejack (BLE sniff/MITM)
+
+    PayloadAllTheThings – Bluetooth
+
+    obexftp
+
+Tóm tắt nhanh
+
+    bluetoothctl: tool CLI mạnh nhất để scan, connect, pair, trust, remove, debug, script hóa Bluetooth/BLE trên Linux – thích hợp pentest, quản trị, dev, automation BLE/BT classic.
+
+    Hỗ trợ mọi workflow scan, script hóa pairing/automation, debug log, phối hợp pentest BLE với bluepy/gatttool/bleah/btlejack/Ubertooth.
+
+    Nên phối hợp các tool ngoài để enumerate, fuzz, MITM BLE, và luôn kiểm tra hardware support + adapter trong Linux!

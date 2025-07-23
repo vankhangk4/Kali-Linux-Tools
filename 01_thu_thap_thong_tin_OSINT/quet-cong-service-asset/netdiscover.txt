@@ -1,0 +1,62 @@
+netdiscover là công cụ dò tìm thiết bị trong mạng LAN cực kỳ nhanh và đơn giản, chuyên dùng để phát hiện các thiết bị (host) đang kết nối cùng một mạng bằng kỹ thuật ARP scanning. Đây là tool cực kỳ hữu dụng khi bạn mới vào mạng lạ, không biết dải IP, hoặc muốn liệt kê các thiết bị đang online (rất hay dùng trong pentest, CTF, audit nội bộ).
+1. Tác dụng của netdiscover
+
+    Quét và liệt kê các thiết bị đang online trong LAN: IP, MAC address, vendor (hãng sản xuất card mạng).
+
+    Xác định dải IP đang hoạt động, phân tích topology mạng LAN.
+
+    Phát hiện thiết bị ẩn, rogue device, hoặc server không được document.
+
+    Rất thích hợp để xác định target ban đầu khi pentest, footprinting.
+
+    Không cần cấu hình gì, chỉ cần cắm vào mạng là scan được ngay.
+
+2. Cách sử dụng netdiscover cơ bản
+1. Quét toàn bộ mạng LAN (auto scan)
+
+netdiscover
+
+    Tự động phát hiện dải mạng, scan toàn bộ subnet (dùng tốt nhất khi máy đang ở chế độ DHCP).
+
+2. Chỉ định dải IP cần quét
+
+netdiscover -r 192.168.1.0/24
+
+    Scan subnet chỉ định, thích hợp khi biết sẵn dải hoặc muốn quét subnet khác.
+
+3. Một số tuỳ chọn hay dùng
+Tuỳ chọn	Ý nghĩa
+-r <range>	Chỉ định dải IP quét (CIDR)
+-i <iface>	Chọn card mạng (eth0, wlan0, ens33, v.v.)
+-p	Không chuyển sang chế độ interactive (in ra stdout)
+-s <num>	Tốc độ gửi gói ARP (mặc định: 1, càng lớn càng nhanh)
+-n	Không resolve tên máy (chỉ hiện IP, MAC)
+3. Output mẫu
+
+Currently scanning: 192.168.1.0/24   |   Screen View: Unique Hosts
+3 Captured ARP Req/Rep packets, from 3 hosts.   Total size: 180
+-----------------------------------------------------------------------------
+  IP            At MAC Address     Count  Len   MAC Vendor
+-----------------------------------------------------------------------------
+192.168.1.1     74:da:38:2a:14:fe  1      60    Cisco
+192.168.1.5     1c:6a:7a:2e:1f:0a  1      60    Apple
+192.168.1.101   00:1a:2b:3c:4d:5e  1      60    Dell
+
+    Cột MAC Vendor giúp nhận diện thiết bị: modem/router, camera, máy tính, printer...
+
+4. Kinh nghiệm thực chiến
+
+    Chạy netdiscover trước khi pentest giúp biết nhanh mạng có gì, phát hiện thiết bị lạ, hoặc xác định IP router/gateway.
+
+    Với mạng có nhiều subnet, nên quét từng subnet một bằng tùy chọn -r.
+
+    Kết hợp với nmap để quét port chi tiết từng IP thu được từ netdiscover.
+
+    Ít gây chú ý hơn so với scan kiểu ping sweep hoặc SYN scan, vì chỉ gửi ARP trong LAN.
+
+5. Tài liệu tham khảo
+
+    man netdiscover
+
+    HackTricks - Network Discovery
+

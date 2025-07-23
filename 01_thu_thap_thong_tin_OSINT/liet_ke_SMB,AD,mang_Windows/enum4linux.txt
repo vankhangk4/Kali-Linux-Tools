@@ -1,0 +1,70 @@
+enum4linux là một script Perl cực kỳ phổ biến trong pentest dùng để enumerate (liệt kê, thu thập thông tin) hệ thống Windows qua giao thức SMB. Nó tổng hợp và tự động hóa nhiều chức năng từ các công cụ như rpcclient, smbclient, net,... để thu thập user, group, share, OS info, policy – chỉ với 1 lệnh duy nhất.
+1. Tác dụng của enum4linux
+
+    Liệt kê user, group, account trên Windows (cả local lẫn domain).
+
+    Liệt kê các share (thư mục chia sẻ), phân quyền các share.
+
+    Lấy thông tin OS, hostname, domain, NetBIOS.
+
+    Kiểm tra password policy, thông tin SID, thông tin về printer, group policy...
+
+    Kiểm tra quyền truy cập anonymous, brute-force tài khoản guest.
+
+    Tự động tổng hợp output cực kỳ dễ đọc – phù hợp cho pentest, CTF, audit mạng nội bộ.
+
+2. Cách sử dụng enum4linux cơ bản
+1. Quét full info (anonymous)
+
+enum4linux <ip>
+
+    Đa số các mục tiêu cho phép truy vấn anonymous, chỉ cần IP.
+
+2. Quét với user/password
+
+enum4linux -u <user> -p <password> <ip>
+
+    Dùng khi có credential, sẽ lấy được nhiều thông tin hơn.
+
+3. Một số tùy chọn hữu ích
+Tùy chọn	Ý nghĩa
+-a	Chạy tất cả các chế độ (mặc định đã là full scan)
+-u <user>	Chỉ định username
+-p <pass>	Chỉ định password
+-U	Liệt kê user
+-G	Liệt kê group
+-S	Liệt kê share
+-P	Liệt kê printer
+-o <file>	Xuất output ra file
+3. Ví dụ thực tế
+Quét thông tin 1 host Windows
+
+enum4linux 10.10.10.5
+
+Quét user cụ thể
+
+enum4linux -u khang -p 123456 10.10.10.5
+
+Chỉ lấy user và group
+
+enum4linux -U -G 10.10.10.5
+
+4. Output điển hình
+
+    Danh sách user, group, share, service đang chạy, NetBIOS, SID, OS version, password policy,...
+
+    Có thể phát hiện ra user đặc biệt, share có quyền write, password policy yếu...
+
+5. Kinh nghiệm thực chiến
+
+    Dùng sớm trong pentest: Rất nhiều bài HTB/CTF giải được flag chỉ nhờ chạy enum4linux!
+
+    Nếu bị chặn anonymous: Kết hợp với brute-force credential, dùng user guest, hoặc thử các tool khác (smbclient, rpcclient, smbmap...)
+
+    Có thể bị "ồn" trên mạng nội bộ lớn (gửi nhiều truy vấn cùng lúc).
+
+6. Tài liệu tham khảo
+
+    Github: enum4linux
+
+    HackTricks: SMB Enumeration

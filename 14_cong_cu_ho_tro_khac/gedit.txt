@@ -1,0 +1,239 @@
+1. Gedit là gì?
+
+    Gedit là một trình soạn thảo văn bản (text editor) mặc định của môi trường desktop GNOME trên Linux, rất phổ biến trên Ubuntu, Fedora, Debian...
+
+    Đơn giản, nhẹ, hỗ trợ highlight nhiều ngôn ngữ lập trình, mở rộng bằng plugin.
+
+2. Cài đặt gedit
+Trên Ubuntu/Debian
+
+sudo apt update
+sudo apt install gedit
+
+Trên Fedora
+
+sudo dnf install gedit
+
+Trên Arch Linux
+
+sudo pacman -S gedit
+
+Trên Windows/Mac
+
+    Có thể tải file cài đặt từ: https://wiki.gnome.org/Apps/Gedit
+
+3. Khởi động gedit
+
+    Từ Terminal:
+
+gedit
+
+hoặc mở file:
+
+    gedit tenfile.txt
+
+    Từ Menu: Tìm kiếm "gedit" hoặc "Text Editor" trong menu ứng dụng.
+
+4. Sử dụng cơ bản
+Mở file:
+
+    gedit filename.txt – mở file có sẵn hoặc tạo mới nếu file chưa tồn tại.
+
+Lưu file:
+
+    Ctrl + S – lưu file hiện tại.
+
+    Ctrl + Shift + S – lưu dưới tên khác.
+
+Đóng file:
+
+    Ctrl + W – đóng tab hiện tại.
+
+    Ctrl + Q – thoát khỏi gedit.
+
+Copy/Paste:
+
+    Ctrl + C/V/X/Z – copy/paste/cut/undo như thông thường.
+
+Mở nhiều file cùng lúc:
+
+gedit file1.txt file2.py
+
+    Mỗi file mở trong một tab riêng.
+
+5. Tính năng nổi bật
+a. Syntax Highlighting
+
+    Hỗ trợ nhiều ngôn ngữ: C, Python, HTML, Bash, PHP...
+
+    Tự động nhận diện định dạng file.
+
+b. Tìm kiếm & thay thế
+
+    Ctrl + F: Tìm kiếm.
+
+    Ctrl + H: Tìm và thay thế.
+
+c. Số dòng
+
+    Xem số dòng, nhảy tới dòng: Ctrl + I hoặc chuột phải → "Go to Line".
+
+d. Tự động lưu bản nháp (autosave).
+e. Undo/Redo đa cấp.
+f. Mở file từ xa (qua SSH, FTP, SFTP):
+
+    File → Open → nhập đường dẫn như sftp://user@host/path/file.txt
+
+6. Phím tắt hay dùng
+Tổ hợp phím	Chức năng
+Ctrl + N	File mới
+Ctrl + O	Mở file
+Ctrl + S	Lưu
+Ctrl + Shift + S	Lưu với tên khác
+Ctrl + P	In
+Ctrl + F	Tìm kiếm
+Ctrl + H	Tìm & thay thế
+Ctrl + Z	Undo
+Ctrl + Y	Redo
+Ctrl + G	Đi tới dòng
+Ctrl + W	Đóng tab
+Ctrl + Q	Thoát gedit
+Ctrl + +/-	Phóng to/thu nhỏ chữ
+Ctrl + Shift + T	Mở lại tab vừa đóng
+7. Cấu hình & tuỳ chỉnh gedit
+a. Thay đổi giao diện (theme)
+
+    Edit → Preferences → Font & Colors.
+
+    Chọn theme như "Oblivion", "Solarized Dark"...
+
+b. Thay đổi font chữ
+
+    Vào Edit → Preferences → Font & Colors → Chọn font.
+
+c. Hiện/ẩn số dòng, tự động ngắt dòng (Word Wrap)
+
+    Edit → Preferences → chọn Show Line Numbers, Enable Text Wrapping...
+
+8. Plugin mở rộng (rất mạnh!)
+a. Cách bật plugin
+
+    Edit → Preferences → Plugins → tick bật các plugin bạn muốn.
+
+    Một số plugin hữu ích:
+
+        Bracket Completion: Tự động đóng dấu ngoặc.
+
+        Snippets: Tạo template code.
+
+        File Browser Panel: Thêm trình duyệt file bên trái.
+
+        Sort: Sắp xếp dòng.
+
+        External Tools: Chạy lệnh shell ngay trong gedit.
+
+b. Thêm plugin mới
+
+    Cài thêm plugin từ kho:
+
+    sudo apt install gedit-plugins
+
+    Hoặc tải về tại: https://wiki.gnome.org/Apps/Gedit/Plugins
+
+    Plugin tự cài: Copy file .plugin vào ~/.local/share/gedit/plugins/ và bật lên trong Preferences.
+
+9. Sử dụng gedit cho lập trình
+
+    Có thể dùng gedit như một IDE mini cho các ngôn ngữ phổ biến.
+
+    Có syntax highlighting, tự động thụt dòng, snippets, chạy lệnh build/test với External Tools.
+
+Ví dụ: Chạy python trực tiếp:
+
+    Cài plugin External Tools → Tạo script:
+
+    #!/bin/bash
+    python3 "$GEDIT_CURRENT_DOCUMENT_PATH"
+
+    Đặt phím tắt để chạy nhanh.
+
+10. Mẹo và thủ thuật nâng cao
+a. Mở file với quyền root
+
+sudo gedit /etc/hosts
+
+Lưu ý: Dùng với cẩn thận, tránh mở root gedit cho các file user.
+b. So sánh 2 file
+
+    Sử dụng plugin "Diff" (nếu đã cài gedit-plugins).
+
+c. Gedit trong terminal mode (headless)
+
+    Gedit cần môi trường GUI (không chạy trên SSH ko có X11).
+
+    Nếu SSH có X11 forwarding:
+
+    ssh -X user@server
+    gedit file.txt
+
+d. Tìm & thay thế bằng regex
+
+    Gedit hỗ trợ tìm kiếm bằng regular expression (có plugin nâng cao).
+
+e. Tự động lưu backup
+
+    Tùy chỉnh trong Preferences → Editor → Create a backup copy...
+
+11. Sử dụng gedit với các tính năng hệ thống
+a. Chỉnh sửa file cấu hình hệ thống (cẩn trọng)
+
+    Thường dùng để sửa: /etc/hosts, /etc/fstab, /etc/network/interfaces...
+
+b. Kết hợp lệnh shell:
+
+    Ví dụ xuất nội dung ra file rồi mở bằng gedit:
+
+    cat /var/log/syslog | grep error > errors.txt && gedit errors.txt
+
+12. Gedit command line options
+Tùy chọn	Ý nghĩa
+gedit file.txt	Mở file.txt
+gedit file1 file2	Mở nhiều file
+gedit +5 file.txt	Mở file.txt và nhảy tới dòng 5
+gedit --new-window	Luôn mở cửa sổ mới
+gedit --standalone	Chạy độc lập, không dùng instance cũ
+gedit --encoding=UTF-8	Mở file với encoding UTF-8
+gedit --list-encodings	Liệt kê các encoding hỗ trợ
+gedit --version	Xem version
+13. Thay thế gedit bằng các editor nâng cao
+
+    Nếu bạn cần editor mạnh hơn cho lập trình:
+
+        VSCode
+
+        Sublime Text
+
+        Atom
+
+        Kate (trên KDE)
+
+Nhưng với mục đích edit nhanh, chỉnh file hệ thống, gedit vẫn cực kỳ tiện lợi và nhẹ.
+14. Lỗi thường gặp & khắc phục
+
+    Gedit không mở được khi SSH:
+    → Thiết lập X11 forwarding: ssh -X user@host
+
+    Bị "Could not open display":
+    → Đảm bảo bạn chạy trên môi trường có X server (GUI).
+
+    Không lưu được file hệ thống:
+    → Chạy gedit bằng sudo.
+
+    Mất tab File Browser:
+    → Cài và bật lại plugin File Browser Panel.
+
+15. Tổng kết
+
+    Gedit là công cụ đơn giản, dễ dùng nhưng cực kỳ mạnh với plugin, phù hợp cho cả người mới và lập trình viên cần editor nhẹ, chỉnh file nhanh.
+
+    Nắm được các phím tắt, plugin sẽ tăng tốc làm việc lên rất nhiều.

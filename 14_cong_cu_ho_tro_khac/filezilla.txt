@@ -1,0 +1,204 @@
+1. FileZilla là gì?
+
+    FileZilla là phần mềm mã nguồn mở hỗ trợ truyền tải file qua giao thức FTP, FTPS, SFTP.
+
+    Có 2 bản:
+
+        FileZilla Client: Dùng để kết nối đến server (phổ biến nhất)
+
+        FileZilla Server: Chạy trên Windows, tạo server FTP/FTPS nội bộ hoặc internet
+
+2. Tính năng chính của FileZilla
+
+    Kéo-thả file, chuyển nhiều file cùng lúc
+
+    Resume upload/download khi bị ngắt
+
+    Hỗ trợ quản lý site (Site Manager)
+
+    Hỗ trợ proxy, tường lửa, NAT
+
+    Sử dụng SFTP qua SSH, FTPS qua SSL/TLS
+
+    Bookmark thư mục, tự động reconnect
+
+    Hiển thị log chi tiết quá trình truyền tải
+
+    Tìm kiếm file trực tiếp trên server
+
+3. Cài đặt FileZilla Client
+Trên Windows
+
+    Tải từ https://filezilla-project.org/
+
+    Chạy file .exe để cài đặt, next-next là xong
+
+Trên Ubuntu/Linux
+
+sudo apt update
+sudo apt install filezilla
+
+Trên macOS
+
+    Cài qua Homebrew:
+
+brew install --cask filezilla
+
+4. Kết nối FTP/SFTP bằng FileZilla
+Giao diện chính:
+
+    Bên trái: Local (máy tính của bạn)
+
+    Bên phải: Remote (server)
+
+Cách kết nối nhanh (Quickconnect):
+
+    Nhập host, username, password, port → ấn Quickconnect
+
+    Gặp thông báo SSL hoặc xác thực SSH, chọn OK/Accept để tiếp tục (nếu server bạn tin tưởng)
+
+Site Manager (Quản lý nhiều site):
+
+    File → Site Manager → New Site
+
+    Chọn Protocol: FTP hoặc SFTP
+
+    Nhập host, port, user, pass
+
+    Đặt tên, nhấn Connect
+
+5. Một số loại kết nối hỗ trợ
+
+    FTP: Không mã hóa, truyền trên port 21
+
+    FTPS: FTP over TLS, truyền trên port 990 hoặc custom
+
+    SFTP: SSH File Transfer Protocol, truyền trên port 22, bảo mật hơn, phổ biến dùng cho server Linux/VPS
+
+6. Các thao tác cơ bản
+
+    Tải file về: Kéo từ cửa sổ remote sang local hoặc chuột phải chọn Download
+
+    Upload file: Ngược lại, kéo từ local sang remote hoặc chuột phải chọn Upload
+
+    Tạo/xóa/sửa folder, file: Chuột phải → chọn thao tác
+
+    Đổi quyền (chmod): Chuột phải vào file/folder remote → File Permissions
+
+7. Một số thiết lập nên biết
+
+    Giới hạn tốc độ: Edit → Settings → Transfers → Speed Limits
+
+    Chuyển passive/active mode: Edit → Settings → FTP → Passive Mode (thường passive ít lỗi NAT hơn)
+
+    Timeout: Edit → Settings → Connection → Timeout (tăng lên nếu mạng chậm)
+
+    Ẩn file/folder ẩn: Server → Force showing hidden files
+
+8. Hướng dẫn FileZilla Server (Windows)
+Cài đặt FileZilla Server
+
+    Tải từ trang chủ, cài đặt như phần mềm bình thường
+
+    Chạy FileZilla Server Interface
+
+Tạo user/account
+
+    Add User, đặt username & password
+
+    Chọn thư mục chia sẻ, quyền read/write, quota dung lượng nếu cần
+
+    Tùy chỉnh port (default: 21 cho FTP), bật FTPS nếu cần
+
+Firewall
+
+    Mở port 21 (FTP), 990 (FTPS), hoặc port SFTP nếu dùng
+
+Tùy chỉnh security
+
+    Bật FTP over TLS (bắt buộc khi truyền file nhạy cảm)
+
+    Chặn anonymous login
+
+    Giới hạn IP truy cập, whitelist IP, hoặc active directory
+
+9. Kỹ thuật nâng cao & Trick thực chiến
+
+    Sử dụng SFTP thay cho FTP nếu server hỗ trợ (mã hóa tốt hơn)
+
+    Kết nối proxy: Edit → Settings → Generic proxy (socks, http…)
+
+    Chuyển nhiều file lớn: Tăng số connection song song Edit → Settings → Transfers
+
+    Resume khi download/upload bị mất mạng: Chỉ cần upload/download lại, FileZilla tự động tiếp tục từ vị trí ngắt
+
+10. Pentest, bảo mật, CTF với FileZilla
+
+    Kiểm tra misconfig:
+
+        Truy cập thử anonymous login
+
+        Dò quyền write để upload webshell
+
+    Download file ẩn:
+
+        File .htaccess, .env, backup, log
+
+    Lấy flag trên CTF:
+
+        Đọc file, upload script reverse shell (nếu được cấp quyền)
+
+    Kết hợp Hydra, Medusa brute-force FTP
+
+        Sau khi có user/pass dùng FileZilla để thao tác thủ công
+
+11. Xử lý lỗi thường gặp
+Lỗi	Nguyên nhân	Cách khắc phục
+Connection timed out	Server không phản hồi, sai IP/port	Kiểm tra firewall, IP, port, bật Passive Mode
+Authentication failed	Sai user/pass	Kiểm tra lại thông tin đăng nhập
+Could not connect to server	Sai protocol hoặc server down	Chọn đúng FTP/SFTP, kiểm tra server
+Gặp lỗi TLS/SSL certificate warning	Chưa xác thực SSL	Accept nếu biết rõ server, cài cert nếu cần
+Hiện ít file, thiếu folder	Chưa bật show hidden	Server → Force showing hidden files
+Lỗi permission denied khi upload	Không đủ quyền trên server	Xin thêm quyền, đổi chmod nếu có quyền admin
+12. Tips & tricks tăng tốc & bảo mật
+
+    Luôn dùng SFTP thay cho FTP thường
+
+    Tắt anonymous login trên server
+
+    Đổi port FTP mặc định (21) sang port khác
+
+    Hạn chế số kết nối đồng thời nếu mạng yếu
+
+    Bật log debug để xem chi tiết khi lỗi
+
+    Không để lộ pass trong máy tính (dùng password manager nếu cần)
+
+    Kết hợp SSH key authentication cho SFTP nếu server hỗ trợ
+
+13. Kịch bản tự động hóa FileZilla
+
+    FileZilla client không script hóa được, nhưng bạn có thể dùng:
+
+        LFTP (Linux): lftp -e "mirror -R ./local/ /remote/" -u user,pass sftp://host
+
+        WinSCP: Hỗ trợ script tự động trên Windows
+
+    Để tự động upload/download nhiều server → nên chuyển qua dòng lệnh
+
+14. Tài liệu, cheat sheet, link tham khảo
+
+    Trang chủ: https://filezilla-project.org/
+
+    Tài liệu chính thức: https://wiki.filezilla-project.org/
+
+    Tổng hợp lỗi thường gặp: https://forum.filezilla-project.org/
+
+    Tổng hợp phím tắt FileZilla
+
+    Pentest/CTF về FTP:
+
+        https://book.hacktricks.xyz/pentesting/21-ftp
+
+        https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Upload%20Insecure%20Files
+

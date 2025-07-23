@@ -1,0 +1,198 @@
+1. John the Ripper là gì?
+
+    John the Ripper (JtR) là tool crack password/hashes nổi tiếng, lâu đời, cực mạnh.
+
+    Hỗ trợ rất nhiều hash:
+
+        Windows (LM/NTLM), Unix (DES, MD5, bcrypt, shadow), WiFi (WPA/WPA2), ZIP, RAR, Office, PDF, Kerberos, SHA, MySQL, MSSQL, Apache htpasswd, v.v.
+
+    Hỗ trợ nhiều dạng attack: dictionary, incremental (brute-force), rule-based, mask, combinator, external, wordlist hybrid.
+
+    Có thể chạy trên CPU hoặc GPU (John cộng với plugin “jumbo”).
+
+    Nên dùng cho mọi dạng forensic, CTF, pentest, audit password nội bộ!
+
+2. Cài đặt John the Ripper
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install john
+
+(Nên dùng bản "jumbo" để hỗ trợ nhiều hash, nhiều tính năng nhất)
+B. Build John Jumbo từ source
+
+git clone https://github.com/openwall/john.git
+cd john/src
+./configure && make -s clean && make -sj4
+cd ../run
+./john --help
+
+3. Các thành phần chính
+
+    john: tool crack password chính
+
+    unshadow, zip2john, rar2john, gpg2john, hccap2john, office2john, pdf2john, keepass2john...
+
+        Các script convert file đặc biệt thành hash dùng cho John.
+
+4. Crack hash cơ bản (dictionary)
+A. Chuẩn bị:
+
+    File chứa hash (mỗi dòng 1 hash, có thể là shadow, samdump2, dump trực tiếp).
+
+    Wordlist (rockyou.txt, password.lst, custom...)
+
+B. Lệnh crack dictionary
+
+john --wordlist=wordlist.txt hash.txt
+
+(Mặc định dùng /usr/share/john/password.lst nếu không chỉ rõ wordlist)
+
+    Xem pass đã crack:
+
+john --show hash.txt
+
+Xem trạng thái:
+
+    john --status
+
+5. Crack hash nâng cao
+A. Rule-based (biến thể wordlist)
+
+john --wordlist=wordlist.txt --rules hash.txt
+
+(Rule mặc định sẽ biến wordlist thành nhiều dạng: hoa, thêm số, nối, đảo...)
+B. Brute-force (incremental)
+
+john --incremental hash.txt
+
+(Crack mọi kiểu pass ngắn – chạy lâu, không khuyến nghị cho hash mạnh/pass dài)
+C. Mask attack (pattern brute-force)
+
+john --mask='?d?d?d?d?d?d' hash.txt
+
+    ?d: số, ?l: chữ thường, ?u: hoa, ?s: ký tự đặc biệt
+
+D. External attack, combinator
+
+    Combinator:
+
+    john --wordlist=first.txt --wordlist=second.txt --external=Concat hash.txt
+
+6. Crack hash đặc biệt – Windows, Office, WiFi, ZIP, PDF, Kerberos
+A. Windows (samdump2)
+
+samdump2 SYSTEM SAM > hash.txt
+john --format=nt hash.txt --wordlist=rockyou.txt
+
+B. Shadow file (Linux)
+
+unshadow /etc/passwd /etc/shadow > shadow.txt
+john --wordlist=wordlist.txt shadow.txt
+
+C. ZIP/RAR/Office/PDF
+
+    ZIP:
+
+zip2john secret.zip > hash.txt
+john hash.txt --wordlist=wordlist.txt
+
+RAR:
+
+rar2john secret.rar > hash.txt
+john hash.txt --wordlist=wordlist.txt
+
+Office:
+
+office2john secret.docx > hash.txt
+john hash.txt --wordlist=wordlist.txt
+
+PDF:
+
+pdf2john.pl secret.pdf > hash.txt
+john hash.txt --wordlist=wordlist.txt
+
+WiFi WPA2 (.hccap):
+
+    hccap2john handshake.hccap > hash.txt
+    john hash.txt --wordlist=wordlist.txt
+
+D. Kerberos AS-REP roast, TGS (pentest AD)
+
+john --format=krb5asrep hash.txt --wordlist=wordlist.txt
+
+(Dump hash từ impacket/kerbrute)
+7. Tối ưu tốc độ – GPU, session, pause/resume
+
+    Chạy với GPU (OpenCL/CUDA):
+
+john --format=nt-opencl hash.txt --wordlist=rockyou.txt
+
+(Dùng john --list=formats | grep opencl để xem các format hỗ trợ GPU)
+
+Session management:
+
+    Lưu session:
+
+john --session=myjob --wordlist=rockyou.txt hash.txt
+
+Resume:
+
+        john --restore=myjob
+
+8. Filter, log, automation
+
+    Chỉ log pass đã crack:
+
+john --show hash.txt > cracked.txt
+
+Batch script cho nhiều hash:
+
+    for file in *.txt; do
+      john --wordlist=rockyou.txt "$file"
+    done
+
+    Filter password phức tạp:
+
+        Dùng custom rule trong file /usr/share/john/john.conf.
+
+9. Identify hash (phân biệt loại hash)
+
+    Tool:
+
+        HashID
+
+        https://hashcat.net/wiki/doku.php?id=example_hashes
+
+        CrackStation
+
+10. Một số lỗi thường gặp & fix nhanh
+Lỗi	Cách xử lý
+“No password hashes loaded”	Hash format sai, cần convert bằng script đúng
+Chạy quá chậm	Dùng bản GPU/jumbo, chọn wordlist mạnh, thử mask/rule
+“Unknown format”	Dùng lệnh john --list=formats để check format, hoặc convert hash
+“Exhausted”	Crack xong không tìm ra pass, cần wordlist khác
+Permission denied	Chạy sudo hoặc kiểm tra quyền folder/file
+11. Tài liệu, link hữu ích
+
+    John Official
+
+    John Github (Jumbo)
+
+    Hashcat/John mode list
+
+    SecLists
+
+    PayloadAllTheThings Password Cracking
+
+    [john --help], [john --list=formats], [man john]
+
+Tóm tắt nhanh
+
+    John the Ripper: tool crack pass/hash siêu mạnh, đa năng, hỗ trợ rất nhiều định dạng, rule, attack mode.
+
+    Tích hợp script convert mọi loại file đặc biệt (zip2john, office2john...).
+
+    Tối ưu GPU, filter wordlist, rule, batch script, session quản lý workflow pentest/CTF rất tốt.
+
+    Luôn xác định đúng loại hash, convert chuẩn, chọn wordlist hợp lý và thử nhiều mode khác nhau.

@@ -1,0 +1,26 @@
+nmap
+theHarvester
+dnsenum
+whois
+recon-ng
+maltego
+amass
+shodan
+masscan
+gobuster
+sublist3r
+netdiscover
+fierce
+OSINT Framework
+rpcclient
+ldapsearch
+crackmapexec
+ldapdomaindump
+smbclient
+smbmap
+bloodhound-python
+kerbrute
+GetNPUsers.py
+awscli
+tcpdump
+enum4linux

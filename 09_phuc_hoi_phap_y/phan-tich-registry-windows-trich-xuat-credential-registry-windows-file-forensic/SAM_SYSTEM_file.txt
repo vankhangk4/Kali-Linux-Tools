@@ -1,0 +1,155 @@
+1. SAM & SYSTEM File Là Gì?
+
+    SAM (Security Account Manager): File database lưu username và password hash (NTLM hash) của local user trên Windows.
+
+    SYSTEM: File registry chứa key (bootkey) để giải mã các hash trong SAM.
+
+    Cả hai file đều nằm trong:
+
+        C:\Windows\System32\config\SAM
+
+        C:\Windows\System32\config\SYSTEM
+
+    Chỉ có Administrator/system account hoặc truy cập offline mới lấy được.
+
+2. Cấu Trúc Và Vai Trò
+
+    SAM file: Lưu tất cả các local account (Administrator, Guest, user thường...), NTLM hash của password, group, policy liên quan.
+
+    SYSTEM file: Lưu thông tin về bootkey, LSA Secrets, các key để giải mã dữ liệu sensitive (hash trong SAM, DPAPI key, ...).
+
+    Khi chỉ có file SAM, không giải mã được hash. Khi có cả SAM và SYSTEM, ta có thể extract được NTLM hash của user.
+
+3. Lý Do Pentester/Forensic Muốn Dump SAM/SYSTEM?
+
+    Offline Attack: Crack hash để lấy plain password (John the Ripper, hashcat...).
+
+    Lateral Movement: Reuse hash để pass-the-hash (pth) hoặc dump credential.
+
+    Forensics: Điều tra hành vi đăng nhập, malware persistence, tài khoản ẩn, v.v.
+
+4. Cách Dump/Capture SAM & SYSTEM File
+4.1. Offline (Dễ nhất)
+
+    Boot vào Linux Live CD hoặc tháo ổ cứng, gắn sang máy khác:
+
+        Copy file:
+
+        cp /mnt/Windows/System32/config/SAM /somewhere/
+        cp /mnt/Windows/System32/config/SYSTEM /somewhere/
+
+        Hoặc dùng các tool cứu hộ như WinPE, Hiren's BootCD, Kali Linux...
+
+4.2. Live Windows (Online, cần bypass lock)
+
+    Không thể copy trực tiếp vì file đang bị lock bởi OS.
+
+    Cách phổ biến:
+
+        reg save:
+
+reg save HKLM\SAM C:\sam
+reg save HKLM\SYSTEM C:\system
+
+(Chạy bằng quyền Administrator/NT AUTHORITY\SYSTEM)
+
+VSS (Volume Shadow Copy):
+Dùng shadow copy để extract file khi OS đang chạy:
+
+        vssadmin create shadow /for=C:
+        copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopyX\Windows\System32\config\SAM .
+        copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopyX\Windows\System32\config\SYSTEM .
+
+        Mimikatz, secretsdump.py, pwdump, samdump2, Metasploit...:
+        Dùng tool tự động dump hash (đã tích hợp extract key luôn).
+
+5. Extract Hash Từ SAM/SYSTEM (Cracking Workflow)
+5.1. Samdump2 (Linux/Kali)
+
+samdump2 SYSTEM SAM > hash.txt
+
+Tạo file NTLM hash format chuẩn để crack với john/hashcat.
+5.2. Impacket-secretsdump (Python, cross-platform)
+
+secretsdump.py -sam SAM -system SYSTEM LOCAL
+
+Sẽ xuất NTLM hash, LSA secrets, cached domain hash...
+5.3. Mimikatz (Windows, powerful)
+
+mimikatz
+privilege::debug
+lsadump::sam
+
+(Sẽ dump all local user + hash, thậm chí cả các credential khác nếu chạy với quyền SYSTEM.)
+6. Crack Password Hash (John the Ripper/Hashcat)
+
+John:
+
+john --format=nt hash.txt --wordlist=rockyou.txt
+
+Hashcat:
+
+hashcat -m 1000 hash.txt wordlist.txt
+
+    -m 1000 cho NTLM hash.
+
+7. Pass-the-Hash, Lateral Movement
+
+    Khi có hash, không cần biết password vẫn đăng nhập được (pass-the-hash attack).
+
+    Tool phổ biến: pth-winexe, mimikatz sekurlsa::pth, Metasploit psexec, ...
+
+8. Các Trick Nâng Cao, Automation
+8.1. Dump SAM/SYSTEM qua Metasploit
+
+meterpreter > hashdump
+
+(Dump all local hash trực tiếp, tự extract luôn.)
+8.2. Automation trên nhiều máy
+
+    Viết script Powershell/Python để extract reg save hoặc trigger dump từ xa (qua SMB, WinRM...).
+
+8.3. Forensics: Phân tích dữ liệu ẩn
+
+    Dùng tool registry explorer để check hidden account, các key registry ẩn, track hành vi persistence (UserAssist, Run, v.v).
+
+9. Lưu ý khi thực chiến
+
+    Không được ghi đè file – luôn copy file sang ổ khác rồi thao tác.
+
+    Chỉ làm trên máy đã tắt (offline) nếu forensic cần giữ nguyên trạng thái (evidence).
+
+    Khi làm trên máy live, nhớ escalate quyền lên SYSTEM nếu cần (bypass UAC, token, exploit service...).
+
+10. Câu hỏi mở rộng
+
+    Muốn lấy hash trên domain controller (AD)?
+    → Dump NTDS.dit và SYSTEM, dùng secretsdump.py, mimikatz, hoặc ntdsutil.
+
+    Làm sao detect nếu bị dump SAM/SYSTEM?
+    → Monitor eventlog, shadowcopy, registry activity, AV alert unusual access to registry hive.
+
+11. Tài liệu & Tool tham khảo
+
+    samdump2
+
+    Impacket-secretsdump.py
+
+    Mimikatz
+
+    Volatility plugin
+
+    RegRipper
+
+    John the Ripper
+
+    hashcat
+
+12. Tổng kết bảng lệnh/thao tác nhanh
+Thao tác	Tool/Command
+Dump offline	Copy file, samdump2, secretsdump.py
+Dump live (Windows)	reg save, mimikatz, vssadmin, Metasploit
+Extract hash	samdump2, secretsdump.py, mimikatz
+Crack hash	john, hashcat
+Pass-the-hash	mimikatz, Metasploit, pth-tool
+Forensics	Registry explorer, RegRipper, volatility

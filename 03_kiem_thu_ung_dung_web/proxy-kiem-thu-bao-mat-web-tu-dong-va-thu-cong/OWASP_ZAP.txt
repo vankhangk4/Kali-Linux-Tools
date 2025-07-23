@@ -1,0 +1,167 @@
+1. OWASP ZAP là gì?
+
+    OWASP ZAP (Zed Attack Proxy): Công cụ kiểm thử bảo mật ứng dụng web mã nguồn mở, thuộc dự án OWASP.
+
+    Thay thế miễn phí cho Burp Suite (bản Pro), được cộng đồng bảo mật ưa chuộng.
+
+    Hỗ trợ cả GUI và CLI (automation).
+
+    Chức năng mạnh: Spider, active/passive scan, fuzzing, authentication, session, report đẹp, plugin, API, script tự động hóa.
+
+2. Cài đặt OWASP ZAP
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install zaproxy
+
+B. Tải bản mới nhất
+
+    Tải về cho Windows, Mac, Linux.
+
+C. Chạy ZAP
+
+    GUI:
+
+zaproxy &
+
+CLI/Headless (automation):
+
+    zap.sh -daemon -port 8080 -host 127.0.0.1
+
+3. Sử dụng GUI cơ bản
+A. Proxy Intercept
+
+    Đặt trình duyệt proxy qua ZAP (mặc định 127.0.0.1:8080).
+
+    ZAP sẽ ghi lại tất cả request/response => dễ dàng phân tích, chỉnh sửa, thử bug.
+
+B. Spider (thu thập link tự động)
+
+    Vào “Sites” > Chuột phải vào domain > Attack > Spider Site
+
+    ZAP sẽ crawl toàn bộ link, form, JS, file trên web.
+
+C. Active Scan (quét lỗ hổng tự động)
+
+    Sau khi spider xong, chuột phải site > Attack > Active Scan
+
+    Chọn policy (SQLi, XSS, file inclusion, weak config…) > Run
+
+    ZAP sẽ thử khai thác bug trên từng endpoint, từng param, cực chi tiết.
+
+D. Passive Scan
+
+    Tự động check header, config, info leak, HTTPS, cookie... (không làm hại, chỉ đọc).
+
+E. Fuzzer
+
+    Gửi payload tùy ý vào bất kỳ param, header, cookie nào (gần giống Burp Intruder).
+
+    Hỗ trợ payload list, regex extract, automation.
+
+4. Automation (CLI, Headless, API)
+A. Quét tự động không GUI (headless)
+
+zap.sh -cmd -quickurl https://target.com -quickout zap_report.html
+
+    Quét nhanh, xuất báo cáo HTML cho CI/CD, DevOps.
+
+B. Sử dụng ZAP API
+
+    ZAP tích hợp REST API sẵn, có thể gửi lệnh Spider, Active scan, export report...
+
+    Doc: ZAP API Documentation
+
+    Ví dụ:
+
+        List site:
+
+curl http://127.0.0.1:8080/JSON/core/view/sites/
+
+Start scan:
+
+        curl "http://127.0.0.1:8080/JSON/ascan/action/scan/?url=https://target.com"
+
+C. Integration với Jenkins/GitLab/Github Actions
+
+    Plugin ZAP hoặc gọi shell command để scan tự động mỗi lần deploy.
+
+5. Sử dụng nâng cao & best-practice
+A. Scan Authenticated (Login, Session)
+
+    ZAP hỗ trợ form-based, HTTP Basic, OAuth, API key, v.v.
+
+    Dùng “Context” để lưu session, cookie, auto-login, giữ session xuyên suốt scan.
+
+B. Custom Policy
+
+    Tự chọn bug cần quét (chỉ SQLi, chỉ XSS, hoặc bỏ qua brute-force…).
+
+    Có thể tự viết rule/plugin bằng JavaScript hoặc Python (ZAP Scripting).
+
+C. Fuzzing nâng cao
+
+    Đặt breakpoint, ghi đè value, random input, brute-force file, v.v.
+
+D. API scan/JSON scan
+
+    ZAP có thể scan API REST, GraphQL, Swagger/OpenAPI.
+
+    Import file OpenAPI/Swagger qua menu “Import API”.
+
+E. Scripting
+
+    Viết script riêng để dò bug chưa có trong ZAP (scripting: JS, Python, ZEST).
+
+F. Extension/Marketplace
+
+    Gắn thêm plugin: passive/active scanner, report, auth, integration, scan policy...
+
+    ZAP Marketplace
+
+6. Report & Export
+
+    Báo cáo rất đẹp: HTML, XML, JSON, Markdown, docx, pdf (plugin).
+
+    Có thể customize theo nhu cầu pentest, khách hàng hoặc CI/CD.
+
+7. Mẹo thực tế & automation
+
+    Scan nhiều site: Dùng shell hoặc ZAP CLI, API.
+
+    Kết hợp tool khác: Dùng WhatWeb, Nmap, nuclei, Subfinder lấy list domain, rồi feed cho ZAP quét hàng loạt.
+
+    Tối ưu tốc độ: Không scan sâu endpoint ít quan trọng, exclude file tĩnh (jpg, mp4...), tăng thread scan trong setting.
+
+    Scan API: Import swagger, postman collection, test luôn cả endpoint API.
+
+    Monitor/alert: Kết hợp với SIEM, Slack, email notification.
+
+8. Các lỗi thường gặp & fix
+Lỗi	Cách xử lý
+Không ghi lại request	Kiểm tra proxy, CA cert, browser trust
+Quét chậm, treo	Tăng RAM, chỉnh thread, exclude link/file lớn
+Không quét được Auth	Dùng script auto-login, kiểm tra session context
+Active scan không báo lỗi	Xem lại scope, setting policy, thử tăng mức độ scan
+Web có WAF/CDN	Thử đổi UA, proxy, scan chậm lại, bypass header
+9. Tài liệu, link hữu ích
+
+    OWASP ZAP Official
+
+    ZAP User Guide
+
+    ZAP Github
+
+    ZAP Marketplace
+
+    Video hướng dẫn (YouTube)
+
+    ZAP Automation (CI/CD)
+
+Tóm tắt nhanh
+
+    OWASP ZAP là công cụ pentest web rất mạnh, miễn phí, thay thế hoàn hảo cho Burp Suite bản trả phí.
+
+    Hỗ trợ quét sâu, đa dạng bug, automation cực tốt, report đẹp, script mở rộng, scan API.
+
+    Phù hợp mọi quy mô: pentest cá nhân, dev, bug bounty, doanh nghiệp, CI/CD pipeline, kiểm thử định kỳ.

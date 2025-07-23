@@ -1,0 +1,155 @@
+1. WhatWeb là gì?
+
+    WhatWeb là công cụ fingerprinting (nhận diện công nghệ) web mã nguồn mở cực mạnh, chạy dòng lệnh.
+
+    Phát hiện CMS (WordPress, Joomla, Drupal...), framework, server, plugin, JS lib, analytic, webapp firewall, hệ điều hành, version, contact info, lỗ hổng (khi có pattern),...
+
+    Phân tích dựa vào HTTP header, HTML content, JS, cookie, redirect, favicon, v.v.
+
+    Rất nhanh, tự động cập nhật plugin nhận diện.
+
+2. Cài đặt WhatWeb
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install whatweb
+
+B. Clone bản mới nhất từ GitHub
+
+git clone https://github.com/urbanadventurer/WhatWeb.git
+cd WhatWeb
+sudo ruby whatweb --help
+
+(Yêu cầu Ruby)
+3. Sử dụng WhatWeb cơ bản
+Nhận diện 1 website:
+
+whatweb https://example.com
+
+Hiện thông tin chi tiết hơn (Verbose):
+
+whatweb -v https://example.com
+
+4. Tùy chọn nâng cao và các tham số quan trọng
+Tham số	Ý nghĩa
+-v	Verbose – chi tiết
+-a <level>	Aggression: độ "tấn công" (1-4, càng cao càng sâu)
+-l <file>	Quét danh sách URL/IP từ file
+-o <file>	Xuất kết quả ra file
+--log-brief	Log ngắn gọn
+--log-verbose	Log rất chi tiết
+-p <proxy>	Quét qua proxy (Burp/ZAP, Tor, ...)
+-U <user-agent>	Đổi User-Agent
+--no-redirect	Không theo redirect
+-t <n>	Số thread song song (mặc định 25)
+--max-threads <n>	Thread tối đa khi quét lớn
+--color=never	Không in màu (cho script/CI)
+--format=csv,json,xml	Định dạng output
+
+Ví dụ:
+
+whatweb -a 3 -v https://mybank.com
+whatweb -l urls.txt -o result.csv --format=csv
+whatweb -a 4 -t 100 https://site.com
+whatweb -p http://127.0.0.1:8080 https://site.com
+whatweb --no-redirect -U "Mozilla/5.0" https://target.com
+
+5. Quét hàng loạt website (Batch Scan)
+
+    Tạo file urls.txt chứa danh sách site (1 dòng 1 URL/IP):
+
+https://site1.com
+https://site2.com
+http://1.2.3.4
+
+Quét đồng loạt và lưu kết quả:
+
+whatweb -l urls.txt -o batch_report.txt
+
+Kết hợp với thread để scan rất nhanh:
+
+    whatweb -l urls.txt -a 3 -t 50 -o result.csv --format=csv
+
+6. Chế độ Aggression (quét sâu)
+
+    Level 1: Chỉ GET bình thường (nhẹ, stealth)
+
+    Level 2: Thêm truy vấn header, robots.txt, favicon...
+
+    Level 3: Quét kỹ hơn, gửi nhiều request hơn (có thể phát hiện bug ẩn)
+
+    Level 4: Full power (có thể dễ bị block, ghi log IDS/WAF)
+
+Ví dụ:
+
+whatweb -a 4 https://target.com
+
+(Chú ý: Chỉ dùng với hệ thống test, không nên scan sâu ở site production hoặc chưa xin phép)
+7. Tích hợp với proxy, đổi User-Agent, bypass WAF
+
+    Dùng proxy (Burp, ZAP, Tor):
+
+whatweb -p http://127.0.0.1:8080 https://target.com
+
+Đổi User-Agent:
+
+    whatweb -U "Googlebot/2.1" https://target.com
+
+8. Automation – kết hợp tool khác
+
+    Ghép với Nmap, Masscan, Subfinder:
+
+        Dò IP/Port sống, lấy ra danh sách URL rồi feed vào WhatWeb:
+
+    nmap -p 80,443 --open -oG - targetsubnet | grep "/open/" | awk '{print $2}' | sed 's/^/http:\/\//' > host.txt
+    whatweb -l host.txt -o service.csv --format=csv
+
+    Ghép với ffuf, nuclei:
+
+        Nhận diện công nghệ rồi brute-force file/dir hoặc scan lỗ hổng đúng công nghệ.
+
+9. Plugin WhatWeb – tự viết nhận diện riêng
+
+    Thư mục plugin ở: plugins/
+
+    Có thể tự viết plugin Ruby theo mẫu (doc tại WhatWeb Plugin API)
+
+    Dùng cho nhận diện hệ thống web custom, hoặc lỗ hổng nội bộ.
+
+10. Kết xuất dữ liệu và báo cáo
+
+    Xuất ra CSV, JSON, XML:
+
+    whatweb -l urls.txt -o out.csv --format=csv
+    whatweb -l urls.txt -o out.json --format=json
+
+    Dùng để import lên dashboard, SIEM, Kibana, ELK...
+
+11. Một số lỗi & mẹo fix nhanh
+Lỗi	Fix
+Timeout khi scan lớn	Giảm thread, thử lại với -t thấp hơn
+Kết quả nhận diện sai	Tăng aggression level, thử lại với -a 3/4
+Bị block hoặc 403	Đổi UA, thử proxy, tăng/giảm aggression
+Scan HTTPS lỗi	Cập nhật OpenSSL, thử Ruby bản mới
+Kết quả quá nhiều	Dùng filter, hoặc chỉ in key info (grep, awk, ...)
+12. Tài liệu và link hữu ích
+
+    WhatWeb Official
+
+    WhatWeb Github
+
+    WhatWeb Plugin API
+
+    whatweb --help
+
+    PayloadAllTheThings CMS Detection
+
+Tóm tắt nhanh
+
+    WhatWeb: fingerprinting công nghệ web cực nhanh, nhận diện CMS, framework, plugin, version, dịch vụ… giúp pentest, bug bounty, sysadmin quản lý hệ thống hiệu quả.
+
+    Có thể scan lẻ từng site hoặc quét hàng ngàn site cực nhanh (multithread).
+
+    Hỗ trợ automation tốt, plugin mở rộng dễ, xuất nhiều định dạng báo cáo.
+
+    Kết hợp tốt với các tool khác trong giai đoạn information gathering và xác định bề mặt tấn công.

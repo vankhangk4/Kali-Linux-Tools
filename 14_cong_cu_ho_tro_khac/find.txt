@@ -1,0 +1,206 @@
+
+I. GIỚI THIỆU LỆNH find
+
+    find là công cụ dòng lệnh cực mạnh để tìm kiếm file/thư mục trên hệ thống theo điều kiện rất linh hoạt: tên, kích thước, thời gian sửa, loại file, quyền, nội dung, v.v...
+
+    Syntax tổng quát:
+
+find [đường_dẫn] [biểu_thức_tìm_kiếm] [hành_động]
+
+VD:
+
+    find /home/khang -name "*.txt"
+
+II. CƠ BẢN: TÌM FILE ĐƠN GIẢN
+1. Tìm tất cả file/thư mục trong thư mục hiện tại (và con)
+
+find .
+
+2. Tìm theo tên chính xác
+
+find /duong/dan -name filename.txt
+
+3. Tìm theo pattern (wildcard)
+
+find /duong/dan -name "*.log"
+find /duong/dan -name "abc*"
+
+4. Tìm không phân biệt hoa thường
+
+find /duong/dan -iname "*.JPG"
+
+5. Tìm thư mục
+
+find /duong/dan -type d -name "foldername"
+
+6. Tìm file
+
+find /duong/dan -type f -name "*.pdf"
+
+III. NÂNG CAO: KẾT HỢP NHIỀU ĐIỀU KIỆN
+1. Tìm file hoặc
+
+find . \( -name "*.txt" -o -name "*.md" \)
+
+2. Tìm file và
+
+find . -type f -name "*.sh" -perm /u+x
+
+    File script có quyền thực thi cho owner.
+
+3. Tìm file KHÔNG có điều kiện nào đó
+
+find . ! -name "*.txt"
+
+IV. THEO THUỘC TÍNH FILE
+1. Kích thước
+
+find . -size +10M      # Lớn hơn 10MB
+find . -size -500k     # Nhỏ hơn 500KB
+find . -size 0         # File rỗng
+
+2. Quyền truy cập
+
+find . -perm 777      # Quyền chính xác 777
+find . -perm /222     # Có quyền ghi cho ai đó
+find . -perm -400     # Có quyền đọc cho owner
+
+3. Chủ sở hữu
+
+find /var/log -user root
+find /home -group staff
+
+4. Ngày sửa đổi/chỉnh sửa
+
+find . -mtime -3        # Sửa đổi trong vòng 3 ngày qua
+find . -mtime +10       # Sửa đổi trên 10 ngày
+find . -atime -1        # Được truy cập trong vòng 1 ngày
+find . -ctime -7        # Thay đổi metadata (permissions, owner, ...)
+
+    Đơn vị là ngày (24h).
+
+    Dùng phút: -mmin, -amin, -cmin
+    VD:
+
+    find . -mmin -60    # Sửa đổi trong 60 phút qua
+
+V. THEO LOẠI FILE
+
+find . -type f    # Chỉ file thường
+find . -type d    # Thư mục
+find . -type l    # Link mềm (symlink)
+find . -type s    # Socket
+find . -type p    # Named pipe
+
+VI. HÀNH ĐỘNG VỚI FILE TÌM ĐƯỢC
+1. Xóa file ngay
+
+find . -name "*.tmp" -delete
+
+2. Thực thi lệnh trên từng file (-exec)
+
+find . -name "*.log" -exec rm -f {} \;
+
+    {} sẽ được thay bằng file tìm được, \; là kết thúc lệnh.
+
+3. Dùng xargs để tăng hiệu suất (batch)
+
+find . -name "*.bak" -print0 | xargs -0 rm -f
+
+    -print0 + -0: Chống lỗi khi tên file có dấu cách, ký tự đặc biệt.
+
+4. In thông tin file
+
+find . -type f -exec ls -lh {} \;
+
+VII. PHỔ BIẾN VỚI TÌM KIẾM NỘI DUNG FILE
+
+Tìm file có chứa chuỗi nhất định:
+
+find . -type f -name "*.php" -exec grep -l "mysqli_connect" {} \;
+
+VIII. TÙY CHỈNH KẾT QUẢ HIỂN THỊ
+1. Chỉ in tên file
+
+find . -type f -printf "%f\n"
+
+    %f: chỉ tên file, %p: cả đường dẫn
+
+2. In chi tiết
+
+find . -type f -printf "%p %s %TY-%Tm-%Td %TH:%TM\n"
+
+    In ra tên, size, ngày giờ sửa đổi
+
+IX. GIỚI HẠN ĐỘ SÂU TÌM KIẾM
+
+find . -maxdepth 1 -type f       # Chỉ thư mục hiện tại
+find . -mindepth 2 -type f       # Bỏ qua cấp 1
+
+X. KẾT HỢP VỚI REGEX
+
+find . -regextype posix-extended -regex '.*\.(jpg|png|gif)$'
+
+    Tìm file kết thúc bằng jpg, png, gif
+
+XI. TÌM THEO NGÀY GIỜ CỤ THỂ
+
+find . -newermt "2024-07-20 12:00:00" -not -newermt "2024-07-21 00:00:00"
+
+    File sửa trong khung giờ cụ thể
+
+XII. MỘT SỐ BÀI TOÁN THỰC TẾ
+1. Tìm tất cả file rỗng và xóa
+
+find . -type f -empty -delete
+
+2. Tìm file lớn nhất hệ thống
+
+find / -type f -exec du -h {} + | sort -hr | head -n 10
+
+3. Tìm file có quyền thực thi mà không nên có
+
+find /home -type f -perm /111 -ls
+
+4. Tìm file được chỉnh sửa hôm nay
+
+find . -type f -mtime 0
+
+XIII. CÁC MẸO & TIPS NÂNG CAO
+
+    -ls: Liệt kê chi tiết như ls -l
+
+    -prune: Loại trừ thư mục khỏi tìm kiếm
+
+    find . -path "./node_modules" -prune -o -type f -name "*.js" -print
+
+    -not, !: Phủ định điều kiện
+
+    -exec ... +: Thực hiện lệnh với nhiều file cùng lúc (tốt hơn \;)
+
+    -print0 & xargs -0: Xử lý file có ký tự đặc biệt (nên dùng khi batch xử lý lớn)
+
+XIV. CẢNH BÁO QUAN TRỌNG
+
+    Cẩn thận khi dùng -delete hoặc -exec rm với quyền root — kiểm tra kỹ điều kiện kẻo xóa nhầm!
+
+    find có thể chạy rất lâu với thư mục lớn (/, /home, ...), nên giới hạn phạm vi với -maxdepth, lọc sớm điều kiện.
+
+    Một số file cần root mới tìm được, dùng sudo.
+
+XV. TÀI LIỆU THAM KHẢO & HỖ TRỢ
+
+    man find
+
+    explainshell.com
+
+    tldr find
+
+    Blog/tài liệu nâng cao:
+
+        https://www.gnu.org/software/findutils/manual/html_mono/find.html
+
+XVI. TỔNG KẾT
+
+find là công cụ cực mạnh, "bảo bối" của quản trị viên, lập trình viên, pentester,...
+Biết tận dụng hết sức mạnh của find sẽ giúp bạn tiết kiệm cực nhiều thời gian khi thao tác với hệ thống file!

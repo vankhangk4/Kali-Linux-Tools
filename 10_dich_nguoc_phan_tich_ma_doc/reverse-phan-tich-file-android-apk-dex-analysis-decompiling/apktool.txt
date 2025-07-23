@@ -1,0 +1,184 @@
+1. APKTool là gì?
+
+    APKTool là công cụ dịch ngược (reverse engineering) ứng dụng Android (.apk) phổ biến nhất, mã nguồn mở, hỗ trợ decompile, recompile, chỉnh sửa, patch code, localization, nghiên cứu malware Android, bypass bảo vệ, tạo bản mod/hack.
+
+    Dịch ra smali code (gần giống assembly cho Dalvik/ART), giải nén resource (res, manifest, xml, assets...), cho phép chỉnh sửa và build lại file APK.
+
+2. Tính năng chính
+
+    Decompile: Tách file .apk thành mã smali, tài nguyên, manifest, file xml dễ chỉnh sửa.
+
+    Recompile: Đóng gói lại APK từ code đã sửa.
+
+    Phục hồi resource: Giữ nguyên cấu trúc resource, layout, string, asset.
+
+    Patch code: Sửa smali, bypass check, mod chức năng, phân tích malware.
+
+    Hỗ trợ đa ngôn ngữ: Decompile & mod localization, string.
+
+    Tích hợp automation, batch: Dùng script shell/python, phân tích hàng loạt.
+
+3. Cài đặt APKTool
+3.1. Yêu cầu
+
+    Java (Java 8+)
+
+    apktool.jar mới nhất
+
+    adb (Android Debug Bridge – nếu cần sign/test app trên thiết bị)
+
+3.2. Cài đặt
+
+wget https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar -O apktool.jar
+sudo mv apktool.jar /usr/local/bin/apktool.jar
+sudo wget https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool -O /usr/local/bin/apktool
+sudo chmod +x /usr/local/bin/apktool
+
+Kiểm tra:
+
+apktool --version
+
+    Hoặc cài qua package manager (chỉ có trên một số distro như Kali, Parrot):
+    sudo apt install apktool
+
+4. Sử dụng APKTool cơ bản
+4.1. Giải nén/decompile APK
+
+apktool d app-release.apk -o app-decompiled
+
+    Thư mục app-decompiled/ chứa:
+
+        smali/: Code smali
+
+        res/: Resource (layout, drawable, xml...)
+
+        AndroidManifest.xml: Manifest đã convert sang xml dễ đọc
+
+        assets/, lib/: Thư viện, data kèm theo
+
+4.2. Chỉnh sửa mã nguồn
+
+    Sửa smali (patch logic, bypass license, add log, sửa toast, bypass root detect...)
+
+    Sửa res/layout, string.xml (mod giao diện, localization, dịch app)
+
+    Sửa AndroidManifest.xml (thay đổi permission, activity, intent filter...)
+
+4.3. Đóng gói lại APK
+
+apktool b app-decompiled -o app-modded.apk
+
+Nếu sửa resource hoặc manifest, APKTool sẽ rebuild và đóng gói lại thành file .apk.
+4.4. Ký lại APK (sign APK)
+
+App sau khi rebuild phải ký lại mới cài/đẩy lên thiết bị:
+
+# Tạo key nếu chưa có
+keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000
+
+# Ký lại apk
+jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore app-modded.apk alias_name
+
+# Zipalign (tối ưu, không bắt buộc)
+zipalign -v 4 app-modded.apk app-final.apk
+
+    Có thể dùng apksigner (mới hơn, được Google khuyến nghị).
+
+5. Thực chiến: Một số case thực tế
+5.1. Bypass Root/Emulator Detection
+
+    Tìm các file smali có function chứa “root”, “emulator”, “test-keys”, “busybox”,...
+
+    Patch logic kiểm tra trả về “false”, hoặc xóa lệnh kiểm tra, đổi jump.
+
+5.2. Bypass License/Google Play Check
+
+    Sửa hàm kiểm tra license từ “if-nez” thành “if-eqz” (đổi nhánh check), hoặc return giá trị luôn true.
+
+5.3. Phân tích malware Android
+
+    Dùng apktool decompile, tìm trong smali/xref string như “http”, “.php”, “upload”, “cmd”, “su”, “exec”,...
+
+    Tìm xem app lấy quyền gì trong Manifest, có chạy service/backdoor gì bất thường không.
+
+5.4. Localization / Dịch ngược app
+
+    Sửa file string.xml hoặc thêm bản dịch trong res/values-xx/strings.xml.
+
+    Rebuild, sign, test lại app.
+
+5.5. Mod UI, Theme, Icon...
+
+    Sửa file layout xml, drawable, image, asset, thay icon.
+
+6. Automation & batch scripting
+
+    Dùng shell script để tự động decompile nhiều apk, extract toàn bộ string, tìm pattern độc hại:
+
+for i in *.apk; do
+  apktool d "$i" -o "${i%.apk}_decompiled"
+done
+
+    Dùng Python với Androguard để automation phân tích static sâu hơn (extract class, API, permission...).
+
+7. Nâng cao (Advanced/Red Team)
+7.1. Obfuscation/Deobfuscation
+
+    Đa số APK đã bị proguard/obfuscate, smali khó đọc: dùng plugin, grep, regex để tìm hàm/chuỗi đặc biệt.
+
+    Sử dụng kết hợp với jadx, enjarify, dex2jar để convert .dex thành .jar, dịch sang Java dễ đọc.
+
+7.2. Hook runtime + patch dynamic
+
+    Kết hợp với Frida, Xposed Framework, Objection để hook runtime, patch function khi app chạy.
+
+    APKTool để patch static, Frida/Xposed để patch/hook dynamic.
+
+7.3. Bypass Signature/Integrity Protection
+
+    Nếu app tích hợp check signature, hash file (vd: SafetyNet), phải patch sâu hoặc bypass runtime check.
+
+7.4. Malware Analysis
+
+    Decompile malware, extract C2 server, API key, hardcoded credentials, xem dấu hiệu exploit lỗ hổng, spyware.
+
+8. Mẹo, lưu ý thực chiến
+
+    Always backup file apk trước khi sửa, tránh lỗi khi rebuild.
+
+    Sửa nhỏ từng phần, test lại app ngay khi có thể, tránh sửa lớn bị lỗi resource ID.
+
+    Với app mới, dùng thêm JADX/jadx-gui để xem Java code logic trước khi patch smali (dễ hiểu hơn nhiều).
+
+    Dùng [grep], [ripgrep], [fdfind] để tìm pattern nhanh trong smali lớn.
+
+    Đọc kỹ error khi rebuild, thường do thiếu resource, lỗi syntax smali, lỗi duplicate id.
+
+9. So sánh APKTool với các công cụ khác
+Tool	Ưu điểm	Nhược điểm
+APKTool	Chuẩn cho smali, resource, manifest, patch UI	Không dịch sang Java, không dynamic
+jadx	Dịch dex sang Java dễ hiểu	Không sửa resource, build lại apk khó
+dex2jar	Chuyển dex sang jar để dịch bằng JD-GUI	Chỉ code, không resource, không patch UI
+enjarify	Tương tự dex2jar, mới hơn	Giống dex2jar
+Androguard	Automation, static/dynamic analysis nâng cao	Không build lại apk
+
+=> Workflow chuẩn: Decompile bằng apktool + đọc code Java bằng jadx/jadx-gui + patch smali bằng apktool + sign bằng jarsigner/apksigner.
+10. Tài nguyên học APKTool
+
+    Official APKTool GitHub
+
+    Wiki + Hướng dẫn chi tiết
+
+    jadx GUI (Java Decompiler)
+
+    Dex2jar
+
+    Androguard
+
+    Frida
+
+    Objection (Mobile Runtime Instrumentation)
+
+    Youtube hướng dẫn APKTool
+
+    CTF Writeups Android

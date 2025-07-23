@@ -1,0 +1,202 @@
+1. ps là gì?
+
+    ps (process status) là lệnh liệt kê các tiến trình (process) đang chạy trên hệ thống.
+
+    Rất quan trọng cho việc quản lý hệ thống, kiểm tra ứng dụng, kill process bị treo, kiểm tra malware, ...
+
+    ps khác với top (top theo thời gian thực), ps chỉ hiển thị trạng thái tại thời điểm bạn chạy lệnh (snapshot).
+
+2. Cú pháp cơ bản
+
+ps [tùy chọn]
+
+Một số tùy chọn phổ biến nhất:
+Tùy chọn	Ý nghĩa
+ps	Chỉ hiện tiến trình của bạn (shell hiện tại)
+ps -e hoặc ps -A	Hiện tất cả tiến trình hệ thống
+ps -u <user>	Hiện process của user xác định
+ps -x	Hiện cả tiến trình không có terminal
+ps -aux	Rất phổ biến, liệt kê tất cả (xem chú ý bên dưới)
+ps aux	Cũng liệt kê tất cả process (BSD style)
+3. Phân biệt hai phong cách tùy chọn
+
+    Unix style: (phía trước là -)
+
+        ps -e, ps -ef, ps -u root
+
+    BSD style: (không có -)
+
+        ps aux, ps ax, ps ux
+
+    Hai style này đôi khi sẽ khác nhau về thứ tự cột, option!
+
+4. Ý nghĩa các cột chính
+Cột	Ý nghĩa
+PID	Process ID (mã tiến trình)
+PPID	Parent PID (tiến trình cha)
+USER	Người sở hữu process
+%CPU	% CPU đang sử dụng
+%MEM	% RAM đang sử dụng
+VSZ	Virtual Memory Size (KB)
+RSS	Resident Set Size – RAM thực dùng (KB)
+TTY	Terminal đang dùng
+STAT	Trạng thái (S, R, T, Z, ...)
+TIME	Thời gian CPU tiêu tốn
+COMMAND	Lệnh/chuỗi lệnh tạo process
+5. Một số ví dụ thường dùng nhất
+
+    Liệt kê tất cả process hệ thống:
+
+ps aux
+
+Liệt kê process dạng cây (parent - child):
+
+ps -ejH
+ps -axjf
+
+Xem process của user cụ thể:
+
+ps -u username
+
+Lọc process theo tên:
+
+ps aux | grep nginx
+
+Xem chi tiết process đang chạy của bạn:
+
+    ps -u $(whoami)
+
+6. Các tuỳ chọn hiển thị nâng cao
+
+    Hiển thị đầy đủ command line (kể cả tham số dài):
+
+ps auxww
+
+Lọc process theo PID:
+
+ps -p 1234
+
+Chọn cột hiển thị (dùng -o):
+
+ps -eo pid,ppid,cmd,%mem,%cpu,etime
+
+Chỉ xem process thuộc 1 group (gid):
+
+ps -g <gid>
+
+Chỉ xem process chạy với tty nhất định:
+
+    ps -t pts/0
+
+7. Ý nghĩa một số trạng thái STAT
+Ký tự	Nghĩa
+R	Running (đang chạy)
+S	Sleeping (chờ)
+D	Không thể interrupt, thường do IO
+T	Stopped (bị dừng – có thể do signal)
+Z	Zombie (tiến trình con chết, chưa dọn dẹp)
+X	Dead (quá trình đã chết)
+
+Các ký tự phía sau:
+
+    + : Process chạy ở foreground (foreground process group)
+
+    l : Multi-threaded
+
+    < : High-priority
+
+    N : Low-priority (nice)
+
+8. Một số trick phân tích, forensics, nâng cao
+
+    Tìm process chiếm CPU nhiều nhất:
+
+ps -eo pid,ppid,cmd,%cpu --sort=-%cpu | head
+
+Tìm process chiếm RAM nhiều nhất:
+
+ps -eo pid,cmd,%mem --sort=-%mem | head
+
+Tìm process không có terminal (background/daemon):
+
+ps -e | grep "?"
+
+Tìm process lạ/chạy lâu bất thường:
+
+ps -eo pid,etime,cmd | grep suspicious_binary
+
+Kiểm tra process của root:
+
+    ps -U root -u root u
+
+9. Xem process dạng cây (tree)
+
+    Hiển thị mối quan hệ cha-con (parent-child):
+
+ps axjf
+ps -ejH
+
+Hoặc dùng lệnh pstree (không phải ps, nhưng rất tiện):
+
+    pstree -p
+
+10. Dùng ps trong scripting
+
+    Liệt kê toàn bộ PID theo tên process:
+
+ps -C nginx -o pid=
+
+Kill tất cả process theo tên:
+
+kill $(ps -C nginx -o pid=)
+
+Lọc các process cũ hơn 1 ngày (ví dụ):
+
+    ps -eo pid,etime,cmd | awk '$2 ~ /-/ {print $1, $3}'
+
+11. Lệnh ps và security
+
+    Phát hiện process backdoor/malware chạy ngầm:
+    So sánh process đang chạy với dịch vụ hợp lệ, tìm các tên lạ, process không có cha (ppid=1), process chiếm nhiều tài nguyên bất thường, ...
+
+    Phát hiện process zombie:
+
+    ps -el | grep 'Z'
+
+12. ps so với các công cụ khác
+
+    ps: snapshot trạng thái tại thời điểm hiện tại
+
+    top / htop: xem realtime, cập nhật liên tục
+
+    pgrep/pkill: tìm hoặc kill process theo tên
+
+    pstree: hiển thị quan hệ cha con trực quan hơn
+
+    systemctl status: kiểm tra trạng thái service (nếu dùng systemd)
+
+13. Một số lỗi thường gặp
+Lỗi	Nguyên nhân/giải pháp
+Không hiện đầy đủ process	Chạy thiếu quyền (cần sudo để xem hết)
+Không hiện full command	Thiếu tùy chọn ww hoặc thiếu cột command
+Sai định dạng option	Nhầm lẫn giữa BSD-style (không -) và UNIX-style (có -)
+14. Tài liệu tham khảo
+
+    man ps
+
+    ps man page online
+
+    ps --help
+
+    ps cheat sheet (tecmint)
+
+15. Lệnh tổng hợp hay dùng
+
+ps aux                    # Hiển thị toàn bộ process
+ps -ef                    # Hiển thị đầy đủ với cột PPID
+ps -eo pid,ppid,cmd,%mem,%cpu,etime # Tuỳ chỉnh cột hiển thị
+ps aux | grep sshd        # Tìm process sshd
+ps axjf                   # Hiển thị process dạng cây
+ps -C nginx -o pid,cmd    # Hiển thị tất cả PID của nginx
+ps -p 1 -o cmd            # Hiển thị lệnh của process có PID 1
+

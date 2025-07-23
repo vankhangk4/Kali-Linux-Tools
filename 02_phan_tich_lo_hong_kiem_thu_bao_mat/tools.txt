@@ -1,0 +1,12 @@
+nikto
+wpscan
+nuclei
+OpenVAS
+skipfish
+uniscan
+w3af
+arachni
+lynis
+searchsploit
+msfconsole
+sqlmap

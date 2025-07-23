@@ -1,0 +1,196 @@
+1. Proxmark3 (promark3k) là gì?
+
+    Proxmark3 (thường gọi nhầm thành “promark3k” do phát âm) là thiết bị phần cứng mã nguồn mở mạnh nhất thế giới để thăm dò, đọc, ghi, clone, fuzz, crack, tấn công thẻ RFID/NFC:
+
+        Low Frequency (LF) 125kHz: HID, EM410x, Indala, T5577, v.v.
+
+        High Frequency (HF) 13.56MHz: Mifare Classic/Ultralight/Desfire, ISO14443, NTAG, Felica, NFC phone, vé giao thông, IoT tag...
+
+    Hỗ trợ sniff, replay, clone, fuzz, crack key, brute, phân tích protocol, auto script hóa workflow pentest/red team/hobbyist.
+
+    Rất mạnh cho pentest access control, CTF RFID, học reverse protocol, research...
+
+2. Cài đặt phần mềm Proxmark3
+A. Cài firmware và client mới nhất (khuyên dùng)
+
+git clone https://github.com/RfidResearchGroup/proxmark3.git
+cd proxmark3
+make clean && make all
+
+    Nên dùng bản firmware/client cùng version (check repo về cách flash fw).
+
+B. Cài nhanh trên Kali/Ubuntu (bản repo)
+
+sudo apt update
+sudo apt install proxmark3
+
+(Bản này có thể hơi cũ, nên vẫn khuyến nghị build từ source nếu cần feature mới nhất)
+C. Kết nối thiết bị
+
+proxmark3 /dev/ttyACM0
+
+    (Có thể là /dev/ttyUSB0 hoặc /dev/ttyACM1 tuỳ máy, kiểm tra bằng dmesg | grep tty)
+
+    Nếu lỗi perm, chạy sudo hoặc thêm user vào group dialout.
+
+3. Giao diện command-line client
+
+Mọi thao tác chính đều ở CLI. Có thể dùng interactive shell hoặc chạy lệnh batch/script.
+4. Quy trình workflow Proxmark3 thực chiến
+A. Xác định thẻ là LF hay HF
+
+    Scan auto (LF+HF)
+
+    hw tune
+    lf search
+    hf search
+
+    Nếu lf search trả về “Valid HID/EM410x/T5577/Indala…”, là thẻ LF (125kHz).
+
+    Nếu hf search trả về “Mifare/NTAG/ISO14443/Ultralight…”, là thẻ HF (13.56MHz).
+
+B. Đọc và clone thẻ LF (125kHz)
+
+1. Scan và decode
+
+lf search
+
+(Tự động nhận diện & decode các dòng thẻ phổ biến)
+
+2. Clone thẻ HID/EM410x vào T5577
+
+lf hid read
+lf hid clone
+# Hoặc:
+lf em 410x read
+lf em 410x clone
+
+    Đặt blank T5577 vào, chạy lệnh “clone”, Proxmark3 sẽ viết lại data từ thẻ nguồn.
+
+3. Replay hoặc fuzz
+
+lf hid sim
+lf em 410x sim
+
+    Phát sóng data từ thẻ lên reader (không cần thẻ vật lý).
+
+C. Đọc, clone, crack thẻ HF (13.56MHz, Mifare, NFC...)
+
+1. Scan thẻ
+
+hf search
+
+2. Đọc thẻ Mifare Classic
+
+hf mf info
+hf mf dump
+
+    Nếu hỏi key: dùng default (FFFFFFFFFFFF) hoặc brute.
+
+3. Crack key Mifare Classic
+
+hf mf autopwn
+# hoặc
+hf mf nested
+# hoặc dùng key list
+hf mf chk <sector> <keyA> <keyB>
+
+    Script “autopwn” sẽ tự động brute hết các block, dump ra file .eml (dùng lại để clone).
+
+4. Clone Mifare Classic vào card trắng (UID changeable)
+
+hf mf restore 1
+# (Dùng file .eml vừa dump)
+
+    Hoặc:
+
+        hf mf cload
+
+        hf mf wrbl để ghi từng block cụ thể
+
+5. Tấn công Mifare (harder)
+
+    Dump key DESfire, brute sector, attack random UID, v.v.
+
+D. Sniff, replay, fuzz RFID
+
+Sniff traffic giữa reader và card
+
+lf snoop
+hf snoop
+
+    Dùng phân tích protocol, học reverse (hoặc tìm lỗi logic).
+
+Replay traffic
+
+lf t55xx sim
+hf mf sim
+
+Fuzz lệnh
+
+    Script Python hoặc bash lặp brute các key/block, automation dump/fuzz hàng loạt card.
+
+E. Phân tích log, script hóa workflow
+
+    Dùng file .eml, .bin, .json xuất từ Proxmark3 để decode offline (Python, binwalk, URH, NFC Tools…).
+
+    Batch clone: script bash/python loop dump/clone hàng loạt thẻ, generate report tự động.
+
+5. Mẹo thực chiến, tối ưu hiệu suất
+
+    Nên tự build firmware/client bản mới nhất — tính năng mạnh, fix bug, support card lạ mới.
+
+    Luôn tune lại antenna (hw tune) trước khi scan, để tăng SNR, tránh miss read/clone.
+
+    Nếu clone Mifare Classic UID, phải dùng card “magic” (UID changeable) — mua online (không phải card nào cũng ghi lại được UID!).
+
+    Nên script hóa mọi workflow lặp lại (dump/clone/crack/report) cho pentest/red team lớn, tiết kiệm hàng tiếng đồng hồ.
+
+    Nhiều thẻ IoT mới (vé bus, kiểm soát ra vào, tag cảm biến…) đều dùng ISO14443, NTAG, Mifare Ultralight: proxmark3 đều đọc/clone được, nếu hardware support.
+
+    Có thể fake tag (sim mode) để bypass access control không dùng physical card!
+
+    Nên học thêm các attack như Nested, Darkside, Hardnested nếu gặp thẻ Mifare Classic "chống copy"
+
+6. Fix lỗi thường gặp
+Lỗi	Cách xử lý
+Không nhận thiết bị	Cắm lại, check cable, chạy dmesg, thêm perm cho user
+Lỗi “Client/firmware version mismatch”	Flash firmware trùng với client, làm theo hướng dẫn chính chủ
+Không nhận thẻ khi scan	Đặt thẻ sát coil, tune lại antenna, thử card khác, check hw
+Clone HID không mở cửa	Check đúng format HID (35/37/40/44 bit), đúng định dạng, check card nhận T5577 không
+Mifare Classic không dump/clone	Dùng attack Nested/Hardnested, update firmware mới nhất, dùng key list custom
+Không ghi lại được UID	Card trắng phải là “UID changeable magic card”
+Lệnh lỗi “Not supported”	Update firmware/client, kiểm tra đúng repo/branch
+7. So sánh Proxmark3 với các tool khác
+Tool/Device	Ưu điểm Proxmark3	Khác biệt
+Proxmark3	Đọc/ghi/sniff/clone hầu hết LF/HF RFID, clone mọi loại Mifare, HID, EM, sim mode, brute, script automation	Giá hơi cao (1–3tr), cần Linux/CLI, cần kiến thức RF/RFID
+ACR122U	Giá rẻ, chỉ đọc/ghi Mifare Classic/HF, không LF	Không clone HID/EM/T5577, không fuzz/sniff
+ChameleonMini	Clone UID, sim thẻ, support script, portable	Chỉ Mifare/ISO14443 (HF), không support LF
+Flipper Zero	Đa chức năng, portable, UI đẹp, đọc/clone phổ biến, hỗ trợ cả LF/HF, IR, radio	Không mạnh bằng Proxmark3 về attack/sniff chuyên sâu
+HackRF/RFCat	RF hacker, script/scan toàn RF, sub-GHz	Không đọc/ghi RFID/NFC, không brute được như Proxmark3
+8. Tài liệu, link hữu ích
+
+    Proxmark3 RRG Github
+
+    PM3 Command Cheatsheet
+
+    Darkside/Nested Attack
+
+    Flipper Zero RFID Wiki
+
+    Hacktricks RFID
+
+    PayloadAllTheThings – RFID/NFC
+
+    NFC Tools App
+
+Tóm tắt nhanh
+
+    Proxmark3 (promark3k) là tool mạnh nhất để pentest, audit, clone, crack, sniff, replay thẻ RFID/NFC, access control, IoT, vé bus, Mifare, HID, EM410x...
+
+    Script hóa mọi workflow, clone mọi thẻ (nếu có card trắng chuẩn), support sniffer, sim mode, attack, brute key, replay cực mạnh.
+
+    Nên phối hợp với Flipper Zero, ACR122U, HackRF để hoàn thiện pentest/red team/hobbyist RFID/NFC lab.
+
+    Luôn dùng firmware mới nhất, script hóa, backup all dump/log!
+

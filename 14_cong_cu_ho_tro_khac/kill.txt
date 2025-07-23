@@ -1,0 +1,204 @@
+1. kill là gì?
+
+    kill là lệnh dùng để gửi tín hiệu (signal) tới tiến trình (process) dựa trên PID (Process ID).
+
+    Không chỉ để “giết” (terminate), mà còn để gửi nhiều loại tín hiệu khác (pause, resume, reload...).
+
+    Là công cụ cực kỳ quan trọng khi quản trị hệ thống, xử lý lỗi, giải phóng tài nguyên.
+
+2. Cú pháp cơ bản
+
+kill [tùy chọn] <PID>
+
+Ví dụ:
+
+kill 1234    # Gửi tín hiệu mặc định (SIGTERM) tới tiến trình PID 1234
+
+    PID là mã số tiến trình (xem bằng ps, top, pgrep, ...).
+
+3. Các tín hiệu phổ biến
+Số	Tên	Mô tả
+1	SIGHUP	Khởi động lại tiến trình (reload)
+2	SIGINT	Ngắt tiến trình (giống Ctrl+C)
+9	SIGKILL	Giết ngay lập tức, không thể bị chặn
+15	SIGTERM	(mặc định) Kết thúc tiến trình một cách chuẩn
+18	SIGCONT	Tiếp tục tiến trình bị dừng
+19	SIGSTOP	Dừng tiến trình (pause, không kill)
+
+Danh sách đầy đủ:
+
+    kill -l
+
+4. Các cách gửi tín hiệu
+
+    Mặc định: (SIGTERM)
+
+kill PID
+
+Chỉ định số tín hiệu:
+
+kill -9 PID      # Gửi SIGKILL (bắt buộc dừng)
+kill -15 PID     # Gửi SIGTERM (mặc định)
+
+Chỉ định tên tín hiệu:
+
+    kill -SIGKILL PID
+    kill -SIGTERM PID
+    kill -HUP PID
+
+5. Gửi tín hiệu tới nhiều tiến trình
+
+kill PID1 PID2 PID3
+
+Hoặc:
+
+kill -9 $(pgrep firefox)
+
+6. Lệnh liên quan
+
+    pkill: Kill theo tên tiến trình
+
+pkill firefox         # Kill tất cả tiến trình tên firefox
+pkill -9 python3      # Kill mạnh mẽ mọi tiến trình python3
+pkill -f "python myscript.py"  # Theo chuỗi đầy đủ
+
+killall: Kill tất cả tiến trình cùng tên
+
+killall firefox
+killall -9 apache2
+
+xkill: Click chuột để kill ứng dụng GUI (trên desktop)
+
+    xkill
+
+7. Kiểm tra PID cần kill
+
+    ps aux | grep <tên tiến trình>
+
+ps aux | grep nginx
+
+pgrep <tên tiến trình>
+
+    pgrep firefox
+
+    top, htop để tìm PID.
+
+8. Một số ví dụ thực tế
+a. Dừng tiến trình “treo” bằng SIGKILL:
+
+ps aux | grep vlc
+kill -9 <PID của vlc>
+
+b. Tự động kill process bằng script:
+
+for pid in $(pgrep chrome); do
+  kill -9 $pid
+done
+
+c. Reload lại tiến trình mà không kill (dùng cho service reload config):
+
+kill -HUP <PID>
+
+d. Tạm dừng và tiếp tục tiến trình:
+
+kill -STOP <PID>   # Pause process
+kill -CONT <PID>   # Resume process
+
+9. Quyền hạn khi dùng kill
+
+    Thông thường, user chỉ có thể kill process của chính mình.
+
+    Muốn kill process hệ thống (hoặc của user khác):
+    Dùng sudo:
+
+    sudo kill -9 <PID>
+
+10. Mẹo thực chiến, automation
+a. Kill tất cả tiến trình do user “user1” chạy:
+
+pkill -u user1
+
+b. Kill process chiếm nhiều CPU nhất:
+
+PID=$(ps -eo pid,%cpu --sort=-%cpu | awk 'NR==2 {print $1}')
+kill -9 $PID
+
+c. Kill theo port (ví dụ port 8080):
+
+fuser -k 8080/tcp
+# hoặc
+kill -9 $(lsof -t -i:8080)
+
+d. Kill tất cả process zombie:
+
+ps -eo stat,pid | grep Z | awk '{print $2}' | xargs -r kill -9
+
+11. Phân biệt kill, killall, pkill, xkill
+Lệnh	Cách sử dụng	Ưu điểm
+kill	Theo PID	Kiểm soát từng process
+killall	Theo tên process	Nhanh, dễ dùng
+pkill	Theo tên, hỗ trợ regex, user	Linh hoạt, mạnh mẽ
+xkill	Dùng chuột, GUI	Dễ dùng cho desktop
+12. Các lỗi thường gặp & cách xử lý
+
+    Không kill được bằng SIGTERM:
+    → Dùng SIGKILL (kill -9)
+
+    Không tìm thấy PID:
+    → Kiểm tra lại bằng ps, pgrep, chú ý lỗi chính tả.
+
+    Permission denied:
+    → Chạy với sudo.
+
+    Process vẫn tồn tại sau khi kill -9:
+    → Có thể là process zombie (sẽ tự mất khi parent process xử lý), hoặc lỗi kernel.
+
+13. Kill process trong Docker/LXC
+
+    Vào container:
+
+docker exec -it <container> bash
+kill -9 <PID>
+
+Hoặc ngoài host:
+
+    docker kill <container>
+
+14. Script kill tự động nâng cao
+Kill mọi process theo pattern tên và ghi log:
+
+#!/bin/bash
+PATTERN="firefox"
+for pid in $(pgrep $PATTERN); do
+  echo "Killing $PATTERN PID: $pid" >> kill_log.txt
+  kill -9 $pid
+done
+
+Tự động kill process bị treo quá lâu:
+
+timeout 10 myscript.sh
+# Nếu quá 10s chưa xong thì kill process chính của myscript.sh
+
+15. Các tín hiệu đặc biệt, nâng cao
+
+    USR1, USR2: Tùy tiến trình lập trình, dùng cho signal custom
+
+    WINCH: Thường dùng trong TTY
+
+    CHLD: Báo parent khi child chết
+
+16. Tra cứu tài liệu
+
+    Man page:
+
+    man kill
+    man 7 signal
+
+17. Tổng kết
+
+    kill là công cụ mạnh, không chỉ để "giết" mà còn để điều khiển process qua signal.
+
+    Hiểu bản chất signal, dùng đúng tín hiệu sẽ giúp bạn quản trị hệ thống Linux hiệu quả, tự động hóa và xử lý sự cố tốt hơn.
+
+    Kết hợp kill, killall, pkill, scripting sẽ cực kỳ mạnh cho mọi môi trường từ desktop đến server.
+

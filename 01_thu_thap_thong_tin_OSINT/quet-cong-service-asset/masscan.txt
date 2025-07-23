@@ -1,0 +1,69 @@
+masscan là một công cụ quét cổng (port scanner) siêu nhanh, có thể coi là “công cụ anh em với nmap nhưng tốc độ nhanh gấp hàng trăm lần”, nhờ việc sử dụng kỹ thuật gửi gói tin thô (raw packets) trực tiếp ở tầng mạng. Đây là một trong những công cụ yêu thích của dân pentest, bug bounty, red team để scan hàng triệu IP hoặc port trong thời gian cực ngắn.
+1. Tác dụng của masscan
+
+    Quét cổng (port scan) với tốc độ cực nhanh (lên tới hàng triệu packet/giây)
+
+    Phù hợp cho việc kiểm tra diện rộng (scan dải IP lớn, mạng lớn)
+
+    Có thể xuất kết quả sang format của nmap để phân tích tiếp
+
+    Hỗ trợ quét bất kỳ port nào (TCP/UDP)
+
+    Có thể “stealth scan” vì tốc độ quá nhanh, vượt quá ngưỡng phát hiện của nhiều firewall thông thường
+
+2. Cách sử dụng cơ bản
+1. Quét một IP hoặc dải IP
+
+masscan -p80 192.168.1.0/24
+
+    Quét port 80 trên dải IP 192.168.1.0 tới 192.168.1.255
+
+2. Quét nhiều port cùng lúc
+
+masscan -p80,443,8080 10.10.10.0/24
+
+3. Quét tất cả các port trên 1 host
+
+masscan -p1-65535 192.168.1.1
+
+4. Tăng tốc độ quét (rate)
+
+masscan -p80 192.168.1.0/24 --rate=10000
+
+    --rate: số gói tin/giây (mặc định rất cao, có thể phải giảm nếu mạng yếu hoặc thiết bị target yếu)
+
+5. Xuất kết quả ra file
+
+masscan -p80 192.168.1.0/24 -oG output.txt
+
+    -oG: xuất ra định dạng “grepable” (dễ import vào nmap, các tool khác…)
+
+3. Một số tuỳ chọn hữu ích
+Tuỳ chọn	Ý nghĩa
+-p	Chọn port (1 port, nhiều port, dải port)
+--rate	Tốc độ scan (packet/giây)
+-e	Chọn card mạng nếu máy có nhiều interface
+--banners	Thử lấy banner dịch vụ (giống nmap -sV, cơ bản thôi)
+-oJ	Xuất kết quả ra file JSON
+--exclude	Bỏ qua các IP nhất định
+4. Một số lưu ý
+
+    Yêu cầu quyền root/admin để scan (vì gửi gói tin raw).
+
+    Nếu scan diện rộng, dễ bị các hệ thống cảnh báo/phát hiện.
+
+    Không dùng cho mục đích phi pháp!
+
+    Kết quả chỉ cho biết port nào mở, muốn xác định dịch vụ cụ thể thì dùng tiếp nmap với các port đã tìm được.
+
+5. Ví dụ tổng hợp
+
+masscan -p22,80,443 0.0.0.0/0 --rate=50000 -oG world_ports.txt
+
+    Quét 3 port phổ biến trên toàn bộ IPv4 (chỉ để minh hoạ, thực tế không nên làm như vậy mà chưa có phép!).
+
+6. Tài liệu tham khảo
+
+    Github: masscan
+
+    Hướng dẫn sử dụng masscan (Kali)

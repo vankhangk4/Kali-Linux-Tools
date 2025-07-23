@@ -1,0 +1,73 @@
+Maltego là một công cụ trực quan hóa (graph-based tool) mạnh mẽ dùng để thu thập, phân tích và liên kết dữ liệu từ nhiều nguồn OSINT (Open Source Intelligence). Nó được sử dụng rộng rãi trong lĩnh vực an ninh mạng, điều tra số, threat intelligence, pentest, social engineering và cả điều tra tội phạm số.
+1. Tác dụng của Maltego
+
+    Thu thập, phân tích và trực quan hóa dữ liệu liên quan đến domain, email, IP, user, mạng xã hội, máy chủ, ASN, DNS, v.v.
+
+    Tích hợp nhiều nguồn dữ liệu OSINT: WHOIS, Shodan, VirusTotal, HaveIBeenPwned, LinkedIn, Facebook, các CSE (Custom Search Engine), v.v.
+
+    Xây dựng bản đồ mối quan hệ giữa các thực thể (entity): ví dụ từ 1 email, Maltego có thể lần ra domain, các user, host, tài khoản mạng xã hội liên quan.
+
+    Hỗ trợ điều tra tấn công mạng, threat intelligence, hunting, điều tra rò rỉ dữ liệu.
+
+    Rất mạnh cho truy vết social engineering, OSINT target profiling, mapping attack surface.
+
+2. Các tính năng nổi bật
+
+    Giao diện đồ họa trực quan: Kéo thả entity, vẽ graph tương tác.
+
+    **Hàng trăm loại “Transform” tự động hóa truy vấn và phân tích dữ liệu từ các nguồn công khai hoặc API trả phí.
+
+    Có thể cài thêm nhiều module, plug-in (paid & free).
+
+    Cho phép xuất/nhập dữ liệu, lưu lại các graph phân tích cho report.
+
+3. Cách dùng cơ bản Maltego
+1. Cài đặt
+
+    Download tại: https://www.maltego.com/downloads/
+
+    Có bản Community Edition (CE) miễn phí (giới hạn số transform/lần và một số tính năng), và bản thương mại (Classic, XL, Enterprise).
+
+2. Workflow cơ bản
+
+    Tạo New Graph (Đồ thị mới).
+
+    Chọn loại entity làm gốc (Domain, Email, Person, Website, IP, etc).
+
+    Chuột phải → Chạy transform mong muốn (ví dụ: “To Domain”, “To Email Address”, “To Social Network”, “To Website”, “To WHOIS Info”...).
+
+    Mở rộng graph dần dần, có thể kết hợp nhiều entity, transform khác nhau.
+
+    Tùy chỉnh, phân tích mối quan hệ, đánh dấu kết quả, xuất báo cáo.
+
+3. Một số entity phổ biến
+
+    Domain, Website, Email Address, IP Address, Person, Alias, Organization, Document, Image, ASN, Phone Number, Social Media Account...
+
+4. Một số transform hay dùng
+
+    To Domains, To Email Addresses, To WHOIS Records, To DNS Records, To IP Address, To Social Profiles, To Phone Numbers, To Geo Location, v.v.
+
+5. Ví dụ thực tế
+
+    Từ một email, có thể truy ra domain, user, mạng xã hội, các liên kết khác...
+
+    Từ một domain, có thể tìm subdomain, host, IP, whois info, MX record, rò rỉ dữ liệu, liên kết đến các domain khác...
+
+    Từ số điện thoại, có thể dò ra các tài khoản mạng xã hội liên quan (tuỳ API).
+
+4. Kinh nghiệm thực chiến
+
+    Maltego mạnh nhất khi dùng với API key của các dịch vụ OSINT (Shodan, VirusTotal, Pwned, Censys, SpyCloud...) – có thể tích hợp qua phần “Transform Hub”.
+
+    Cộng đồng OSINT hay dùng để điều tra tấn công spear phishing, lừa đảo, theo dấu APT, phân tích chiến dịch tấn công.
+
+    Bản free giới hạn 12 transform/lần và số lượng entity hiển thị, nhưng vẫn rất tốt cho CTF, demo, học tập.
+
+5. Tài liệu tham khảo
+
+    Maltego Official Docs
+
+    Maltego Getting Started
+
+    HackTricks Maltego

@@ -1,0 +1,183 @@
+1. Binwalk là gì?
+
+    binwalk là tool mã nguồn mở cực mạnh, chuyên dùng để scan, detect, trích xuất file nhúng bên trong binary/firmware (ảnh, tài liệu, zip, exe, shellcode, compressed, filesystem, script…).
+
+    Có thể dùng để recover file bị ẩn/nhúng, phân tích firmware router/camera, tìm file ẩn trong CTF, malware dropper, steganography cơ bản…
+
+2. Cài đặt binwalk
+2.1. Trên Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install binwalk
+
+2.2. Trên MacOS
+
+brew install binwalk
+
+2.3. Thủ công (cần pip, python3)
+
+pip3 install binwalk
+
+    Một số chức năng nâng cao (extract, decompress) cần cài thêm: sudo apt install python3-pyqt5 mtd-utils zlib1g-dev liblzma-dev gzip bzip2 tar p7zip-full squashfs-tools cpio
+
+3. Cú pháp cơ bản của binwalk
+
+    Scan file (phân tích signature):
+
+binwalk file.img
+
+    Liệt kê các định dạng/đoạn nhúng: ảnh, zip, pdf, exe, tar, file hệ thống (squashfs, cramfs...), script, header lạ…
+
+Scan sâu (entropy, strings):
+
+    binwalk -E file.img      # Xem entropy, phát hiện vùng mã hóa
+    binwalk -S file.img      # Tìm strings trong binary
+
+4. Trích xuất tự động (carve) các file nhúng
+
+    Auto extract:
+
+binwalk -e file.img
+
+    Sẽ tạo thư mục _file.img.extracted/ chứa các file nhúng đã tách.
+
+    Hỗ trợ decompress file hệ thống (squashfs, cramfs...), zip, rar, tar, pdf, jpg, png, office, exe, script...
+
+Extract recursion (recursive, rất mạnh cho firmware):
+
+    binwalk -Me file.img
+
+        -M: scan nhiều lớp (multi-layered), phù hợp firmware chứa firmware bên trong.
+
+        -e: extract.
+
+        Sẽ extract sâu từng lớp cho tới khi hết nhúng.
+
+5. Một số option quan trọng và mẹo thực chiến
+
+    -A: Tìm opcode, ARM, MIPS, x86 instruction, shellcode pattern.
+
+    -B: Tìm mã máy, máy ảo (bytecode).
+
+    -r: Tìm và extract signature (file rule).
+
+    -D '<type>:<ext>': Chỉ extract một loại (ví dụ chỉ PNG: -D 'png:png')
+
+    -l <size>: Chỉ scan N bytes đầu.
+
+    -C: Scan entropy, tìm vùng mã hóa/mã hóa lạ.
+
+    -y <keyword>: Chỉ scan theo từ khóa, ví dụ: -y 'zip' (tìm zip file).
+
+6. Thực chiến phân tích các loại file với binwalk
+6.1. Phân tích firmware (router, camera, IoT, TV, set-top box…)
+
+    Download firmware .bin, .img, .fw, .upd, .bin.enc, .zip, ...
+
+    Scan signature:
+
+binwalk firmware.bin
+
+Extract:
+
+    binwalk -Me firmware.bin
+
+        Xem thư mục _firmware.bin.extracted/ — thường có squashfs, cramfs, rootfs, kernel, logo, script, file config, password, SSL key, webserver, admin page, user db…
+
+    Chú ý:
+
+        Có thể phải dùng thêm unsquashfs, uncramfs, cpio, dd, 7z để giải nén file hệ thống (binwalk sẽ auto nếu đủ tool).
+
+        Một số firmware mã hóa, cần phân tích entropy, reverse key.
+
+6.2. Recover file ẩn trong CTF, forensic
+
+    File chứa flag/ảnh bị giấu (jpg trong zip, pdf trong doc, file ghép):
+
+binwalk -e suspect_file
+
+    Hoặc:
+
+binwalk -D 'png:png' -e suspect_file  # chỉ extract file PNG
+
+Tìm vùng entropy lạ (flag giấu qua XOR, RC4, base64):
+
+    binwalk -E suspect_file
+
+        Scan vùng entropy thấp/cao, dump vùng này ra dùng CyberChef/hex editor.
+
+6.3. Malware analysis: file dropper, polyglot, shellcode
+
+    Scan malware binary để tìm vùng nhúng shellcode, payload:
+
+    binwalk -A malware_sample
+
+    Phát hiện file nhúng: docx, exe, pdf, script bị lồng nhau.
+
+6.4. Steganography/ghép file (jpg+zip, png+rar, pdf+gif...)
+
+    Binwalk sẽ báo signature và offset, ví dụ:
+
+0x00000000 PNG image
+0x00123456 Zip archive
+
+    Dùng dd tách thủ công nếu binwalk không extract hết.
+
+        dd if=file of=hidden.zip bs=1 skip=123456
+
+7. Automation & script nâng cao với binwalk
+
+    Scan hàng loạt file và extract:
+
+for f in *.img; do
+  binwalk -Me "$f"
+done
+
+Lọc chỉ lấy kết quả có zip/tar/pdf:
+
+    binwalk -y 'zip' suspicious.bin
+
+    Tự động gửi file extract đi scan YARA/VirusTotal, parse lấy password, flag, key.
+
+    Viết python script gọi binwalk module:
+    (Xem python module doc)
+
+8. Kết hợp binwalk với các tool khác
+
+    foremost, photorec: Carve file nâng cao từ binary (khi binwalk fail).
+
+    exiftool: Phân tích metadata file nhúng, ảnh, pdf.
+
+    unsquashfs, uncramfs, cpio, 7z: Extract file hệ thống nhúng.
+
+    xxd, bless, hexedit: Xem vùng hex, copy vùng entropy lạ, manual carve.
+
+    YARA, VirusTotal, clamav: Scan malware trên file vừa extract.
+
+9. Trick thực tế CTF, forensic, malware, pentest
+
+    Đừng tin hoàn toàn auto extract! Check offset, entropy, signature bằng tay khi cần.
+
+    Nếu thấy "Unknown data", "high entropy", hãy dump vùng đó ra, test các kiểu giải mã (CyberChef, xor brute, base64, zlib, lzma…).
+
+    Với firmware có nhiều lớp: sau khi extract squashfs/cramfs/rootfs, tiếp tục unzip/tar để truy tới file config, shadow, wwwroot...
+
+    Patch/modify file nhúng xong (web shell, backdoor…), có thể re-pack vào firmware để kiểm thử exploit real device.
+
+10. Tài liệu, video, cheat sheet
+
+    Binwalk official doc
+
+    Binwalk quick cheat sheet
+
+    Firmware reverse thực chiến với binwalk (youtube)
+
+    Crackmes, CTF, malware challenge với binwalk, CTF writeup
+
+11. Kết luận
+
+binwalk là công cụ “siêu cơ bản nhưng siêu mạnh” cho:
+
+    Phân tích firmware (router, IoT, camera…), file dropper, CTF, file nhúng, carve dữ liệu, steganography, malware analysis
+
+    Tích hợp automation, script, forensics, pentest, malware, CTF cực tốt

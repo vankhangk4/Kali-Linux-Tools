@@ -1,0 +1,135 @@
+1. Fern WiFi Cracker là gì?
+
+    Fern WiFi Cracker là tool GUI mã nguồn mở trên Linux cho pentest Wi-Fi.
+
+    Chuyên về audit và crack pass Wi-Fi WEP/WPA/WPA2:
+
+        Scan mạng, thu handshake, tự động brute-force bằng wordlist, capture packet, kiểm thử pass, fake AP, tấn công MITM, tự động lưu kết quả.
+
+    Dễ dùng, phù hợp beginner, CTF, lab pentest Wi-Fi nhanh mà không cần dùng CLI nhiều như aircrack-ng.
+
+2. Cài đặt Fern WiFi Cracker
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install fern-wifi-cracker
+
+B. Chạy tool
+
+sudo fern-wifi-cracker
+
+    Yêu cầu quyền root.
+
+    Nếu lỗi python, cài thêm python-qt4, python3-pyqt5 (tuỳ distro).
+
+3. Workflow sử dụng Fern WiFi Cracker cơ bản
+A. Giao diện & chọn card
+
+    Chọn card Wi-Fi (interface hỗ trợ monitor mode, vd: wlan1).
+
+    Ấn Scan for Access Points để dò tất cả Wi-Fi quanh bạn (cả WEP/WPA/WPA2).
+
+B. Tấn công WEP (dễ nhất)
+
+    Click AP WEP, chọn WEP.
+
+    Ấn Attack – tool sẽ tự động capture IV, gửi ARP replay, khi đủ packet sẽ crack key auto (dùng aircrack-ng backend).
+
+    Pass sẽ hiển thị khi crack thành công, có thể copy.
+
+C. Tấn công WPA/WPA2 (thực chiến)
+
+    Click AP WPA/WPA2, chọn WPA.
+
+    Ấn Attack – Fern sẽ:
+
+        Thu handshake (chờ victim kết nối, hoặc click deauth ép client disconnect/reconnect).
+
+        Khi thu được handshake, tự động brute-force pass bằng wordlist (bạn chọn file wordlist – mặc định là /usr/share/wordlists/fern-wifi/wordlist.db nhưng nên chọn rockyou.txt hoặc custom).
+
+        Pass hiện khi brute thành công.
+
+D. Kiểm thử pass đã crack
+
+    Fern có thể tự động connect lại vào AP target để test pass đã brute/crack, giúp kiểm tra thật nhanh.
+
+4. Nâng cao – tính năng mạnh của Fern WiFi Cracker
+A. Đổi/custom wordlist brute-force
+
+    Vào Settings → đổi sang file wordlist bạn muốn (rockyou.txt, custom CEWL, crunch, weakpass, SecLists…).
+
+    Có thể pipe wordlist hoặc ghép nhiều list, tự động thử biến thể.
+
+B. Deauth attack/ép handshake
+
+    Dùng tính năng Deauthenticate Clients (nút “Deauth”) để ép client reconnect, thu nhanh handshake.
+
+    Có thể lọc MAC client cụ thể nếu muốn stealth.
+
+C. Fake AP, MITM, session hijacking
+
+    Hỗ trợ Phishing attack (Fake AP), bắt credential khi victim kết nối vào AP giả.
+
+    Có thể log traffic HTTP, capture credential nếu user nhập vào captive portal.
+
+D. Lưu và quản lý report
+
+    Fern tự động lưu pass crack, info AP, handshake log về folder ~/fern-wifi-cracker/ (tên mặc định).
+
+    Dễ tạo report hoặc log lại quá trình pentest/CTF.
+
+E. Kiểm tra lỗ hổng network khác
+
+    Hỗ trợ module network discovery, kiểm tra cổng mở, scan LAN nội bộ sau khi crack Wi-Fi.
+
+    Giao diện dễ dùng cho sinh viên/entry pentester.
+
+5. Script hóa, automation, best-practice
+
+    Tích hợp CLI khác (aircrack-ng, cowpatty, hashcat) để brute-force mạnh hơn, dùng output .cap từ Fern (nằm trong thư mục log).
+
+    Dùng Fern để nhanh chóng thu handshake rồi chuyển sang brute-force bằng Hashcat, wordlist custom:
+
+    hashcat -m 22000 handshake.hc22000 wordlist.txt
+
+    Tận dụng tính năng auto log, automation brute list lớn (nên dùng máy mạnh, test lab không ảnh hưởng network thật).
+
+    Kết hợp với ghost-phisher/wifiphisher để fake AP, kiểm tra bảo mật captive portal.
+
+6. Một số lỗi thường gặp & cách fix
+Lỗi	Cách xử lý
+Không thấy card Wi-Fi	Card không support monitor mode, chưa up, thử cắm USB khác, check bằng iwconfig
+Scan không ra AP	Card yếu, bị chặn, thử đổi channel, để gần AP hơn
+Không thu được handshake WPA	Chưa có client nào connect, dùng deauth, ép victim reconnect, hoặc chờ lâu hơn
+Brute mãi không ra pass	Wordlist yếu, dùng custom list, kết hợp với crunch/cewl, ghép năm, tên, biến thể
+Không mở GUI Fern	Lỗi python/qt, update python-qt4, chạy bằng sudo, test trên Kali mới nhất
+Lỗi "aircrack-ng missing"	Cài lại aircrack-ng bằng sudo apt install aircrack-ng
+7. So sánh Fern với các tool khác
+Tool	Ưu điểm Fern WiFi Cracker	Khác biệt
+Fern WiFi Cracker	GUI, tự động, beginner friendly, fake AP, save log	Không mạnh về automation script sâu như wifite, không brute mask, không CLI-only
+wifite/airgeddon	Automation CLI, batch pentest, fake AP, phishing, nhiều module	Không có GUI, khó dùng cho người mới
+aircrack-ng	Mạnh nhất về brute, script hóa, mask, dùng cho chuyên gia	Không có GUI, không auto log, không fake AP
+wifiphisher/ghost-phisher	Fake AP, phishing credential, MITM	Không mạnh về brute-force WPA, không scan/network discovery
+8. Tài liệu, link hữu ích
+
+    Fern WiFi Cracker Github
+
+    Aircrack-ng
+
+    Wifite2
+
+    Hashcat
+
+    Hacktricks WiFi
+
+    SecLists – Wordlist
+
+    PayloadAllTheThings – WiFi
+
+Tóm tắt nhanh
+
+    Fern WiFi Cracker: GUI pentest Wi-Fi mạnh cho newbie, CTF, lab – hỗ trợ thu handshake, crack pass WEP/WPA/WPA2, fake AP, brute-force wordlist, log auto, report nhanh.
+
+    Nên dùng để thu handshake nhanh, kiểm thử wordlist custom, deauth client, fake AP, log kết quả, phối hợp brute với hashcat/aircrack-ng.
+
+    Chú ý chọn card Wi-Fi tốt (monitor mode), chọn wordlist chuẩn mục tiêu, backup file handshake để brute mạnh hơn.

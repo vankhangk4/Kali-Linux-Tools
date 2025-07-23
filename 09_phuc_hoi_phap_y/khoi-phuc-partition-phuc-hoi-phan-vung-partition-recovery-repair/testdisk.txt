@@ -1,0 +1,169 @@
+1. TestDisk là gì?
+
+    TestDisk là một phần mềm mã nguồn mở, cực mạnh và phổ biến để khôi phục phân vùng đã mất (lost partition recovery), sửa lỗi boot sector, cứu dữ liệu bị xóa phân vùng, và khôi phục file (undelete) trên nhiều hệ file (FAT, exFAT, NTFS, ext2/3/4, HFS, v.v).
+
+    Chạy trên Windows, Linux, macOS, FreeBSD...
+
+    Sử dụng dạng dòng lệnh (CLI), có giao diện semi-graphic (dùng phím di chuyển, enter).
+
+2. Các tính năng chính của TestDisk
+
+    Khôi phục phân vùng bị xóa/lỗi (FAT/NTFS/exFAT/ext4...).
+
+    Phục hồi boot sector (MBR, GPT, EFI...).
+
+    Chuyển phân vùng RAW về NTFS/FAT/exFAT (fix RAW partition).
+
+    Sửa bảng phân vùng (partition table).
+
+    Sửa lỗi không boot được hệ điều hành (fix bootable).
+
+    Phục hồi file đã xóa trên FAT, NTFS, ext2 (undelete file).
+
+    Copy file dữ liệu ra ngoài ổ cứng khác (file carving).
+
+    Hỗ trợ disk forensic (phân tích dữ liệu, tạo image, v.v).
+
+3. Cài đặt TestDisk
+3.1. Trên Linux (Debian/Ubuntu/Kali...)
+
+sudo apt update
+sudo apt install testdisk
+
+3.2. Trên Windows/Mac
+
+    Tải TestDisk tại đây
+
+    Giải nén, chạy testdisk_win.exe (Windows) hoặc chạy CLI trên macOS.
+
+4. Sử dụng TestDisk cơ bản
+4.1. Khởi động TestDisk
+
+sudo testdisk
+
+Chạy bằng quyền root để truy cập ổ cứng/USB.
+4.2. Chọn ổ đĩa cần cứu
+
+    Chọn Create để tạo log file (khuyến nghị).
+
+    Dùng phím lên/xuống chọn đúng ổ cứng, enter.
+
+4.3. Chọn loại partition table
+
+    Thường sẽ tự detect, nhưng có thể chọn Intel/PC (MBR), EFI GPT, None, Mac...
+
+4.4. Menu chính
+
+    Analyse: Phân tích ổ đĩa, tìm phân vùng đã mất/lỗi.
+
+    Advanced: Các công cụ phục hồi file, fix boot, backup/restore boot sector.
+
+    Geometry: Thay đổi thông số geometry (ít dùng).
+
+    MBR Code: Ghi lại code MBR mặc định (fix boot virus MBR).
+
+5. Thực chiến cứu phân vùng bị xóa (Lost Partition Recovery)
+Bước 1: Phân tích ổ đĩa
+
+    Vào Analyse.
+
+    Enter –> Hiện danh sách phân vùng (nếu còn nhận ra).
+
+    Nếu không thấy phân vùng cần phục hồi, chọn Quick Search.
+
+Bước 2: Quét phân vùng đã mất
+
+    Quick Search: Nhanh, thường đã tìm ra.
+
+    Nếu chưa thấy, Deeper Search: Quét chậm, sâu, phát hiện cả phân vùng cũ, định dạng lạ.
+
+Bước 3: Chọn phân vùng cần phục hồi
+
+    Dùng phím trái/phải để chọn phân vùng P (Primary), L (Logical), E (Extended), D (Delete, nếu không muốn phục hồi).
+
+    Bấm Enter -> Write để ghi lại bảng phân vùng.
+
+Bước 4: Khởi động lại máy
+
+    Sau khi ghi, reboot máy.
+
+    Nếu không truy cập được, dùng Advanced để fix boot sector.
+
+6. Fix Boot Sector/MBR, cứu lỗi không vào Windows
+
+    Chọn ổ cứng → Chọn Advanced → chọn phân vùng hệ điều hành (Windows/NTFS) → Boot.
+
+    Có các lựa chọn:
+
+        Rebuild BS: Dò tìm và xây lại boot sector.
+
+        Backup BS/Restore BS: Sao lưu/khôi phục boot sector.
+
+        Repair MFT: Sửa Master File Table (NTFS).
+
+7. Khôi phục file đã xóa (Undelete File)
+
+    Vào Advanced → chọn đúng phân vùng (FAT/NTFS/ext2) → Undelete.
+
+    Dùng phím chọn các file/folder cần phục hồi, bấm c (copy).
+
+    Chọn ổ đĩa/USB khác để lưu file phục hồi (không ghi đè lên partition đang cứu!).
+
+8. Copy file/data từ phân vùng bị lỗi sang ổ khác (File Carving)
+
+    Trong menu Advanced → chọn phân vùng → bấm List để liệt kê file/folder còn tồn tại.
+
+    Chọn file/folder cần, bấm c để copy ra ngoài.
+
+    Có thể copy nguyên cả thư mục, data.
+
+9. Chuyển phân vùng RAW về NTFS/FAT mà không mất dữ liệu
+
+    Khi ổ bị RAW (không truy cập được), thường do lỗi boot sector hoặc bảng phân vùng.
+
+    Dùng TestDisk để rebuild lại boot sector hoặc sửa bảng phân vùng.
+
+    Nếu thấy phân vùng đúng sau khi quét → Write partition table → Reboot.
+
+    Nếu vẫn chưa mở được, thử copy file data như ở trên để tránh mất dữ liệu.
+
+10. Một số trick nâng cao cho Forensic/Automation
+10.1. Tạo image ổ cứng trước khi cứu
+
+sudo dd if=/dev/sdX of=/mnt/backup/disk.img bs=1M
+
+Sau đó mount image và dùng TestDisk trên image để an toàn (không ảnh hưởng dữ liệu gốc).
+10.2. Phân tích forensic
+
+    TestDisk hỗ trợ xuất log chi tiết.
+
+    Có thể dùng photorec (đi kèm TestDisk) để carve file khi hệ file đã nát.
+
+10.3. Script tự động hóa
+
+    Dùng TestDisk với file parameter/script (.cmd/.conf) để chạy hàng loạt, ví dụ trong môi trường forensic.
+
+11. Một số lệnh TestDisk thường dùng
+Lệnh	Chức năng
+sudo testdisk	Mở TestDisk
+testdisk /log	Ghi lại log khi chạy
+photorec	Khôi phục file bị xóa/lỗi (file carving)
+12. Lưu ý khi dùng TestDisk
+
+    Không ghi đè lên ổ cứng/partition cần cứu!
+
+    Nếu dữ liệu rất quan trọng, nên tạo image ổ cứng rồi thao tác trên image.
+
+    Kiểm tra kỹ trước khi Write bảng phân vùng (sai là mất sạch!).
+
+    Khi cứu file, nên lưu ra thiết bị lưu trữ ngoài.
+
+13. Tài liệu & Tham khảo
+
+    Trang chủ TestDisk
+
+    Photorec (khôi phục file lẻ)
+
+    Hướng dẫn chi tiết trên Wiki TestDisk
+
+    Các tình huống thực tế cứu phân vùng/file với TestDisk

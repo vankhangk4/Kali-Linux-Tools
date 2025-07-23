@@ -1,0 +1,149 @@
+1. Parator là gì?
+
+    Parator là một tool brute-force param trên web:
+
+        Giúp bạn xác định các tham số ẩn, endpoint chưa document, bypass param, test API, hỗ trợ tìm lỗi logic/phân quyền, v.v.
+
+    Mục đích chính: phát hiện param ẩn, test param-based access control, bypass filter...
+
+    Gần giống wfuzz, ffuf, nhưng Parator được thiết kế để brute-force hàng loạt param vào một endpoint và nhận diện phản hồi khác biệt.
+
+2. Cài đặt Parator
+A. Clone GitHub (không có trên apt, pip)
+
+git clone https://github.com/urbanadventurer/parator.git
+cd parator
+python3 parator.py --help
+
+(Yêu cầu Python 3)
+3. Sử dụng Parator cơ bản
+A. Brute-force parameter GET
+
+Giả sử endpoint:
+
+http://target.com/index.php
+
+Chạy:
+
+python3 parator.py -u "http://target.com/index.php" -w paramlist.txt
+
+    -u: URL mục tiêu
+
+    -w: file wordlist (mỗi dòng 1 tên param, ví dụ: id, user, admin, debug, ...)
+
+Parator sẽ thử từng param, ví dụ:
+
+http://target.com/index.php?id=1
+http://target.com/index.php?debug=1
+
+Và so sánh phản hồi, highlight các param cho kết quả khác biệt.
+B. Brute-force nhiều giá trị param
+
+Dùng -v cho brute value, hoặc truyền luôn list value cần thử:
+
+python3 parator.py -u "http://target.com/index.php" -w paramlist.txt -V valuelist.txt
+
+    Sẽ thử mọi tổ hợp param=value, ví dụ: debug=1, debug=true, admin=on, show=1,...
+
+4. Các tuỳ chọn nâng cao
+Tham số	Ý nghĩa
+-u	URL mục tiêu (bắt buộc)
+-w	Wordlist param
+-V	Wordlist value cho param
+-m	HTTP method (GET/POST/PUT/...)
+-d	Data/body (cho POST, JSON, v.v.)
+-c	Cookie (session)
+-H	Header tùy chỉnh
+-o	Xuất kết quả ra file
+-t	Số thread song song
+-r	Chỉ hiện kết quả khác biệt
+--proxy	Chạy qua proxy (Burp/ZAP)
+
+Ví dụ:
+
+python3 parator.py -u "http://site.com/search" -w param.txt -V value.txt -m GET -c "PHPSESSID=abc" -H "User-Agent: Parator" --proxy "http://127.0.0.1:8080"
+
+5. Brute-force param POST, API, JSON nâng cao
+
+    POST data:
+
+python3 parator.py -u "http://site.com/login" -w param.txt -V value.txt -m POST -d "username=test&FUZZ=1"
+
+(Parator sẽ thay thế FUZZ bằng từng param, kết hợp value từ list.)
+
+JSON API:
+
+    python3 parator.py -u "http://api.site.com/v1/data" -w param.txt -V value.txt -m POST -d '{"FUZZ":1}' -H "Content-Type: application/json"
+
+6. So sánh, lọc kết quả – focus khác biệt
+
+    Mặc định Parator sẽ so sánh content-length, status, hash body và chỉ in param/value khi phản hồi khác so với bình thường (ví dụ có thêm error, debug info, code 200/403, v.v.)
+
+    Dùng thêm filter body/size nếu scan lớn:
+
+        -r: chỉ hiện kết quả khác biệt
+
+        Kết hợp với grep/awk để lọc param "thú vị" (admin, debug, show, download...)
+
+7. Ứng dụng thực tế của Parator
+
+    Tìm param ẩn trên site, REST API, mobile API, webapp chưa có doc.
+
+    Test bypass logic, phân quyền: tìm param giúp bạn truy cập tính năng admin, debug, file, xuất log, download, export, v.v.
+
+    Phối hợp với Burp/ZAP: replay request hoặc script automation, so sánh traffic, test mass param nhanh hơn dùng Intruder.
+
+8. Automation – brute nhiều endpoint
+
+    List endpoint trong urls.txt, dùng bash/python loop:
+
+    while read url; do
+      python3 parator.py -u "$url" -w param.txt -r -o "$(basename $url).txt"
+    done < urls.txt
+
+9. So sánh với wfuzz, ffuf, burp intruder
+Tool	Ưu điểm chính	Điểm khác biệt
+Parator	Brute param cực nhanh, so sánh diff tự động, tập trung param ẩn	Đơn giản, output gọn, chỉ focus param gây thay đổi
+wfuzz	Brute mọi vị trí (file, param, value, header, cookie), filter mạnh	Đa năng, filter sâu, nhiều mode
+ffuf	Tốc độ nhanh nhất, brute file/dir/API/param	Hỗ trợ regex, filter tốt, nhiều vị trí
+Burp Intruder	UI mạnh, automation qua browser, check nhiều case	Tích hợp workflow pentest, trả phí nếu muốn turbo mode
+10. Một số mẹo thực chiến & best-practice
+
+    Wordlist: sử dụng SecLists, đặc biệt là Discovery/Web-Content/burp-parameter-names.txt, parameter-names.txt.
+
+    Ưu tiên scan các endpoint khả nghi: /admin, /debug, /api/, /export, /download, /report, ...
+
+    Nên brute cả GET/POST, header, cookie, JSON.
+
+    Nếu API trả về JSON, dùng jq/grep filter kết quả để phát hiện param gây lỗi logic.
+
+    Kết hợp Burp Suite/ZAP để capture traffic thực tế, rồi replay mass param bằng Parator để tiết kiệm thời gian.
+
+    Đối với ứng dụng SPA (single page app) hoặc mobile, brute luôn param header (X-API-Key, X-Token, ...) hoặc body.
+
+11. Một số lỗi thường gặp & cách xử lý
+Lỗi	Cách xử lý
+Không chạy được	Check Python 3, đúng repo, syntax đúng
+Không hiện gì	Thử thêm -v, kiểm tra wordlist có giá trị không
+Kết quả nhiều false positive	Thêm -r, lọc lại bằng size/status, thử wordlist nhỏ hơn
+Bị block	Giảm thread, thêm delay, chạy qua proxychains/Tor
+Không quét được JSON	Check lại syntax -d, header Content-Type đúng
+12. Tài liệu, link hữu ích
+
+    Parator Github
+
+    PayloadAllTheThings – Bypass & Hidden Param
+
+    SecLists param wordlist
+
+    HackTricks – Hidden Parameter
+
+    python3 parator.py --help
+
+Tóm tắt nhanh
+
+    Parator: tool brute-force param siêu nhanh, phát hiện param ẩn, logic bug, kiểm thử bypass auth, debug, info leak cực tiện.
+
+    Cực hợp cho pentest web/app, API, mobile, tìm điểm "mở cửa hậu".
+
+    Dùng wordlist chất lượng, filter diff kỹ, luôn kiểm thử POST/GET/header/cookie/JSON.

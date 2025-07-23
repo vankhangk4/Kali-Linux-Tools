@@ -1,0 +1,213 @@
+1. mitmproxy là gì?
+
+    mitmproxy là interactive proxy tool mã nguồn mở, cho phép MITM (Man-In-The-Middle) proxy traffic HTTP/HTTPS, chặn, phân tích, sửa request/response, debug mobile app, API, web, IoT…
+
+    Có 3 phiên bản:
+
+        mitmproxy (TUI): giao diện text, thao tác trực tiếp
+
+        mitmdump (CLI): xuất log, automation, scripting mạnh (như tcpdump)
+
+        mitmweb: Giao diện web đẹp, thân thiện
+
+    Hỗ trợ script Python custom (addon), automation, replay, fuzz, hook payload, thao tác hàng loạt.
+
+2. Cài đặt mitmproxy
+A. Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install mitmproxy
+
+B. Cài bản mới nhất (cross-platform)
+
+pip install mitmproxy
+
+    Chạy: mitmproxy, mitmdump, hoặc mitmweb (giao diện web, port mặc định 8081)
+
+3. Khởi động & workflow cơ bản
+A. Khởi động proxy
+
+mitmproxy -p 8080
+# hoặc:
+mitmweb -p 8080
+
+    Mặc định lắng nghe trên port 8080, capture HTTP/HTTPS.
+
+B. Cài đặt MITM CA cert lên trình duyệt/máy/điện thoại
+
+    Truy cập: http://mitm.it trên trình duyệt/mobile qua proxy → tải CA certificate → cài đặt vào trusted CA.
+
+    (Bắt buộc để MITM được HTTPS trên máy/vùng cần test).
+
+C. Trỏ traffic qua proxy
+
+    Đặt proxy trên thiết bị cần kiểm tra:
+
+        PC/Browser: cấu hình proxy HTTP/HTTPS 127.0.0.1:8080 hoặc <IP máy mitmproxy>:8080
+
+        Mobile/Emulator: đặt proxy Wi-Fi cùng mạng (hoặc ADB: adb shell settings put global http_proxy <IP>:8080)
+
+4. Các thao tác cơ bản trong mitmproxy
+A. Xem, lọc, tìm kiếm request/response
+
+    Phím mũi tên: di chuyển giữa các flows
+
+    Enter: xem chi tiết
+
+    /: search/filter theo host, path, method, content...
+
+        Ví dụ: /login, /api, /token, /set-cookie, /Authorization
+
+    b: bật/tắt intercept (pause flow, sửa request trước khi gửi)
+
+    a: accept flow
+
+    q: thoát
+
+B. Lưu lại traffic (export pcap/log)
+
+mitmdump -w traffic.mitm
+# Mở lại bằng: mitmproxy -r traffic.mitm
+
+C. Replay request/response (gửi lại, fuzz API)
+
+    Chọn flow → r (replay request)
+
+    Chỉnh sửa rồi replay để fuzz hoặc test SSRF, IDOR, XSS...
+
+5. Scripting & automation mạnh với mitmdump (Python addon)
+A. Viết script Python automation
+
+Ví dụ: Tự động sửa nội dung request/response
+
+from mitmproxy import http
+
+def request(flow: http.HTTPFlow) -> None:
+    if b"secret" in flow.request.content:
+        flow.request.content = flow.request.content.replace(b"secret", b"public")
+
+def response(flow: http.HTTPFlow) -> None:
+    if flow.response.headers.get("Set-Cookie"):
+        flow.response.headers["Set-Cookie"] = "flag=leet; Path=/;"
+
+    Lưu script: edit.py
+
+    Chạy:
+
+    mitmdump -p 8080 -s edit.py
+
+B. Một số use case automation cực mạnh
+
+    Token hijack: inject/capture JWT, cookie, session
+
+    Auto replay/fuzz: gửi lại flow với nhiều payload (automation mass XSS, SSRF)
+
+    Data exfil: tự động gửi toàn bộ credential ra ngoài (lab pentest/POC)
+
+    Red team: inject mã JS, malware, redirect phishing
+
+    Auto export data: ghi log, dump toàn bộ traffic, extract key, credential, token
+
+6. Tấn công mobile app, bypass SSL pinning, debug API
+A. Android/iOS traffic
+
+    Gắn proxy vào Wi-Fi
+
+    Cài CA cert vào “User CA” (hoặc “System CA” nếu root/jailbreak)
+
+    Nếu app chặn SSL Pinning → dùng Frida hoặc Objection để patch hoặc bypass runtime
+
+B. API fuzzing
+
+    Mitmproxy lưu lại request → replay → sửa param → test IDOR, mass testing, brute-force.
+
+    Dùng script Python để automation brute hoặc crawl mass.
+
+7. Export file, credential, object, password từ traffic
+
+    Export các object HTTP (image, exe, pdf, zip...): Chọn flow → “Export”
+
+    Tìm credential: search "password", "Authorization", "Bearer", "token", "api_key" trong request/response
+
+    Tự động dump cookie/token bằng script
+
+    Dùng filter: /Authorization, /Set-Cookie
+
+8. Tấn công nâng cao & workflow thực chiến
+A. Auto phishing/inject mã độc
+
+    Script tự động inject JS vào mọi response HTML (giả mạo form, phishing, keylogger)
+
+    Demo:
+
+    def response(flow):
+        if flow.response.headers.get("Content-Type", "").startswith("text/html"):
+            flow.response.text = flow.response.text.replace("</body>", "<script>alert('XSS!')</script></body>")
+
+B. Replay/fuzz API mass
+
+    Export tất cả request ra file (curl, postman, intruder Burp/ZAP)
+
+    Gửi lại với nhiều payload → automation fuzz (brute-force, SSRF, RCE...)
+
+C. Extract JWT/cookie & hijack session
+
+    Script auto detect và gửi về webhook/server của bạn
+
+D. Chain với Burp/ZAP/ffuf
+
+    Gắn mitmproxy trước Burp/ZAP để lọc/auto-modify traffic trước khi tới tool chính
+
+E. Red team – pivot, redirect, mass attack
+
+    Dùng cho phishing campaign, redirect user, test bypass CSP, phân tích malware beacon, v.v.
+
+9. Các mẹo & best-practice thực chiến
+
+    Filter traffic theo host, path, param, header để đỡ loạn (trên mobile/app lớn)
+
+    Luôn cài CA cert trusted cho HTTPS MITM
+
+    Lưu lại session để phân tích offline, forensic, báo cáo
+
+    Chạy mitmdump trên server/cloud để record traffic mass
+
+    Combine với Wireshark/tcpdump để phân tích sâu layer TCP
+
+    Update mitmproxy thường xuyên – fix SSL bug, update protocol mới
+
+10. Fix lỗi thực tế
+Lỗi	Cách xử lý
+Không MITM được HTTPS	Chưa cài CA cert lên client, hoặc app pinning certificate, dùng Frida/Objection patch
+Không chặn được mobile traffic	Proxy chưa cấu hình đúng, CA chưa trust, app dùng DNS-over-HTTPS (DoH)
+Bị lỗi giao thức/hiện lỗi SSL	Dùng mitmproxy bản mới, clear cache cert, thử lại
+Không export được file lớn	Dùng mitmdump ghi log, export sau, thử wireshark
+Script Python không chạy	Sai API version, kiểm tra doc, chạy với mitmdump để debug
+Không lưu được traffic	Check quyền ghi file, thử path khác
+11. So sánh mitmproxy với các proxy khác
+Tool	Ưu điểm mitmproxy	Khác biệt
+mitmproxy	Open-source, MITM mạnh, automation, script Python, replay/fuzz, debug API, traffic mass	Không có GUI mạnh như Burp
+Burp Suite	GUI cực mạnh, fuzz, scan, report, proxy chain, intruder	Mất phí cho bản Pro, không automation Python
+ZAP	Automation, open-source, scripting JS, scanner mạnh	Giao diện không đẹp như Burp, MITM mobile yếu hơn
+Charles	GUI đẹp, HTTP2, SSL mạnh	Mất phí, script yếu, không open-source
+Fiddler	GUI tốt, debug Windows/Mac mạnh	Script yếu, không support Linux native
+12. Tài liệu, link hữu ích
+
+    Mitmproxy Official
+
+    Mitmproxy Docs
+
+    Mitmproxy Scripting Cookbook
+
+    Hacktricks Mitmproxy
+
+    Objection Mobile Bypass
+
+    Frida SSL Pinning Bypass
+
+Tóm tắt nhanh
+
+    mitmproxy: proxy MITM số 1 cho pentest/debug/dev, automation script Python, chặn/bẻ khoá HTTPS, sửa traffic, replay/fuzz API, tấn công/phishing mobile app, debug API, mass export, forensic.
+
+    Nên kết hợp Burp/ZAP/Wireshark khi cần workflow phức tạp, hoặc scripting Python để automation task đặc biệt, bypass SSL pinning mobile, fuzz mass API/web.
+

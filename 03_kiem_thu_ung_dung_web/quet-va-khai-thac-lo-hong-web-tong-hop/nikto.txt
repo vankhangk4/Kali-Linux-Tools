@@ -1,0 +1,165 @@
+1. Nikto là gì?
+
+    Nikto là một công cụ quét lỗ hổng web server mã nguồn mở rất mạnh, chạy dòng lệnh.
+
+    Phát hiện các lỗi bảo mật phổ biến: config sai, file nhạy cảm, lỗ hổng web phổ biến, script/cgi cũ, info leak, vuln version, header không an toàn…
+
+    Hỗ trợ quét được gần 7000+ lỗi và liên tục cập nhật.
+
+2. Cài đặt Nikto
+Trên Kali/Ubuntu
+
+sudo apt update
+sudo apt install nikto
+
+Đường dẫn thường là /usr/bin/nikto
+Hoặc cài từ GitHub (luôn mới nhất)
+
+git clone https://github.com/sullo/nikto.git
+cd nikto/program
+perl nikto.pl -H
+
+(Nikto viết bằng Perl, chỉ cần Perl là chạy được trên mọi hệ điều hành)
+3. Sử dụng Nikto cơ bản
+Quét một website đơn giản:
+
+nikto -h http://target.com
+
+Quét theo IP, Port cụ thể:
+
+nikto -h 192.168.1.100 -p 8080
+
+Quét HTTPS:
+
+nikto -h https://target.com
+
+4. Các tùy chọn (option) cơ bản & nâng cao
+Tham số	Ý nghĩa
+-h	Chỉ định host/IP/URL
+-p	Port tùy ý
+-o <file>	Xuất kết quả ra file (txt, html, xml, csv)
+-Format	Định dạng file xuất (txt, html, csv, xml, json)
+-Tuning <option>	Chỉ quét 1 số loại lỗi (giảm thời gian, chọn mục tiêu cụ thể)
+-timeout	Timeout mỗi request (mặc định: 10s)
+-Display V	Hiện các info Verbose
+-ssl	Quét HTTPS nếu site không nhận dạng tự động
+-Cgidirs all	Quét mọi thư mục CGI phổ biến
+-evasion <tech>	Kỹ thuật né tránh WAF (bypass basic)
+-useragent <string>	Đổi User-Agent
+-id <user:pass>	Basic Auth
+
+Ví dụ:
+
+nikto -h https://mybank.com -p 443 -o report.html -Format html
+nikto -h 192.168.1.101 -Tuning 123bde
+nikto -h http://testsite.com -useragent "Googlebot"
+
+5. Tuning scan – Quét chọn lọc mục tiêu
+
+    Tăng tốc hoặc chỉ tìm lỗi mong muốn:
+    Dùng -Tuning với các số tương ứng từng loại lỗi (liệt kê bằng nikto -Tuning -h)
+
+        1: Interesting File / Seen in logs
+
+        2: Misconfiguration / Default File
+
+        3: Information Disclosure
+
+        4: Injection (XSS/Script/HTML)
+
+        5: Remote File Retrieval - Inside Web Root
+
+        6: Denial of Service
+
+        7: Remote File Retrieval - Server Wide
+
+        8: Command Execution / Remote Shell
+
+        9: SQL Injection
+
+        a: Authentication Bypass
+
+        b: Software Identification
+
+        c: Remote Source Inclusion
+
+        d: Web Service
+
+        e: Administrative Console
+
+        f: SQL Servers
+
+        g: File Upload
+
+        h: Old/Backup File
+
+Ví dụ:
+
+nikto -h site.com -Tuning 9ae    # Chỉ scan SQLi, Auth Bypass, Admin Console
+
+6. Quét nhiều mục tiêu hàng loạt
+
+    Input từ file danh sách:
+
+        File chứa 1 URL/IP mỗi dòng.
+
+    nikto -h targets.txt
+
+7. Bypass basic WAF, filter
+
+    Đổi User-Agent:
+
+nikto -h site.com -useragent "Mozilla/5.0"
+
+Kỹ thuật evasion:
+
+    nikto -h site.com -evasion 1,2
+
+    (Các kiểu evasion liệt kê với nikto -evasion -h)
+
+8. Automation, kết hợp với các tool khác
+
+    Kết hợp với proxy (Burp/ZAP) để debug hoặc lưu lại traffic:
+
+    nikto -h site.com -useproxy http://127.0.0.1:8080
+
+    Dùng trong script bash để quét nhiều host, tự động hóa CI/CD (quét security khi deploy web mới).
+
+    Kết hợp với nmap, nuclei, wpscan, whatweb để lấy info kỹ hơn.
+
+9. Xuất báo cáo đẹp
+
+    Định dạng HTML dễ gửi quản lý, khách hàng:
+
+    nikto -h site.com -o report.html -Format html
+
+    Định dạng JSON, CSV, XML để nhập lên SIEM, dashboard.
+
+10. Một số lỗi và mẹo thực tế
+Lỗi	Xử lý
+Quét quá lâu	Chọn tuning, chỉ scan port/dịch vụ cần thiết
+Site chặn, không nhận diện	Đổi User-Agent, thử evasion, scan chậm lại
+Không crawl hết	Xem lại robots.txt, thử đổi scan-depth
+Bị rate-limit hoặc block	Dùng proxy, giảm tốc scan
+Quét HTTPS lỗi cert	Dùng -ssl, -nosslverify hoặc accept certificate self-signed
+11. Tài liệu và link hữu ích
+
+    Nikto Official
+
+    Nikto GitHub
+
+    nikto -H
+
+    man nikto
+
+Tóm tắt nhanh
+
+    Nikto: quét web server cực nhanh, phát hiện config sai, file backup, lỗi phổ biến, header nguy hiểm, vuln version...
+
+    Sử dụng đơn giản, dễ xuất báo cáo, cực phù hợp cho audit web nội bộ, pentest, kiểm tra định kỳ server.
+
+    Nên kết hợp với Nmap, nuclei, burp để tối ưu phát hiện bug.
+
+    Tối ưu scan bằng tuning, evasion, đổi UA, proxy…
+
+    Automation tốt, xuất báo cáo nhiều dạng, dùng được trên mọi hệ điều hành.

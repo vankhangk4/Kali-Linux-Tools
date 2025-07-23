@@ -1,0 +1,178 @@
+1. pwgen là gì?
+
+    pwgen là một công cụ dòng lệnh trên Linux/Unix dùng để tạo mật khẩu ngẫu nhiên (password generator).
+
+    Rất nhẹ, tiện, có nhiều tuỳ chọn nâng cao để sinh mật khẩu mạnh hoặc dễ nhớ.
+
+    Thích hợp dùng trong quản trị hệ thống, tự động hóa, hoặc khi cần nhiều mật khẩu cùng lúc.
+
+2. Cài đặt pwgen
+Ubuntu/Debian
+
+sudo apt update
+sudo apt install pwgen
+
+CentOS/Fedora/RHEL
+
+sudo yum install pwgen
+# hoặc
+sudo dnf install pwgen
+
+macOS (qua Homebrew)
+
+brew install pwgen
+
+Windows
+
+    Sử dụng qua WSL hoặc Cygwin, hoặc tải binary tại: https://sourceforge.net/projects/pwgen/
+
+3. Cú pháp cơ bản
+
+pwgen [options] [length] [number]
+
+    length: Độ dài mỗi mật khẩu (mặc định: 8 ký tự).
+
+    number: Số lượng mật khẩu tạo ra (mặc định: 160).
+
+4. Ví dụ cơ bản
+Sinh 5 mật khẩu, mỗi mật khẩu 12 ký tự:
+
+pwgen 12 5
+
+Sinh 10 mật khẩu dễ nhớ, mỗi cái 8 ký tự (mặc định):
+
+pwgen 8 10
+
+5. Các tuỳ chọn quan trọng
+Tùy chọn	Ý nghĩa
+-s	Sinh mật khẩu mạnh, khó nhớ hơn (secure)
+-y	Cho phép dùng ký tự đặc biệt (special chars: !@#$%...)
+-0	Không dùng số 0
+-1	In mỗi mật khẩu trên 1 dòng
+-c	Có cả ký tự in hoa
+-n	Chỉ dùng số
+-B	Tránh ký tự dễ nhầm lẫn (0, O, l, 1...)
+-v	Chế độ verbose (hiển thị thông tin khi chạy)
+-N <số lượng>	Chỉ định số mật khẩu muốn sinh ra
+6. Ví dụ nâng cao
+a. Sinh 1 mật khẩu mạnh, 16 ký tự, có ký tự đặc biệt:
+
+pwgen -sy 16 1
+
+b. Sinh 10 mật khẩu chỉ gồm chữ và số, tránh ký tự dễ nhầm:
+
+pwgen -B 12 10
+
+c. Sinh 5 mật khẩu chỉ toàn số, 8 số:
+
+pwgen -n 8 5
+
+d. Sinh 3 mật khẩu chỉ có ký tự in hoa:
+
+pwgen -c -A 10 3
+# (-A: không có ký tự in thường)
+
+7. Phân tích chi tiết các option hay dùng
+
+    -s: Mật khẩu mạnh, không có dạng "dễ nhớ", tránh ghép âm tiết thông thường.
+
+    -y: Thêm ký tự đặc biệt (như !@#$%), tăng độ mạnh.
+
+    -B: Bỏ ký tự dễ nhầm như 1, l, O, 0…
+
+    -n: Toàn bộ là số (giới hạn tính bảo mật, không khuyến khích).
+
+    -c: Bắt buộc phải có ít nhất một ký tự hoa.
+
+    -A: Không có ký tự thường (in thường).
+
+    -1: In một dòng/mật khẩu, tiện khi lấy output.
+
+8. Sử dụng trong Script/Bash
+a. Sinh mật khẩu và gán vào biến:
+
+PASS=$(pwgen -sy 16 1)
+echo "Your password: $PASS"
+
+b. Tự động tạo và lưu mật khẩu:
+
+pwgen -sy 20 1 > mypassword.txt
+
+c. Tạo nhiều tài khoản, mỗi tài khoản một mật khẩu:
+
+for user in user1 user2 user3; do
+  pass=$(pwgen -sy 12 1)
+  echo "$user:$pass" >> userlist.txt
+done
+
+9. Bảo mật khi dùng pwgen
+
+    Mật khẩu chỉ nên xuất ra màn hình khi cần thiết.
+
+    Không nên lưu mật khẩu vào file dạng text nếu không mã hóa file đó.
+
+    Kết hợp với các chương trình lưu trữ mật khẩu (KeePass, Bitwarden…).
+
+10. So sánh với các công cụ tạo mật khẩu khác
+Công cụ	Ưu điểm	Nhược điểm
+pwgen	Nhanh, nhẹ, tùy biến tốt	Không có GUI
+openssl rand	Linh hoạt, mạnh	Hơi khó nhớ cú pháp
+apg	Sinh mật khẩu phát âm được	Không phổ biến
+mkpasswd	Đơn giản, dễ nhớ	Tuỳ distro có sẵn/ko
+online tools	Dễ dùng, có GUI	Không bảo mật dữ liệu
+
+Ví dụ với openssl:
+
+openssl rand -base64 12
+
+11. Câu lệnh pwgen hữu ích thực chiến
+
+    Sinh mật khẩu cho user Linux:
+
+useradd alice
+echo "alice:$(pwgen -sy 16 1)" | chpasswd
+
+Sinh mật khẩu cho MySQL root:
+
+    PASS=$(pwgen -sy 20 1)
+    mysqladmin -u root password "$PASS"
+    echo "MySQL root password: $PASS"
+
+12. Tích hợp pwgen với trình quản lý mật khẩu
+
+    KeePassXC, Bitwarden:
+    Có thể copy password sinh ra bằng pwgen vào các trình quản lý này.
+
+    Tạo mật khẩu rồi import vào LastPass/Bitwarden dạng CSV
+
+13. Mẹo, trick và automation nâng cao
+a. Sinh mật khẩu và copy vào clipboard (trên Linux)
+
+pwgen -sy 18 1 | xclip -selection clipboard
+
+b. Sinh password đủ mạnh, kiểm tra độ mạnh với cracklib-check:
+
+PASS=$(pwgen -sy 20 1)
+echo $PASS | cracklib-check
+
+c. Sinh 1000 mật khẩu cho tải về:
+
+pwgen -sy 16 1000 > passwords.txt
+
+d. Sinh password, kiểm tra trùng lặp:
+
+sort passwords.txt | uniq -d
+
+14. Tài liệu tham khảo
+
+    Trang chủ pwgen: https://linux.die.net/man/1/pwgen
+
+    Man page:
+
+    man pwgen
+
+15. Tổng kết
+
+    pwgen là công cụ cực kỳ mạnh, linh hoạt, dễ tích hợp script, phù hợp cho quản trị viên hệ thống, lập trình viên cần tự động hóa việc sinh password.
+
+    Nắm vững các option nâng cao giúp sinh mật khẩu an toàn, đáp ứng đủ mọi yêu cầu bảo mật.

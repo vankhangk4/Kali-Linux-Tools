@@ -1,0 +1,166 @@
+1. WPScan là gì?
+
+    WPScan là công cụ mã nguồn mở chuyên quét lỗ hổng bảo mật cho website WordPress.
+
+    Phát hiện:
+
+        Plugin, theme, version lỗ hổng
+
+        User enumeration
+
+        Config lỗi, file nhạy cảm, backup, disclosure
+
+        Password brute-force (login)
+
+        Timed/exploit các CVE trên WP, plugin, theme
+
+    Cập nhật dữ liệu CVE và plugin cực nhanh từ cộng đồng và wpvulndb.com.
+
+2. Cài đặt WPScan
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install wpscan
+
+B. Qua Ruby gem (mọi hệ điều hành)
+
+sudo gem install wpscan
+
+C. Kiểm tra phiên bản
+
+wpscan --version
+
+3. Sử dụng WPScan cơ bản
+Quét một website WordPress:
+
+wpscan --url https://example.com
+
+Chỉ định output ra file:
+
+wpscan --url https://example.com --output report.txt
+
+4. Các tùy chọn quan trọng
+Tham số	Ý nghĩa
+--url	Địa chỉ site WordPress
+-e	Enumeration (user, plugin, theme, vp, vt, ap, at)
+--api-token	Token API để có thông tin CVE mới (free đăng ký tại wpscan.com)
+--enumerate	Tương tự -e
+--plugins-detection	Phát hiện plugin: passive, aggressive, mixed
+--random-user-agent	Đổi UA khi quét
+--force	Quét luôn dù không detect là WordPress
+--proxy	Quét qua proxy (Burp, ZAP, etc.)
+--throttle	Delay giữa mỗi request
+--disable-tls-checks	Bỏ check SSL (cho self-signed cert)
+--output	Xuất kết quả ra file
+--format	Xuất báo cáo dạng cli, json, cli-no-color, csv
+
+Ví dụ:
+
+wpscan --url https://mysite.com -e u,vp,vt,ap,at --api-token ABCDEF123
+wpscan --url https://mysite.com --enumerate p --random-user-agent
+wpscan --url https://mysite.com --output scan.json --format json
+
+5. Enumeration nâng cao
+
+    Tìm user:
+
+wpscan --url https://site.com -e u
+
+Tìm plugin, theme, phiên bản:
+
+wpscan --url https://site.com -e ap,at,vt,vp
+
+Kết hợp tất cả:
+
+    wpscan --url https://site.com -e u,ap,at,vt,vp
+
+        u: user
+
+        ap: all plugins
+
+        vp: vulnerable plugins
+
+        at: all themes
+
+        vt: vulnerable themes
+
+6. Brute-force password (tấn công đăng nhập)
+
+    Chạy brute-force user/pass (cẩn thận, dễ bị block):
+
+wpscan --url https://site.com --passwords rockyou.txt --usernames admin
+
+Dùng nhiều user:
+
+wpscan --url https://site.com --passwords rockyou.txt --usernames users.txt
+
+Thêm delay để tránh bị chặn:
+
+    wpscan --url https://site.com --passwords rockyou.txt --usernames admin --throttle 1
+
+    (delay 1 giây mỗi request)
+
+7. Tối ưu & tránh bị block
+
+    Dùng --random-user-agent để tránh bị firewall chặn.
+
+    Thêm --throttle để chậm lại, không bị block.
+
+    Nếu site dùng WAF mạnh, nên chạy passive mode, hoặc đổi proxy (--proxy).
+
+8. API Token – lấy thông tin CVE plugin/theme mới nhất
+
+    Đăng ký free tại: https://wpscan.com/profile
+
+    Thêm vào lệnh: --api-token ABCDEFG1234567
+
+    Không có token sẽ không xem được tất cả CVE mới nhất!
+
+9. Xuất báo cáo
+
+    Dạng TXT:
+
+wpscan --url https://site.com --output report.txt
+
+Dạng JSON (import lên SIEM/dashboard):
+
+wpscan --url https://site.com --output report.json --format json
+
+Dạng CSV:
+
+    wpscan --url https://site.com --output report.csv --format csv
+
+10. Automation – scan nhiều site, script hóa
+
+    Tạo file urls.txt, rồi bash:
+
+    while read url; do
+      wpscan --url "$url" --enumerate vp,vt,u --api-token ABCD123 --output "scan_$(basename $url).txt"
+    done < urls.txt
+
+    Kết hợp với CI/CD, auto scan site khi deploy hoặc định kỳ kiểm tra toàn bộ hệ thống WordPress.
+
+11. Kết hợp tool khác để kiểm tra toàn diện
+
+    Nmap (scan port, dịch vụ)
+
+    Nikto, Nuclei, Uniscan (quét thêm lỗ hổng web)
+
+    WPScan chuyên sâu cho WordPress (enumerate, brute, CVE, disclosure...)
+
+12. Một số lỗi & mẹo fix nhanh
+Lỗi	Xử lý
+Site không nhận là WordPress	Thêm --force
+Không có CVE mới	Đăng ký và thêm --api-token
+Scan chậm hoặc bị block	Dùng --throttle, --random-user-agent, quét ngoài giờ
+Lỗi SSL	Thêm --disable-tls-checks
+Brute-force quá chậm	Kiểm tra block IP, đổi proxy, tăng throttle, dùng ít user/pass hơn
+13. Tài liệu và link hữu ích
+
+    WPScan Official
+
+    WPScan GitHub
+
+    WPScan User Guide
+
+    wpscan --help

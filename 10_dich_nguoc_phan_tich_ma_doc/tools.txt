@@ -1,0 +1,11 @@
+ghidra
+radare2
+gdb
+apktool
+jadx
+cutter
+ollydbg
+strace
+ltrace
+peframe
+binwalk

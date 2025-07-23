@@ -1,0 +1,193 @@
+1. WFuzz là gì?
+
+    WFuzz là tool brute-force/fuzzing HTTP(S) đa năng dòng lệnh, hỗ trợ cực nhiều case:
+
+        Brute-force file/thư mục, endpoint, backup
+
+        Brute-force parameter (GET/POST/Cookie/Header) – phát hiện param ẩn, bug logic
+
+        Bypass Auth, login, enum API, fuzz header, xác định input filter WAF...
+
+    Cho phép tùy biến vị trí FUZZ trong URL, header, body, cookie, nhiều wordlist cùng lúc, lọc output mạnh.
+
+    Dùng Python, rất nổi ở các CTF và pentest thực tế.
+
+2. Cài đặt WFuzz
+A. Trên Kali/Ubuntu
+
+sudo apt update
+sudo apt install wfuzz
+
+B. Qua pip (mọi OS)
+
+pip install wfuzz
+
+C. Kiểm tra
+
+wfuzz --help
+
+3. Sử dụng WFuzz cơ bản
+A. Brute-force directory/file (giống dirb, gobuster):
+
+wfuzz -c -w /usr/share/wordlists/dirb/common.txt --hc 404 http://target.com/FUZZ
+
+    -c: màu sắc đẹp hơn
+
+    -w: wordlist
+
+    --hc 404: hide code 404 (chỉ hiện kết quả khác 404)
+
+    FUZZ: vị trí cần brute (có thể trong path, param, header, body...)
+
+B. Brute-force parameter value
+
+wfuzz -c -w wordlist.txt "http://target.com/page.php?id=FUZZ"
+
+4. Brute-force đa vị trí – nhiều từ điển
+
+    Brute-force nhiều vị trí:
+
+        Thay bằng FUZZ, FUZ2Z, FUZ3Z, ...
+
+        Dùng nhiều -w (mỗi wordlist cho 1 vị trí)
+
+wfuzz -c -w user.txt -w pass.txt -d "user=FUZZ&pass=FUZ2Z" --hc 302 http://site.com/login.php
+
+(Brute-force login với user và pass)
+
+Brute-force subdomain:
+
+    wfuzz -c -w subdomains.txt -u "http://FUZZ.target.com/" --hc 404
+
+5. Fuzz header, cookie, body, method nâng cao
+
+    Fuzz header:
+
+wfuzz -c -w wordlist.txt -H "X-Forwarded-For: FUZZ" http://target.com/
+
+Fuzz Cookie:
+
+wfuzz -c -w sessions.txt -b "PHPSESSID=FUZZ" http://target.com/
+
+Fuzz POST body:
+
+wfuzz -c -w pass.txt -d "user=admin&pass=FUZZ" http://site.com/login.php
+
+Fuzz method (verb tampering):
+
+    wfuzz -c -w methods.txt -X FUZZ http://target.com/secret
+
+    (methods.txt: GET, POST, PUT, DELETE, PATCH, ...)
+
+6. Lọc kết quả – mạnh nhất của wfuzz
+Tham số	Ý nghĩa
+--hc <code>	Hide code (ẩn kết quả có status code này)
+--hl <len>	Hide content-length
+--hh <num>	Hide content bằng số dòng
+--hs <size>	Hide response body size
+--sc <code>	Show only code (chỉ hiện code này)
+--ss <word>	Show only if response chứa từ khóa
+--st <ms>	Show only nếu response delay >= ms
+
+Ví dụ:
+
+    Chỉ hiện 200, 403:
+
+wfuzz -c -w ... --sc 200,403 ...
+
+Ẩn kết quả có content-length 4096:
+
+wfuzz -c -w ... --hl 4096 ...
+
+Chỉ show kết quả có text "flag":
+
+    wfuzz -c -w ... --ss flag ...
+
+7. Brute-force login, bypass auth, enum param nâng cao
+
+    Brute-force login POST:
+
+wfuzz -c -w user.txt -w pass.txt -d "username=FUZZ&password=FUZ2Z" --hh 60 http://target.com/login.php
+
+(Hide response có 60 dòng, chỉ hiện dòng khác)
+
+Brute-force param ẩn:
+
+wfuzz -c -w param.txt "http://site.com/page.php?FUZZ=1"
+
+Bypass 403 bằng header:
+
+    wfuzz -c -w xff.txt -H "X-Forwarded-For: FUZZ" --sc 200 http://target.com/secret/
+
+8. Kết hợp nhiều filter, thread, proxy, delay
+Tham số	Ý nghĩa
+-t <num>	Số thread (default 40)
+-p	Proxy (http, socks)
+--delay <s>	Delay mỗi request
+-A	Đổi User-Agent
+-b	Cookie
+
+Ví dụ:
+
+wfuzz -c -w ... -t 80 -p 127.0.0.1:8080 --delay 0.2 ...
+
+(Chạy qua Burp, tăng tốc, mỗi 0.2 giây 1 request)
+9. Batch scan, automation nhiều site
+
+    Dùng bash, python, hoặc workflow cùng với nmap, whatweb, nuclei:
+
+    while read url; do
+      wfuzz -c -w wordlist.txt --sc 200 "$url/FUZZ"
+    done < urls.txt
+
+10. Mẹo và thực chiến wfuzz
+
+    Brute backup file:
+
+wfuzz -c -w backup.txt -u "http://site.com/FUZZ.bak"
+
+Brute API endpoint:
+
+wfuzz -c -w api.txt -u "http://site.com/api/v1/FUZZ"
+
+Fuzz error-based param filter:
+
+wfuzz -c -w wordlist.txt -u "http://site.com/page.php?id=1&filter=FUZZ"
+
+Fuzz SSRF:
+
+    wfuzz -c -w urls.txt -d "url=FUZZ" http://site.com/ssrf.php
+
+11. So sánh wfuzz với gobuster, ffuf
+
+    wfuzz: mạnh ở filter, brute nhiều vị trí, param, header, POST/GET, response-based.
+
+    gobuster: nhanh, brute file/dir/subdomain/vhost là chủ yếu, ít filter hơn.
+
+    ffuf: tốc độ gần gobuster, filter khá mạnh, nhiều chế độ, fuzz nhiều vị trí.
+
+12. Một số lỗi thường gặp & fix
+Lỗi	Cách xử lý
+Quét chậm	Tăng thread, giảm delay, kiểm tra wordlist
+100% 404	Check lại domain, wordlist, thử filter khác (content-length)
+Bị block	Giảm thread, tăng delay, đổi proxy, fake UA
+Không hiện kết quả đẹp	Thêm -c, dùng filter (--hc, --sc)
+13. Tài liệu, link hữu ích
+
+    WFuzz Official
+
+    WFuzz Github
+
+    PayloadAllTheThings Directory Brute-Force
+
+    SecLists
+
+    wfuzz --help
+
+Tóm tắt nhanh
+
+    WFuzz: tool brute-force/fuzzing đa năng, filter siêu mạnh, brute được mọi thứ (file/dir, param, header, body, cookie...).
+
+    Cực thích hợp pentest, bug bounty, bypass WAF, login brute, enum endpoint/API ẩn, audit nội bộ.
+
+    Automation mạnh, dễ tích hợp với các tool khác.

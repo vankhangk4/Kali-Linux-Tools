@@ -1,0 +1,76 @@
+ldapdomaindump là một công cụ Python cực mạnh dùng để trích xuất thông tin toàn bộ domain từ một máy chủ Active Directory thông qua giao thức LDAP. Nó được dân pentest, red team và cả sysadmin sử dụng để tự động hoá quá trình enum (liệt kê) domain – thay vì dùng thủ công với ldapsearch rất tốn công.
+1. Tác dụng của ldapdomaindump
+
+    Tự động hóa thu thập thông tin domain từ LDAP/Active Directory.
+
+    Trích xuất toàn bộ user, group, máy tính, OU, policy, trusts... về dạng file (JSON, CSV, HTML).
+
+    Dùng để lập bản đồ domain, phát hiện user, group đặc biệt, tài khoản nhạy cảm, quyền admin, trust, policy lỏng lẻo...
+
+    Cực kỳ hữu ích khi pentest hoặc audit nội bộ domain Windows.
+
+2. Cách dùng ldapdomaindump cơ bản
+1. Cài đặt
+
+pip install ldapdomaindump
+
+    Hoặc clone repo: https://github.com/dirkjanm/ldapdomaindump
+
+2. Sử dụng
+
+Cú pháp cơ bản:
+
+ldapdomaindump ldap://<domain_controller_ip> -u <user> -p <password>
+
+    ldap:// hoặc ldaps://
+
+    Có thể dùng tài khoản bình thường hoặc tài khoản guest/nặc danh (nếu AD lỏng lẻo)
+
+Ví dụ:
+
+ldapdomaindump ldap://10.10.11.10 -u 'khang' -p '123456' 
+
+Nếu domain yêu cầu domain trước username:
+
+ldapdomaindump ldap://10.10.11.10 -u 'corp.local\\khang' -p '123456'
+
+3. Kết quả đầu ra
+
+Sau khi chạy, tool sẽ tạo một loạt file ở thư mục hiện tại như:
+
+    domain_users.json / .html / .csv – danh sách user
+
+    domain_groups.json / .html / .csv – danh sách group, thành viên từng group
+
+    domain_computers.json / .html / .csv – danh sách máy tính domain
+
+    domain_policy.json / .html / .csv – chính sách domain
+
+    domain_trusts.json – thông tin trust với domain khác
+
+Có thể dùng file .html để xem trực quan hoặc import file .json/.csv cho các tool tự động.
+3. Một số option hữu ích
+Tham số	Ý nghĩa
+-d/--debug	Hiện thông báo debug chi tiết
+-o <dir>	Xuất ra thư mục chỉ định
+--no-html	Không xuất file HTML (chỉ JSON, CSV)
+--kerberos	Sử dụng ticket Kerberos để xác thực
+4. Khi nào dùng ldapdomaindump?
+
+    Khi pentest hoặc audit nội bộ AD (có credential, hoặc anonymous bind)
+
+    Muốn dump toàn bộ user, group, máy tính, policy... chỉ với 1 lệnh duy nhất (không cần grep thủ công như ldapsearch)
+
+    Tìm các user admin, service account, group nhạy cảm, danh sách máy tính, policy weak, trust với domain khác…
+
+5. Ví dụ thực tế
+
+ldapdomaindump ldap://10.10.11.70 -u 'pentest' -p 'Winter2024!'
+
+    Kết quả sẽ có hàng loạt file, chỉ cần mở file HTML lên là có thể phân tích domain cực dễ.
+
+6. Tài liệu tham khảo
+
+    https://github.com/dirkjanm/ldapdomaindump
+
+    HackTricks - Active Directory

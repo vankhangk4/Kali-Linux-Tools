@@ -1,0 +1,232 @@
+1. Giới thiệu về AWK
+
+    AWK là một ngôn ngữ lập trình dùng để xử lý và phân tích dữ liệu dạng text, đặc biệt là file văn bản có cấu trúc dạng bảng (cột-dòng), ví dụ: file log, csv, txt, output lệnh linux…
+
+    AWK thường dùng để:
+
+        Lọc dòng (filter lines)
+
+        Tìm kiếm/chia cột (fields/columns)
+
+        Thay đổi, trích xuất, thống kê dữ liệu
+
+Cú pháp cơ bản:
+
+awk 'pattern { action }' file
+
+    pattern: Điều kiện lọc dòng
+
+    action: Hành động khi dòng match với pattern
+
+2. Cấu trúc cơ bản
+
+awk 'BEGIN { ... } { ... } END { ... }' file
+
+    BEGIN: Chạy trước khi đọc dòng đầu tiên
+
+    { ... }: Chạy với mỗi dòng (nếu không có pattern thì áp dụng cho tất cả)
+
+    END: Chạy sau khi xử lý xong file
+
+Ví dụ:
+
+awk 'BEGIN {print "Start"} {print $0} END {print "End"}' file.txt
+
+3. Các biến đặc biệt trong AWK
+Biến	Ý nghĩa
+$0	Toàn bộ dòng hiện tại
+$1	Cột thứ nhất
+$2	Cột thứ hai
+NF	Số lượng cột trong dòng hiện tại
+NR	Số thứ tự dòng hiện tại (Number of Record)
+FNR	Số thứ tự dòng trong từng file (khi xử lý nhiều file)
+FS	Field Separator - ký tự phân tách cột (default: space)
+OFS	Output Field Separator (default: space)
+RS	Record Separator (default: newline)
+ORS	Output Record Separator (default: newline)
+4. Các ví dụ cơ bản
+In toàn bộ file
+
+awk '{print}' file.txt
+
+In cột thứ nhất
+
+awk '{print $1}' file.txt
+
+In cột 1 và 3
+
+awk '{print $1, $3}' file.txt
+
+Chỉ in dòng chứa chuỗi "abc"
+
+awk '/abc/ {print}' file.txt
+
+Chỉ in dòng có cột thứ 2 > 100
+
+awk '$2 > 100' file.txt
+
+Đếm số dòng
+
+awk 'END {print NR}' file.txt
+
+In dòng đầu tiên và cuối cùng
+
+awk 'NR==1; END{print}' file.txt
+
+5. Chia cột theo ký tự khác (vd: dấu phẩy)
+
+awk -F ',' '{print $1, $2}' file.csv
+# hoặc
+awk 'BEGIN{FS=","} {print $1, $2}' file.csv
+
+6. Gộp các trường (columns) khi xuất kết quả
+
+awk '{print $1"-"$2}' file.txt
+
+7. Thay đổi dấu phân cách khi xuất
+
+awk 'BEGIN{OFS="|"} {print $1, $2, $3}' file.txt
+
+8. Gán biến trong AWK
+
+awk '{sum += $2} END {print sum}' file.txt
+
+9. Dùng AWK để tìm tổng, trung bình, min, max
+
+Tổng cột 2:
+
+awk '{sum += $2} END {print sum}' file.txt
+
+Trung bình:
+
+awk '{sum += $2} END {print sum/NR}' file.txt
+
+Min/Max:
+
+awk 'NR==1{min=$2; max=$2} $2>max{max=$2} $2<min{min=$2} END{print "Min:", min, "Max:", max}' file.txt
+
+10. Biểu thức điều kiện nâng cao
+
+In dòng thứ 10 đến 20
+
+awk 'NR>=10 && NR<=20' file.txt
+
+In dòng lẻ
+
+awk 'NR%2==1' file.txt
+
+11. In dòng không chứa chuỗi
+
+awk '!/pattern/' file.txt
+
+12. Dùng nhiều file với AWK
+
+awk '{print FILENAME, NR, $0}' file1 file2
+
+13. Gán biến từ shell vào awk
+
+var=100
+awk -v threshold=$var '$2 > threshold' file.txt
+
+14. Thay thế chuỗi
+
+Thay "old" thành "new" ở cột 2:
+
+awk '{$2=gensub(/old/, "new", "g", $2); print}' file.txt
+
+Hoặc dùng gsub:
+
+awk '{gsub(/old/, "new", $2); print}' file.txt
+
+15. Một số hàm hay dùng
+
+    length(s): Độ dài chuỗi
+
+    tolower(s): Chuyển thường
+
+    toupper(s): Chuyển hoa
+
+    substr(s, start, len): Lấy chuỗi con
+
+    index(s, t): Vị trí chuỗi t trong s
+
+    split(s, a, sep): Tách chuỗi s thành mảng a
+
+Ví dụ:
+
+awk '{print toupper($1), length($2)}' file.txt
+
+16. Kỹ thuật nâng cao và script AWK
+AWK script nhiều dòng
+
+Tạo file script.awk:
+
+BEGIN {sum=0}
+{sum += $2}
+END {print "Total: " sum}
+
+Chạy:
+
+awk -f script.awk file.txt
+
+Lọc, xử lý log
+
+cat access.log | awk '$9 == 404 {print $1}' | sort | uniq -c | sort -nr
+# Tìm IP gây lỗi 404 nhiều nhất
+
+Tạo bảng thống kê (histogram)
+
+awk '{count[$2]++} END {for(i in count) print i, count[i]}' file.txt
+
+17. Dùng AWK kết hợp với các lệnh khác
+
+Liệt kê cột user từ file /etc/passwd
+
+cat /etc/passwd | awk -F ':' '{print $1}'
+
+Tìm process lớn nhất
+
+ps aux | awk 'NR>1 {print $4,$11}' | sort -nr | head -10
+
+18. Dùng AWK cho mục đích Pentest, Red Team, CTF
+
+    Tự động lọc log, extract token, filter IP, parse report, tự động submit flag, join dữ liệu nhiều nguồn
+
+    Parse output nmap, masscan, recon-ng, ...
+
+    Tự động trích xuất hash, email, user từ file lớn
+
+Ví dụ:
+
+cat users.txt | awk -F ':' '{print $1}'  # lấy username từ file passwd
+cat nmap.txt | awk '/open/ {print $2}'  # lấy port open
+
+19. Các tips-tricks AWK thực chiến
+
+    In dòng cuối cùng: awk 'END{print}' file
+
+    Đếm số cột: awk '{print NF}' file
+
+    In dòng nếu số cột khác 5: awk 'NF != 5' file
+
+    Tạo cột số thứ tự: awk '{print NR, $0}' file
+
+    Xử lý input không chia cột đều: awk '{for(i=1;i<=NF;i++) print $i}' file
+
+    Gộp các dòng thành 1 dòng: awk '{printf "%s ", $0} END{print ""}' file
+
+20. Lưu ý khi dùng AWK
+
+    File quá lớn => dùng thêm sort, uniq, hoặc lệnh linux khác để giảm dữ liệu đầu vào
+
+    Nếu cần xử lý phức tạp => tách thành file .awk cho dễ maintain
+
+    Kết hợp với sed, cut, sort, grep cực kỳ mạnh
+
+Tài liệu nâng cao/tra cứu nhanh
+
+    https://awk.info/
+
+    https://www.gnu.org/software/gawk/manual/gawk.html
+
+    Cheat sheet tiếng Việt

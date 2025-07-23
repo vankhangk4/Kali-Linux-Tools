@@ -1,0 +1,143 @@
+1. CEWL là gì?
+
+    CEWL (Custom Word List generator) là tool Ruby dòng lệnh, giúp crawl website rồi tự động tạo wordlist từ nội dung site đó.
+
+    Tạo wordlist sát với target, giúp brute-force pass hiệu quả hơn (dựa trên tên người, địa danh, từ đặc biệt, v.v.).
+
+    Hỗ trợ depth crawl, chọn min-length, regex, lọc stopword, hỗ trợ meta-data, export định dạng John/Hashcat...
+
+2. Cài đặt CEWL
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install cewl
+
+B. Ruby gem (mọi OS)
+
+sudo gem install cewl
+
+C. Kiểm tra
+
+cewl --help
+
+3. Dùng CEWL cơ bản
+A. Crawl website & xuất wordlist
+
+cewl http://example.com -w wordlist.txt
+
+    http://example.com: site cần crawl
+
+    -w: ghi ra file (mỗi từ 1 dòng)
+
+Ví dụ:
+
+cewl https://vnu.edu.vn -w vnu.txt
+
+B. Tham số cơ bản thường dùng
+Tham số	Ý nghĩa
+-d	Depth – mức độ crawl sâu (default 2)
+-m	Minimum word length (độ dài tối thiểu, mặc định 6)
+-w	File output wordlist
+-v	Verbose, in log crawl
+-c	Count – kèm theo số lần xuất hiện từ
+
+Ví dụ: Crawl sâu 3, lọc từ >5 ký tự:
+
+cewl -d 3 -m 5 http://company.com -w company.txt
+
+4. Nâng cao – các mode mạnh của CEWL
+A. Crawl với HTTP auth/cookie/header (pentest app có đăng nhập)
+
+cewl -u user -p pass -a basic http://secure.com -w list.txt
+cewl --cookie "PHPSESSID=abcd1234" http://intranet.com -w out.txt
+cewl --header "Authorization: Bearer xxx" https://api.com -w api.txt
+
+B. Lấy thêm meta-data (email, docx, pdf, office, image)
+
+    Lấy meta-data (email, author, company...)
+
+cewl --meta http://site.com -w meta.txt
+
+Scan email riêng biệt
+
+    cewl --email http://site.com -w emails.txt
+
+C. Regex filter – chỉ lấy từ theo pattern
+
+cewl --regex '[A-Z][a-z]+' http://company.com -w names.txt
+
+(Ví dụ: chỉ lấy các từ bắt đầu hoa – tên riêng)
+D. Kết hợp wordlist với tên miền
+
+cewl -w mylist.txt http://company.com
+sort -u mylist.txt > uniq.txt
+awk '{print $0"2024"}' uniq.txt > custom.txt
+
+(Gợi ý: tạo biến thể pass, thêm số năm, lặp ghép)
+5. Workflow automation (kết hợp với các tool brute-force)
+
+    Crawl nhiều site:
+
+for url in $(cat sites.txt); do
+  cewl $url -w $(basename $url).txt
+done
+
+Tạo wordlist rồi brute-force:
+
+    Hydra:
+
+hydra -L users.txt -P custom.txt ssh://host
+
+Hashcat:
+
+hashcat -m 0 -a 0 hash.txt custom.txt
+
+John the Ripper:
+
+        john --wordlist=custom.txt hash.txt
+
+6. Các mẹo mạnh khi dùng CEWL
+
+    Luôn tăng depth (-d), giảm min-length (-m) để lấy được từ phổ biến hoặc pass ngắn.
+
+    Kết hợp với Social-Engineer Toolkit, Maltego, hoặc manual OSINT để tạo super wordlist (tên, ngày sinh, công ty, địa danh…).
+
+    Tạo rule file hoặc custom script ghép từ với số, ký tự đặc biệt (hybrid wordlist).
+
+    Sort, uniq, filter wordlist trước khi brute-force để giảm trùng lặp:
+
+    sort -u wordlist.txt > uniq.txt
+
+7. Một số lỗi thường gặp & cách xử lý
+Lỗi	Cách xử lý
+Không crawl được	Check URL, cần http/https đầy đủ, test với curl
+Crawl chậm	Giảm depth, tắt --meta nếu không cần
+Crawl bị chặn	Thêm --useragent, --header, đổi proxy
+Không ra từ mới	Giảm -m, tăng depth, thử thêm param, crawl subdomain khác
+Dính bot detect	Crawl bằng cookie session hoặc user agent browser thật
+8. So sánh CEWL với tool khác
+Tool	Ưu điểm CEWL	Khác biệt
+CEWL	Crawl từ web, có regex/meta/email, tùy chỉnh tốt	Chỉ crawl web, không OSINT social
+theHarvester	Crawl email, subdomain, search engine mạnh	Không tạo wordlist, focus info gather
+Mentalist	Tạo wordlist dạng interactive (GUI)	Không tự crawl web
+Cupp	Tạo wordlist cá nhân hóa (tên, ngày sinh, pet…)	Không crawl web
+9. Tài liệu, link hữu ích
+
+    CEWL Github
+
+    PayloadAllTheThings Wordlist
+
+    SecLists
+
+    OSINT cheat sheet
+
+    cewl --help
+
+Tóm tắt nhanh
+
+    CEWL: tool crawl web mạnh, tự động tạo wordlist chuẩn sát với target, tăng tỉ lệ brute-force/crack pass, cực hữu ích trong pentest, social engineering, CTF, red team.
+
+    Hỗ trợ crawl auth/cookie, meta, email, regex, wordlist lớn, automation với các tool brute-force khác.
+
+    Nên lọc/sort/uniq và kết hợp biến thể pass để tăng hiệu quả tấn công.
+

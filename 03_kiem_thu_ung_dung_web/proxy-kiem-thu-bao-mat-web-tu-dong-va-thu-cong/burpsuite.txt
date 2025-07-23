@@ -1,0 +1,165 @@
+1. Burp Suite là gì?
+
+    Burp Suite là bộ công cụ kiểm thử bảo mật web ứng dụng mạnh mẽ nhất hiện nay, phát triển bởi PortSwigger.
+
+    Gồm nhiều module: Proxy, Intruder, Repeater, Scanner (Pro), Sequencer, Decoder, Comparer, Extender, Logger, API Scan...
+
+    Có bản Community (miễn phí) và bản Professional (trả phí).
+
+2. Cài đặt Burp Suite
+A. Tải về chính thức (mọi nền tảng):
+
+    Tải tại đây
+
+    Phiên bản: Windows, macOS, Linux, JAR (Java).
+
+B. Cài qua Snap (Linux)
+
+sudo snap install burpsuite
+
+C. Chạy Burp
+
+burpsuite &
+
+3. Cấu hình Proxy & Browser
+
+    Mặc định: Burp lắng nghe tại 127.0.0.1:8080.
+
+    Cấu hình trình duyệt:
+
+        Đặt proxy HTTP/HTTPS về 127.0.0.1:8080.
+
+        Cài chứng chỉ CA Burp vào browser để tránh lỗi SSL.
+
+        Hỗ trợ cả Firefox, Chrome, Chromium...
+
+4. Sử dụng Burp Suite cơ bản
+A. Proxy Intercept
+
+    Chặn (Intercept On):
+
+        Xem, chỉnh sửa, gửi lại request trước khi nó đến server.
+
+    Forward, Drop, Edit:
+
+        Xử lý request linh hoạt.
+
+B. HTTP history, Logger
+
+    Theo dõi tất cả request/response, tìm endpoint, param, header, cookie, lỗi…
+
+C. Repeater
+
+    Thử lại (gửi lại) request đã lưu, chỉnh từng phần (header, body, param…), debug bug, thử nhiều payload.
+
+D. Intruder (Brute-force, fuzz)
+
+    Gửi tự động nhiều payload (wordlist, fuzzing, brute-force login, file, param…).
+
+    Chọn vị trí payload (param, header, cookie, v.v.), chọn kiểu attack: Sniper, Battering Ram, Pitchfork, Clusterbomb.
+
+E. Decoder/Comparer
+
+    Decode/encode (Base64, URL, Hex…), so sánh request/response.
+
+5. Burp Suite nâng cao
+A. Active/Passive Scan (bản Pro)
+
+    Active Scan: Tự động thử lỗ hổng (SQLi, XSS, file inclusion…).
+
+    Passive Scan: Phát hiện bug qua phân tích traffic, không ảnh hưởng server.
+
+B. Extender (Plugin/BApp Store)
+
+    Tích hợp nhiều plugin miễn phí & trả phí:
+
+        Autorize: Kiểm tra lỗi phân quyền (IDOR).
+
+        Logger++: Log chi tiết, filter nâng cao.
+
+        Turbo Intruder: Fuzzing tốc độ cao.
+
+        Software Vulnerability Scanner, J2EEScan, CORS Scanner...
+
+C. API Scan
+
+    Import OpenAPI, Swagger, Postman collection để quét API.
+
+D. Scripting (Burp Suite Extensions)
+
+    Viết extension bằng Python (Jython), Java, Ruby.
+
+    Tự động hóa scan, add payload, custom detection, auto report.
+
+E. Burp Collaborator
+
+    Dò bug SSRF, Blind XXE, Blind SQLi, OAST… bằng server listener riêng.
+
+6. Automation – CLI, CI/CD, batch scan
+
+    Burp CLI: (chủ yếu cho bản Pro)
+
+    java -jar burpsuite_pro.jar --unpause-spider-and-scanner --project-file=project.burp --config-file=burp-config.json
+
+    API:
+
+        Tích hợp Jenkins, GitLab, Github Actions qua extension/plugin hoặc script shell.
+
+        Burp có thể import/export cấu hình, report HTML/JSON/XML.
+
+7. Một số mẹo nâng cao
+
+    Auto-login, session handling:
+
+        Ghi lại macro login, config Session Handling Rule.
+
+        Dùng plugin “AuthMatrix” để kiểm tra auth flow, role-based access.
+
+    Bypass WAF/CDN:
+
+        Đổi User-Agent, custom header, thử payload encode, chậm request…
+
+    Chạy qua SOCKS/HTTP proxy:
+
+        Đặt proxy chain: Burp -> Tor hoặc Burp -> ZAP/Burp khác.
+
+    Phối hợp nhiều tool:
+
+        Kết hợp Nmap, WhatWeb, nuclei, sqlmap, Nikto, ZAP… trong workflow pentest.
+
+8. Báo cáo và phân tích kết quả
+
+    Burp Suite có thể xuất báo cáo HTML, XML, JSON (bản Pro).
+
+    Sắp xếp theo bug type, severity, endpoint, description, remediation.
+
+    Kết hợp với SIEM, dashboard, hoặc import vào Jira, Github Issue...
+
+9. Một số lỗi thường gặp & xử lý
+Lỗi	Cách xử lý
+Không intercept được HTTPS	Cài CA Burp vào browser, kiểm tra proxy
+Trình duyệt bị block (HSTS, SSL pinning)	Dùng Firefox, hoặc Chrome bật flag ignore cert
+Quét quá chậm, bị block	Giảm tốc độ scan, đổi UA, thử proxy chain
+Không scan được API	Import file OpenAPI/Swagger/Postman, config lại flow
+Session login out	Ghi lại macro login, dùng session rule, hoặc auto-renew session
+10. Tài liệu & link hữu ích
+
+    Burp Suite Official
+
+    Burp Labs
+
+    Burp Suite Community vs Pro
+
+    BApp Store (plugin)
+
+    YouTube hướng dẫn Burp Suite
+
+    Blog Portswigger
+
+Tóm tắt nhanh
+
+    Burp Suite: Số 1 về kiểm thử bảo mật web, hỗ trợ pentester, dev, security engineer, bug bounty, blue team.
+
+    Đa dạng module, mở rộng plugin, automation tốt, scan API, report chuyên nghiệp.
+
+    Luôn tối ưu bằng cách kết hợp các tool khác, update plugin, script extension và workflow CI/CD nếu làm security cho doanh nghiệp lớn.

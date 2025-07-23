@@ -1,0 +1,130 @@
+1. Skipfish là gì?
+
+    Skipfish là một công cụ quét lỗ hổng ứng dụng web (web application security scanner) mã nguồn mở do Google phát triển.
+
+    Sức mạnh: quét rất nhanh nhờ engine đa luồng (multi-threaded), crawling sâu, audit URL cực kỳ hiệu quả.
+
+    Tìm ra: XSS, injection, disclosure, file nhạy cảm, config sai, info leak, broken links, weak login, header nguy hiểm, v.v.
+
+    Kết quả báo cáo ra HTML rất đẹp, dễ xem cho quản trị và khách hàng.
+
+2. Cài đặt Skipfish
+Trên Kali/Ubuntu
+
+sudo apt update
+sudo apt install skipfish
+
+Hoặc tải source tại đây rồi build với make.
+Kiểm tra phiên bản
+
+skipfish -V
+
+3. Quét cơ bản
+Quét một website đơn giản:
+
+skipfish -o output_dir https://target.com
+
+    -o output_dir: Thư mục xuất báo cáo (HTML sẽ nằm trong đó).
+
+    Lưu ý: Không cần chạy với quyền root.
+
+4. Cấu hình crawl và scan nâng cao
+Option	Ý nghĩa
+-o <dir>	Thư mục output báo cáo
+-W <wordlist>	Chọn wordlist để brute-force/thử thêm input
+-A <user:pass>	Basic authentication
+-C <cookie>	Cookie cho session (login)
+-X <regex>	Loại trừ URL matching regex
+-I <regex>	Chỉ scan URL matching regex
+-d <num>	Depth (độ sâu tối đa khi crawl, mặc định 40)
+-c <num>	Concurrent connections (mặc định 50)
+-r <num>	Request/giây tối đa
+-m <num>	Số lỗi tối đa trước khi dừng
+-u	Không xác minh SSL
+-M <num>	Số lượng page tối đa sẽ scan
+-t <sec>	Timeout mỗi request
+
+Ví dụ scan nâng cao:
+
+skipfish -o result -W dictionaries/default.wl -d 20 -c 30 -A admin:password https://target.com
+
+    Crawl tối đa 20 depth, 30 kết nối song song, brute-force với wordlist mặc định, login basic auth.
+
+5. Quét có login (session/cookie)
+
+    Web chỉ login mới thấy lỗi?
+    Lấy cookie session, rồi:
+
+skipfish -o output -C "PHPSESSID=xyz" https://target.com
+
+Scan nhiều user-agent (giả lập browser, bypass WAF)
+
+    skipfish -o output -F "User-Agent: Mozilla/5.0" https://target.com
+
+6. Chọn wordlist và custom brute-force
+
+    Wordlist càng lớn, scan càng mạnh!
+    Skipfish đi kèm rất nhiều wordlist (dictionaries).
+
+    skipfish -W dictionaries/complete.wl -o result https://target.com
+
+    Bạn có thể tạo wordlist riêng (1 dòng 1 param/path).
+
+7. Tối ưu tốc độ, giới hạn crawl, tránh bị block
+
+    Giới hạn số request/giây:
+
+skipfish -r 5 -o result https://target.com
+
+Giới hạn page scan tối đa:
+
+skipfish -M 1000 -o result https://target.com
+
+Giới hạn chỉ scan đúng 1 directory hoặc regex pattern:
+
+    skipfish -I '/admin' -o adminscan https://target.com
+
+8. Automation và batch scan nhiều site
+
+    Tạo file bash:
+
+    while read url; do
+        skipfish -o "result_$url" $url
+    done < urls.txt
+
+    Automation cho CI/CD:
+    Kết hợp script trên, hoặc tích hợp với pipeline Jenkins, GitLab CI, Github Action...
+
+9. Phân tích và đọc báo cáo Skipfish
+
+    Sau scan, vào thư mục output, mở file index.html trong browser.
+
+    Sections quan trọng:
+
+        Issue types (Critical, Medium, Low)
+
+        File/URL dính lỗi
+
+        Đường dẫn, PoC, giải thích lỗi
+
+        Summary: tổng kết số lỗi, khuyến nghị
+
+10. Một số lỗi thường gặp và cách xử lý
+Lỗi	Nguyên nhân & fix
+Scan quá nhanh, bị block	Dùng -r giảm số req/giây, đổi User-Agent, dùng cookie login
+Báo lỗi SSL	Thêm -u bỏ check SSL
+Không scan được hết	Tăng depth (-d), tăng page limit (-M), check robots.txt
+Quét bị treo	Giảm thread (-c), giảm wordlist, chia nhỏ scan
+11. Tích hợp với tool khác
+
+    Burp/ZAP: Scan qua proxy bằng option hệ thống (export http_proxy), để debug/lưu traffic.
+
+    Kết hợp Nmap/Nikto/Nuclei: Để scan sâu hơn (dịch vụ, lỗ hổng mới).
+
+12. Tài liệu và tham khảo
+
+    Skipfish Google Project
+
+    Skipfish Documentation (PDF)
+
+    skipfish -h (tham số cực đầy đủ)

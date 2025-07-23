@@ -1,0 +1,8 @@
+awscli
+docker
+kubectl
+az
+mobSF
+qark
+drozer
+needle

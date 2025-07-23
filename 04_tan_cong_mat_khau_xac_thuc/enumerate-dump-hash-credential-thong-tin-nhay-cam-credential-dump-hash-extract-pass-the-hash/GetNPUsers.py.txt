@@ -1,0 +1,147 @@
+1. GetNPUsers.py là gì?
+
+    GetNPUsers.py là script trong bộ Impacket (Python), dùng để:
+
+        Enumerate user trên AD có cấu hình "Do not require Kerberos preauthentication" (không yêu cầu pre-auth).
+
+        Từ đó dump AS-REP hash (tương tự crack pass NTLM) về, sau này crack offline bằng hashcat/john.
+
+    Tấn công này gọi là AS-REP Roasting — nằm trong kỹ thuật Red Team/Pentest AD.
+
+2. Khi nào dùng GetNPUsers.py?
+
+    Khi đang pentest/redteam AD: Bạn có danh sách username/domain (lấy bằng kerbrute, ldapsearch, bloodhound, …).
+
+    Bạn muốn tìm user AD có thể lấy AS-REP mà không cần pass (user cấu hình “không cần pre-auth”).
+
+    Lấy hash về crack offline (dễ hơn crack NTLM nhiều).
+
+3. Cài đặt Impacket/GetNPUsers.py
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install python3-impacket
+
+(Sẽ có sẵn script trong /usr/share/doc/python3-impacket/examples/)
+B. Clone & cài từ GitHub (mọi OS)
+
+git clone https://github.com/fortra/impacket.git
+cd impacket
+pip install .
+
+    Script GetNPUsers.py nằm trong examples/.
+
+4. Cách hoạt động (hiểu bản chất AS-REP Roasting)
+
+    User AD có tùy chọn “Do not require Kerberos preauthentication” sẽ trả lại AS-REP cho bất kỳ ai hỏi (không cần pass).
+
+    Hash này có thể crack offline — nếu pass yếu là lấy được quyền AD ngay.
+
+5. Sử dụng GetNPUsers.py cơ bản
+A. Lệnh cơ bản (anonymous, không cần pass):
+
+python3 GetNPUsers.py <DOMAIN>/ -usersfile users.txt -dc-ip <IP_DC>
+
+    <DOMAIN>: tên domain (ví dụ: hackthebox.local)
+
+    -usersfile: file chứa danh sách user (1 dòng 1 user)
+
+    -dc-ip: IP domain controller (DC)
+
+    Không cần cung cấp user/pass! Nếu domain allow anonymous LDAP.
+
+Ví dụ thực tế:
+
+python3 GetNPUsers.py megacorp.local/ -usersfile users.txt -dc-ip 10.10.10.100
+
+    Nếu thành công sẽ trả về hash dạng $krb5asrep$...
+
+B. Nếu domain không cho anonymous, dùng user AD bất kỳ:
+
+python3 GetNPUsers.py <DOMAIN>/<USER>:<PASS> -usersfile users.txt -dc-ip <IP_DC>
+
+    Dùng bất kỳ user/pass hợp lệ nào trong domain (guest càng tốt).
+
+6. Output và tiếp tục khai thác
+
+    Mỗi user “dính” sẽ trả về hash:
+
+    $krb5asrep$23$<user>@<DOMAIN>:<big long hash...>
+
+    Lưu lại toàn bộ output vào file hash.txt
+
+7. Crack AS-REP hash bằng hashcat/john
+A. Dùng hashcat
+
+hashcat -m 18200 hash.txt wordlist.txt
+
+    Nếu pass yếu, rất dễ “vỡ” ngay.
+
+B. Dùng john the ripper
+
+john --format=krb5asrep hash.txt --wordlist=wordlist.txt
+
+8. Các tuỳ chọn nâng cao
+Tham số	Ý nghĩa
+-request	Chỉ lấy hash, không enumerate group/user
+-format	Định dạng output (john/hashcat) – thường tự động
+-dc-ip <ip>	Chỉ định domain controller IP
+-usersfile	Danh sách user
+-outputfile	Xuất ra file
+-debug	Debug chi tiết request
+
+Ví dụ xuất ra file:
+
+python3 GetNPUsers.py megacorp.local/ -usersfile users.txt -dc-ip 10.10.10.100 > hash.txt
+
+9. Workflow automation pentest AD với GetNPUsers
+
+    Enum user (kerbrute, ldapsearch, bloodhound, hoặc crackmapexec):
+
+kerbrute userenum -d megacorp.local users.txt --dc 10.10.10.100
+
+Chạy GetNPUsers.py để dump hash:
+
+python3 GetNPUsers.py megacorp.local/ -usersfile users.txt -dc-ip 10.10.10.100 > hash.txt
+
+Crack offline với hashcat/john:
+
+    hashcat -m 18200 hash.txt wordlist.txt
+
+    Dùng credential lấy được để lateral movement, RCE, dump thông tin nội bộ…
+
+10. Mẹo thực chiến & tối ưu
+
+    Chỉ enum user “phổ biến” (admin, test, guest, service...), tránh brute full tránh bị phát hiện/log.
+
+    Luôn lưu lại output, thử crack với nhiều wordlist mạnh (rockyou, top100k, pass nội bộ, pass tùy biến domain...).
+
+    Làm stealth: Chỉ dùng 1-2 thread, random order user, che log.
+
+11. Một số lỗi & fix nhanh
+Lỗi	Cách xử lý
+“KRB_AP_ERR_MODIFIED”	Sai domain/ip, check lại DNS hoặc format
+Không trả về hash	Không user nào có pre-auth tắt hoặc không đủ quyền/anonymous
+“ldap3.core.exceptions.LDAPBindError”	Domain không cho anonymous, thử với user hợp lệ
+Hash không crack được	Dùng wordlist mạnh hơn, thử rule/mask hoặc hỏi nội bộ
+12. Tài liệu, link hữu ích
+
+    Impacket Github
+
+    GetNPUsers.py help
+
+    AS-REP Roasting (HackTricks)
+
+    PayloadAllTheThings Kerberos
+
+    hashcat mode list
+
+Tóm tắt nhanh
+
+    GetNPUsers.py là script mạnh nhất để lấy hash AS-REP từ user AD cấu hình “không cần pre-auth” ➔ crack offline cực hiệu quả.
+
+    Workflow: enum user ➔ GetNPUsers.py dump hash ➔ crack ➔ lấy quyền cao/tấn công tiếp AD.
+
+    Thích hợp pentest AD, red team, blue team kiểm tra bảo mật nội bộ.
+
+    Luôn dùng wordlist chất lượng, automation script, bảo mật output và tôn trọng pháp luật!

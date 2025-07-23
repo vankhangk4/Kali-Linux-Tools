@@ -1,0 +1,124 @@
+1. Cowpatty là gì?
+
+    Cowpatty là tool dòng lệnh Linux để crack WPA/WPA2-PSK Wi-Fi (crack offline) từ file handshake .cap.
+
+    Tối ưu brute-force dictionary, rất mạnh khi dùng với PMK (Pairwise Master Key) precompute — tăng tốc crack nếu SSID phổ biến (vd: “linksys”, “dlink”, “default”…).
+
+    Cực nhẹ, dễ dùng, không nhiều tham số phức tạp.
+
+2. Cài đặt Cowpatty
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install cowpatty
+
+B. Kiểm tra
+
+cowpatty --help
+
+3. Workflow cơ bản – crack WPA/WPA2 với Cowpatty
+A. Bước 1: Bắt handshake (file .cap)
+
+    Dùng airodump-ng, wifite, kismet... để thu file .cap chứa handshake (EAPOL 4-way).
+
+    Có thể kiểm tra handshake hợp lệ bằng Wireshark (filter: eapol).
+
+B. Bước 2: Crack pass với wordlist
+
+cowpatty -f wordlist.txt -r capture.cap -s <SSID>
+
+    -f: wordlist
+
+    -r: file .cap chứa handshake
+
+    -s: tên SSID (phải đúng, phân biệt hoa/thường!)
+
+Ví dụ:
+
+cowpatty -f rockyou.txt -r wifi.cap -s "FREE_WIFI"
+
+(Nếu pass nằm trong wordlist, sẽ hiện ra ngay)
+4. Nâng cao – dùng precomputed hash (PMK file/rainbow table)
+
+    Nếu SSID phổ biến và wordlist lớn, cowpatty có thể precompute PMK cho toàn bộ passlist, cực nhanh khi crack nhiều lần cùng SSID đó (ví dụ: nhiều lab, CTF Wi-Fi, audit nội bộ).
+
+A. Tạo PMK file (rainbow table cho 1 SSID + wordlist)
+
+genpmk -f wordlist.txt -s <SSID> -d pmk_freewifi
+
+    Sẽ tạo file pmk_freewifi chứa hash toàn bộ wordlist với SSID chỉ định.
+
+B. Crack pass bằng PMK
+
+cowpatty -d pmk_freewifi -r wifi.cap -s "FREE_WIFI"
+
+(Nhanh gấp nhiều lần brute-force thường! Đặc biệt mạnh khi pentest Wi-Fi có nhiều AP chung SSID)
+5. Các option mạnh khác của cowpatty
+Option	Ý nghĩa
+-f	File wordlist
+-d	File PMK precompute (rainbow table)
+-r	File capture handshake (.cap)
+-s	SSID AP (phân biệt hoa/thường)
+-2	Chỉ dùng với file handshake 2-way (ít dùng, đã lỗi thời)
+-v	Verbose, in chi tiết quá trình
+-h	Hiển thị help
+6. Automation workflow – batch, speedup, ghép tool
+
+    Batch crack nhiều handshake/SSID cùng lúc (ví dụ cho pentest nhiều mạng nội bộ):
+
+    for cap in *.cap; do
+      cowpatty -f wordlist.txt -r $cap -s "MYSSID"
+    done
+
+    Kết hợp với Kismet, airodump-ng để tự động thu handshake rồi pipe vào cowpatty.
+
+    Tạo rainbow table cho các SSID phổ biến rồi chia sẻ cho team, tiết kiệm rất nhiều thời gian brute-force.
+
+7. Tối ưu hiệu suất (best practice)
+
+    Chỉ dùng cowpatty với file handshake thật sự tốt (đủ frame EAPOL, đúng SSID).
+
+    Precompute PMK với genpmk trước khi crack lab/CTF có nhiều AP cùng SSID.
+
+    Chạy trên máy đa nhân (cowpatty vẫn chỉ 1 thread, nhưng có thể chạy nhiều instance song song).
+
+    Luôn chọn wordlist sát mục tiêu, loại bỏ pass trùng, pass cực ngắn/dài không hợp lý.
+
+    Kiểm tra lại file .cap nếu crack mãi không ra – có thể handshake lỗi, SSID sai, hoặc file .cap chứa nhiều AP hãy tách riêng.
+
+8. So sánh cowpatty với aircrack-ng/hashcat
+Tool	Ưu điểm cowpatty	Khác biệt
+cowpatty	Nhẹ, dễ dùng, cực mạnh khi dùng PMK precompute, focus brute WPA/WPA2	Không multi-thread, không mask attack, không crack PMKID mới, không hỗ trợ GPU
+aircrack-ng	Support handshake, WEP/WPA, có brute mask	Không PMK precompute, chậm hơn khi crack nhiều SSID lặp
+hashcat	GPU, multi-thread, mask/rule attack, crack PMKID/22000	Phức tạp hơn, cần chuẩn bị hashcat format
+9. Fix lỗi thường gặp
+Lỗi	Xử lý
+"No valid packets found"	File .cap không có handshake đủ, thu lại hoặc lọc bằng Wireshark
+Crack chậm	Dùng precompute PMK với genpmk, chọn wordlist chuẩn
+Không ra pass	Pass không trong wordlist, SSID sai, handshake lỗi, thử wordlist custom (CEWL, crunch, CUPP)
+SSID lỗi (case-sensitive)	Check lại đúng chữ hoa/thường, không thêm ký tự trắng cuối
+PMK file không nhận	Tạo lại với genpmk, dùng đúng SSID và wordlist
+10. Tài liệu, link hữu ích
+
+    Cowpatty (Linux man page)
+
+    Cowpatty Github mirror
+
+    Hacktricks – WiFi attacks
+
+    PayloadAllTheThings – WiFi attacks
+
+    CEWL, crunch – tạo wordlist custom | https://github.com/crunchsec/crunch
+
+    rockyou.txt, SecLists, weakpass
+
+Tóm tắt nhanh
+
+    Cowpatty: tool crack WPA/WPA2 từ file handshake, cực mạnh với PMK precompute, brute-force dictionary.
+
+    Thích hợp crack mạng Wi-Fi SSID phổ biến/lặp lại, tiết kiệm thời gian với genpmk.
+
+    Dùng cho pentest, CTF, audit nội bộ, training…
+
+    Nên phối hợp với airodump-ng, kismet, wifite, hashcat để tối ưu workflow, script hóa, filter handshake chuẩn, luôn kiểm tra wordlist sát thực tế.
+

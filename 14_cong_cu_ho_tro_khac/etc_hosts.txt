@@ -1,0 +1,160 @@
+I. /etc/hosts là gì?
+
+    Là một file cấu hình hệ thống trên hầu hết các hệ điều hành UNIX/Linux (và có cả trên Windows, macOS)
+
+    Dùng để ánh xạ (map) tên miền (hostname) sang địa chỉ IP trước khi hỏi đến DNS ngoài.
+
+II. Vị trí & cú pháp cơ bản
+
+    Đường dẫn:
+
+/etc/hosts
+
+Cú pháp mỗi dòng:
+
+IP_address    hostname    [alias1 alias2 ...]   # comment (tùy chọn)
+
+    IP_address: Địa chỉ IPv4 hoặc IPv6
+
+    hostname: Tên chính (FQDN hoặc tên rút gọn)
+
+    alias: Bí danh, tên gợi nhớ khác
+
+    # comment: Chú thích, không ảnh hưởng
+
+Ví dụ:
+
+    127.0.0.1   localhost
+    192.168.1.100   maychu   maychu.lan   # máy chủ nội bộ
+    ::1        localhost   ip6-localhost
+
+III. Cơ chế hoạt động
+
+    Khi bạn truy cập 1 tên miền (VD: ping maychu):
+
+        Hệ điều hành kiểm tra file /etc/hosts đầu tiên
+
+        Nếu tìm thấy tên phù hợp → trả về IP ngay, KHÔNG hỏi DNS.
+
+        Nếu KHÔNG có trong /etc/hosts → mới hỏi tới DNS server ngoài.
+
+    Ưu tiên cao nhất:
+
+        Nhanh hơn, ưu tiên hơn DNS (vì là local file, đọc cực nhanh)
+
+        Hữu ích cho:
+
+            Gán tên miền riêng cho IP nội bộ
+
+            Test website dev (redirect domain về localhost)
+
+            Block website độc hại (đưa về 127.0.0.1)
+
+IV. Các ví dụ thường gặp
+1. Thêm tên miền dev/test về localhost
+
+127.0.0.1  mywebsite.local
+127.0.0.1  khang.dev
+
+Giờ vào mywebsite.local trên trình duyệt = truy cập localhost!
+2. Block website
+
+127.0.0.1  facebook.com
+127.0.0.1  www.facebook.com
+
+→ Truy cập facebook.com sẽ ra "not found"!
+3. Gán bí danh nhiều tên cho 1 máy
+
+192.168.1.50  maychu1  maychu-backup  backup-server
+
+→ Dùng tên nào cũng ra IP đó.
+4. Cấu hình IPv6
+
+::1   localhost   ip6-localhost   ip6-loopback
+
+V. Thao tác với /etc/hosts
+1. Xem nội dung
+
+cat /etc/hosts
+
+2. Chỉnh sửa (cần quyền root)
+
+sudo nano /etc/hosts
+
+hoặc
+
+sudo vi /etc/hosts
+
+VI. Nâng cao
+1. Script tự động cập nhật /etc/hosts
+
+    Dùng file hosts để block quảng cáo (import từ các nguồn như StevenBlack/hosts)
+
+    Sync /etc/hosts giữa nhiều máy bằng Ansible, Puppet...
+
+2. Chỉnh sửa từ xa
+
+    SCP, rsync hoặc qua Ansible để phân phối file hosts chuẩn đến các server
+
+3. Lệnh kiểm tra hostname resolve
+
+getent hosts mywebsite.local
+host mywebsite.local
+nslookup mywebsite.local
+ping mywebsite.local
+
+4. Hạn chế, lưu ý
+
+    File chỉ nên chỉnh sửa khi thực sự cần
+
+    Cảnh báo bảo mật: Ai có quyền chỉnh sửa file này có thể redirect traffic, MITM cục bộ!
+
+    Không dùng để thay thế hoàn toàn DNS — không phù hợp với quy mô lớn (nhiều máy nhiều domain)
+
+    Một số ứng dụng cache kết quả resolve, có thể cần restart sau khi chỉnh file
+
+5. Sử dụng trên Windows/macOS
+
+    Windows: C:\Windows\System32\drivers\etc\hosts
+
+    macOS: /etc/hosts như Linux
+
+VII. Debug lỗi liên quan đến /etc/hosts
+
+    Không ping được hostname → Kiểm tra lại entry /etc/hosts
+
+    Bị redirect sai → Có thể do ai đó chỉnh /etc/hosts (malware, user khác...)
+
+    DNS query chậm → Xem thứ tự ưu tiên trong /etc/nsswitch.conf
+
+cat /etc/nsswitch.conf | grep hosts
+
+Thường sẽ có dạng:
+
+    hosts: files dns
+
+    Nghĩa là: ưu tiên file /etc/hosts trước, sau đó mới tới DNS
+
+VIII. Một số mẹo và trick
+
+    Lưu bản backup trước khi chỉnh sửa
+
+    Viết script tự động thêm/xóa entry cho dev/test
+
+    Tạo alias hàng loạt cho docker, vagrant...
+
+    Dùng entry wildcard không được, phải ghi từng hostname cụ thể
+
+IX. Các tool/phần mềm hỗ trợ quản lý hosts
+
+    Hostsman (Windows)
+
+    Gas Mask (macOS)
+
+    HostsFileEditor (Linux, cross-platform)
+
+X. Tổng kết
+
+    /etc/hosts là công cụ cực kỳ hữu ích, mạnh, nhưng cũng tiềm ẩn rủi ro bảo mật nếu bị lạm dụng.
+
+    Nắm vững file này giúp bạn dễ dàng dev, test, block web, quản trị mạng nhỏ lẻ...

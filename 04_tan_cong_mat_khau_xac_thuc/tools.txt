@@ -1,0 +1,16 @@
+hydra
+john
+hashcat
+cewl
+crunch
+medusa
+wordlistctl
+patator
+chntpw
+kerbrute
+impacket-secretsdump.py
+psexec.py
+evil-winrm
+rockyou.txt
+GetNPUsers.py
+crackmapexec

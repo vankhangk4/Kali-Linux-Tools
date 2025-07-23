@@ -1,0 +1,153 @@
+1. Uniscan là gì?
+
+    Uniscan là công cụ quét lỗ hổng web mã nguồn mở, giao diện dòng lệnh.
+
+    Tập trung phát hiện:
+
+        LFI (Local File Inclusion)
+
+        RFI (Remote File Inclusion)
+
+        RCE (Remote Command Execution)
+
+        XSS (Cross Site Scripting)
+
+        Directory/Files Enumeration, Information Disclosure, lỗi config, etc.
+
+    Hỗ trợ scan theo từng site, hoặc toàn bộ dải IP/domain.
+
+    Có thể automation nhiều host qua batch file.
+
+2. Cài đặt Uniscan
+Trên Kali/Ubuntu
+
+sudo apt update
+sudo apt install uniscan
+
+Hoặc clone từ GitHub
+
+git clone https://github.com/poisonsecurity/Uniscan.git
+cd Uniscan
+perl uniscan.pl -h
+
+(Uniscan viết bằng Perl, chạy tốt trên Linux, cần có Perl + các module phụ thuộc nếu lỗi)
+3. Quét cơ bản một website
+Scan lỗ hổng cơ bản (LFI, RFI, XSS, lỗi file/directory):
+
+uniscan -u http://target.com -qweds
+
+Giải thích option:
+
+    -u: Chỉ định URL
+
+    -q: Scan các file/folder ẩn
+
+    -w: Crawler toàn bộ site
+
+    -e: Tìm lỗi RFI, LFI, RCE
+
+    -d: Tìm lỗi lỗi disclosure (info leak)
+
+    -s: Tìm lỗi XSS
+
+4. Tùy chọn nâng cao & thực tế
+A. Scan nhiều site hàng loạt (batch)
+
+    Chuẩn bị file list.txt chứa danh sách URL (mỗi dòng 1 site)
+
+    Chạy:
+
+    uniscan -i list.txt -qweds
+
+B. Scan sâu với nhiều thread (speed up)
+
+    Dùng option -t <thread số> để chạy đa luồng, VD:
+
+    uniscan -u http://site.com -qweds -t 10
+
+    Nên thử 5-20 thread với site lớn, nhưng lưu ý dễ bị block hoặc gây tải cao cho server mục tiêu!
+
+C. Scan có cookie/login session
+
+    Nếu cần scan web có đăng nhập (sử dụng session cookie):
+
+uniscan -u http://site.com -qweds -c "PHPSESSID=xyz123"
+
+Hoặc giả lập user-agent:
+
+    uniscan -u http://site.com -qweds -a "Mozilla/5.0"
+
+D. Tùy biến user-agent và proxy
+
+    Đổi UA:
+
+uniscan -u http://site.com -qweds -a "Googlebot"
+
+Sử dụng proxy (debug qua Burp/ZAP):
+
+    proxychains uniscan -u http://site.com -qweds
+
+5. Các option hữu ích khác
+Tham số	Ý nghĩa
+-u	Chỉ định URL
+-i	Quét nhiều site từ file
+-q	Directory/File enumeration
+-w	Crawler toàn site
+-e	LFI, RFI, RCE scan
+-d	Information disclosure
+-s	XSS scan
+-b	Brute-force files/directories
+-a	User-Agent
+-c	Cookie
+-r	Xuất kết quả ra file HTML (report)
+-t	Thread (số luồng)
+6. Tối ưu scan, tránh bị block
+
+    Chỉ chọn module cần thiết (không dùng tất cả option nếu không cần).
+
+    Giới hạn thread khi quét site yếu.
+
+    Đổi UA, dùng proxy nếu site có WAF.
+
+    Tạm dừng/resume scan khi cần thiết (chia nhỏ danh sách).
+
+7. Automation – Tự động hoá nhiều site
+
+    Script bash tự động quét và lưu log:
+
+    while read url; do
+        echo "Quet $url ..."
+        uniscan -u $url -qweds -r
+    done < list.txt
+
+    Dùng trong CI/CD để kiểm thử bảo mật tự động mỗi lần deploy web/app mới.
+
+8. Xuất báo cáo và đọc kết quả
+
+    Kết quả lưu tại thư mục uniscan (theo timestamp hoặc domain).
+
+    Có thể xuất ra HTML với -r:
+
+    uniscan -u http://site.com -qweds -r
+
+    Báo cáo HTML gồm tổng hợp lỗ hổng, link lỗi, mô tả và gợi ý fix.
+
+9. Một số lỗi & xử lý
+Lỗi	Nguyên nhân & cách fix
+Không scan được HTTPS	Dùng URL đúng (https), hoặc cài module Perl SSL
+Báo lỗi Perl module	Cài thêm Perl module (ví dụ: libwww-perl, libhtml-parser-perl, etc.)
+Quét quá chậm	Tăng thread, chỉ scan module cần thiết
+Bị block, timeout	Dùng proxy, giảm tốc, đổi UA, chia nhỏ batch
+10. Kết hợp với tool khác
+
+    Kết hợp với nikto, skipfish, wpscan, nuclei, nmap để kiểm tra kỹ hơn các loại lỗ hổng khác nhau.
+
+    Sử dụng kết quả uniscan làm input cho script exploit tự động hoặc kiểm thử thêm với Burp, Metasploit.
+
+11. Tài liệu & tham khảo
+
+    Uniscan GitHub
+
+    Uniscan (Kali Tools)
+
+    uniscan --help (hoặc -h)

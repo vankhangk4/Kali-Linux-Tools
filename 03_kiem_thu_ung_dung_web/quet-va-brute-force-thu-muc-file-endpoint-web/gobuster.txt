@@ -1,0 +1,181 @@
+1. Gobuster là gì?
+
+    Gobuster là công cụ brute-force cực nhanh, viết bằng Go, dùng để dò:
+
+        Directory/file ẩn trên web (kiểu như DIRB, Dirbuster, ffuf…)
+
+        Subdomain trên DNS (giống Sublist3r, Amass)
+
+        Vhost (ảo hóa host)
+
+        S3 bucket (AWS)
+
+        Hỗ trợ multi-thread, wordlist lớn, nhiều chế độ.
+
+    Ưu điểm: Nhanh, tối ưu CPU, dễ dùng, output rõ ràng, rất phổ biến trong CTF, pentest thực tế.
+
+2. Cài đặt Gobuster
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install gobuster
+
+B. Cài qua Go (mọi nền tảng)
+
+go install github.com/OJ/gobuster/v3@latest
+
+(Binary sẽ nằm ở ~/go/bin/gobuster)
+C. Kiểm tra
+
+gobuster -h
+
+3. Sử dụng Gobuster cơ bản
+A. Directory/File brute-force
+
+gobuster dir -u http://target.com -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
+    -u: URL mục tiêu
+
+    -w: Wordlist
+
+    dir: chế độ directory brute-force
+
+B. Thêm extension file
+
+gobuster dir -u http://target.com -w /usr/share/wordlists/dirb/common.txt -x php,html,txt,bak
+
+C. Quét subdomain
+
+gobuster dns -d target.com -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
+
+    dns: chế độ subdomain brute-force
+
+4. Các chế độ quét của Gobuster
+Chế độ	Mục đích	Lệnh mẫu
+dir	Quét file, thư mục ẩn trên web	gobuster dir ...
+dns	Quét subdomain	gobuster dns ...
+vhost	Quét virtual host	gobuster vhost ...
+s3	Quét AWS S3 bucket	gobuster s3 ...
+fuzz	Fuzz tuỳ biến endpoint	gobuster fuzz ...
+5. Các tùy chọn nâng cao – tối ưu thực chiến
+Tham số	Ý nghĩa
+-t <num>	Số thread song song (tăng tốc, mặc định 10)
+-o <file>	Lưu kết quả ra file
+-e	Hiện cả URL đúng và redirect
+-r	Không theo redirect
+-x	Extension cần thử (.php,.bak...)
+-s	Lọc status code (vd: 200,204,301,302,307,403)
+-b	Loại bỏ status code (vd: 404)
+-c	Cookie custom (cookie=abc)
+-a	User-Agent custom
+-H	Header custom (nhiều lần)
+-l	In ra cả folder cha (listing)
+-q	Quiet mode (giảm log)
+--delay	Delay mỗi request (tránh bị block)
+
+Ví dụ:
+
+gobuster dir -u https://site.com -w wordlist.txt -t 50 -x php,html -o gobuster.txt -s 200,204,301,403
+gobuster dns -d example.com -w dns.txt -t 50 -o result_dns.txt
+gobuster vhost -u http://1.2.3.4 -w vhost.txt
+
+6. Bypass filter, proxy, fake UA, brute-force nâng cao
+
+    Đổi User-Agent:
+
+gobuster dir -u ... -w ... -a "Mozilla/5.0"
+
+Thêm Cookie:
+
+gobuster dir -u ... -w ... -c "PHPSESSID=1234"
+
+Gửi header custom (multi):
+
+gobuster dir -u ... -w ... -H "X-Forwarded-For: 127.0.0.1" -H "Referer: google.com"
+
+Chạy qua proxy (Burp/ZAP):
+
+    Dùng proxychains gobuster ...
+
+Chặn/cho phép status code:
+
+    Chỉ in kết quả code 200 và 403:
+
+gobuster dir -u ... -w ... -s 200,403
+
+Bỏ qua code 404:
+
+        gobuster dir -u ... -w ... -b 404
+
+7. Chế độ fuzz – nâng cao
+
+    Tùy biến path, param, brute-force endpoint đặc biệt:
+
+    gobuster fuzz -u "http://target.com/FUZZ.php?file=FUZZ" -w wordlist.txt
+
+    Dùng placeholder FUZZ ở mọi vị trí muốn brute.
+
+8. Batch scan – automation nhiều site
+
+    Quét nhiều site 1 lúc:
+
+    while read url; do
+      gobuster dir -u "$url" -w wordlist.txt -t 50 -o "gb_$(basename $url).txt"
+    done < urls.txt
+
+    Kết hợp với Nmap, Subfinder, WhatWeb để lấy list, feed vào Gobuster.
+
+9. Kết hợp wordlist, extension, file, custom fuzz
+
+    Wordlist phổ biến:
+
+        /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
+        /usr/share/wordlists/dirb/common.txt
+
+        SecLists
+
+    Brute file backup, shell, config:
+
+gobuster dir -u ... -w backup.txt -x bak,zip,tar,gz,old,txt
+
+Fuzz API endpoint:
+
+    gobuster fuzz -u "https://api.site.com/v1/FUZZ" -w endpoints.txt
+
+10. Những mẹo thực chiến
+
+    Dùng thread vừa phải (20-100), không max trên site production.
+
+    Kết hợp lọc status code để tránh false positive, review thủ công các code 403, 401 (nhiều site trả 403 cho folder ẩn).
+
+    Chạy ban đêm, tránh DDoS hoặc bị block IP.
+
+    Đổi UA, fake header khi gặp WAF/CDN.
+
+    Output ra file CSV để lọc/phân tích.
+
+11. Một số lỗi thường gặp & cách fix
+Lỗi	Fix
+Quét ra quá nhiều kết quả 404	Lọc lại với -s hoặc -b
+Bị block IP khi scan	Giảm thread, thêm delay, thử proxy, fake UA
+Scan HTTPS lỗi	Update CA, thử thêm -k (nếu support), check SSL cert
+Quét mà không ra gì	Thay wordlist, thêm extension, thử fuzz
+Response giống nhau (nghi false positive)	Dùng -fw <size> để filter theo content length
+12. Tài liệu, link hữu ích
+
+    Gobuster Official
+
+    SecLists wordlists
+
+    PayloadAllTheThings Directory Brute-Force
+
+    gobuster -h
+
+Tóm tắt nhanh
+
+    Gobuster: tool mạnh nhất brute-force folder/file/subdomain/vhost trên web hiện nay, siêu nhanh, nhiều chế độ, automation tốt.
+
+    Luôn chọn wordlist phù hợp, brute extension hợp lý, kết hợp các chế độ dir/dns/vhost/fuzz để enum tối đa bề mặt tấn công.
+
+    Hiểu rõ kết quả trả về (code, size, redirect), lọc false positive và log lại mọi thứ để xử lý offline.

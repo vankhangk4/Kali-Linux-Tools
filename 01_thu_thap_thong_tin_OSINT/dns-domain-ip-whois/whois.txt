@@ -1,0 +1,85 @@
+whois là một công cụ dòng lệnh kinh điển dùng để truy vấn thông tin đăng ký tên miền (domain), IP, ASN... trên Internet. Đây là một trong những bước cơ bản nhất khi OSINT, footprinting, pentest, điều tra mạng, bug bounty, giúp bạn biết ai sở hữu domain/IP, ngày đăng ký, contact admin, DNS, registrar...
+1. Tác dụng của whois
+
+    Tra cứu thông tin chủ sở hữu tên miền: tên công ty, người đăng ký, email, địa chỉ, số điện thoại, registrar.
+
+    Xem ngày đăng ký, hết hạn domain.
+
+    Tìm thông tin về DNS, nameserver, registrar, trạng thái domain (active/expired/hijacked).
+
+    Check IP/ASN: tra cứu chủ sở hữu một dải IP, tổ chức quản lý, liên hệ abuse, địa chỉ datacenter...
+
+    Phục vụ OSINT, pentest, trace nguồn tấn công, profile mục tiêu, cảnh báo lừa đảo/phishing, kiểm tra domain mua lại, ...
+
+2. Cách sử dụng whois cơ bản
+1. Tra cứu tên miền
+
+whois example.com
+
+2. Tra cứu địa chỉ IP
+
+whois 8.8.8.8
+
+3. Tra cứu ASN (Autonomous System Number)
+
+whois AS15169
+
+    (Ví dụ: AS15169 là Google)
+
+3. Output của whois chứa gì?
+
+    Tên chủ sở hữu, email, phone, địa chỉ liên hệ (nếu không ẩn/private)
+
+    Ngày đăng ký, hết hạn domain
+
+    Thông tin registrar (nơi mua domain)
+
+    Nameserver, trạng thái domain (active, transfer, delete…)
+
+    Tổ chức quản lý IP, datacenter, abuse contact (khi tra IP)
+
+    Đôi khi hiện thông tin “bị ẩn” nếu dùng dịch vụ ẩn danh (privacy protection), nhưng vẫn có thể xem registrar, thời gian, nameserver...
+
+4. Ví dụ thực tế
+
+    Tra cứu domain Google:
+
+whois google.com
+
+    Kết quả: Registrar là MarkMonitor, ngày đăng ký, nameserver, admin contact v.v.
+
+Check IP lạ bị scan:
+
+whois 45.77.121.24
+
+    Biết ngay IP đó thuộc datacenter nào, abuse email của provider.
+
+Check domain bị fake/phishing:
+
+    whois paypal-support-verify.com
+
+        Thường domain fake mới đăng ký, registrar lạ, thông tin chủ sở hữu ẩn.
+
+5. Một số tuỳ chọn hữu ích
+Tuỳ chọn	Ý nghĩa
+-h <host>	Chỉ định server whois (mặc định sẽ tự động chọn)
+-H	Ẩn field thông tin lặp lại (giúp output gọn hơn)
+-p <port>	Chỉ định port (mặc định 43, hiếm khi phải đổi)
+-i	Invert match (tìm ngược với từ khóa)
+6. Kinh nghiệm thực chiến
+
+    Thông tin owner có thể bị ẩn nhưng vẫn xác định được registrar, nameserver, ngày tạo, dải IP.
+
+    Muốn tra cứu mạnh hơn, dùng thêm website như whois.domaintools.com, viewdns.info, ipinfo.io.
+
+    Kết hợp với recon-ng, Maltego, theHarvester... để tự động hóa OSINT.
+
+    Các domain lừa đảo/phishing thường dùng privacy/registrar rẻ, mới đăng ký gần đây.
+
+7. Tài liệu tham khảo
+
+    man whois
+
+    ICANN WHOIS Lookup
+
+    HackTricks Whois

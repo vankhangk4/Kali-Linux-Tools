@@ -1,0 +1,101 @@
+tcpdump là công cụ dòng lệnh cực kỳ mạnh mẽ và phổ biến dùng để bắt gói tin mạng (packet capture/sniffing) trên Linux/Unix. Đây là tool "must-have" cho mọi pentester, sysadmin, security analyst hoặc người học mạng.
+1. Tác dụng của tcpdump
+
+    Bắt và phân tích lưu lượng mạng (packet sniffing) trên card mạng.
+
+    Lọc, ghi lại, phân tích chi tiết các gói TCP, UDP, ICMP, DNS, HTTP, v.v.
+
+    Chẩn đoán sự cố mạng, phân tích tấn công, kiểm tra kết nối giữa máy chủ/ứng dụng.
+
+    Lưu dữ liệu để phân tích bằng Wireshark (file .pcap).
+
+    Tích hợp với automation/script để phát hiện hoặc debug lỗi hệ thống.
+
+2. Cách dùng tcpdump cơ bản
+1. Bắt toàn bộ lưu lượng trên 1 interface
+
+tcpdump -i eth0
+
+    -i eth0: bắt gói trên interface eth0 (hoặc ens33, wlan0...)
+
+2. Bắt và lưu lại thành file .pcap để phân tích sau
+
+tcpdump -i eth0 -w traffic.pcap
+
+    File này mở bằng Wireshark để phân tích cực tiện.
+
+3. Chỉ hiển thị 10 gói đầu tiên
+
+tcpdump -i eth0 -c 10
+
+    -c 10: bắt đúng 10 gói rồi dừng.
+
+4. Lọc theo địa chỉ IP
+
+tcpdump -i eth0 host 10.10.10.5
+
+    Chỉ bắt các gói liên quan đến IP 10.10.10.5
+
+5. Lọc theo port
+
+tcpdump -i eth0 port 80
+
+    Chỉ bắt gói gửi/nhận trên port 80 (HTTP)
+
+6. Lọc cả theo giao thức
+
+tcpdump -i eth0 tcp
+tcpdump -i eth0 udp
+tcpdump -i eth0 icmp
+
+7. Lọc theo nguồn/đích
+
+tcpdump -i eth0 src 192.168.1.2
+tcpdump -i eth0 dst 192.168.1.10
+
+8. Hiển thị dữ liệu dạng hex/ascii
+
+tcpdump -i eth0 -X
+
+    Giúp thấy rõ dữ liệu raw, đôi khi nhìn được pass, cookie, token v.v.
+
+3. Option hay dùng
+Option	Ý nghĩa
+-i <iface>	Interface bắt gói (bắt buộc nếu có nhiều card mạng)
+-c <num>	Bắt đúng <num> gói rồi dừng
+-w <file>	Ghi ra file .pcap
+-r <file>	Đọc file .pcap (replay, filter lại)
+-n	Không resolve DNS (hiển thị IP thay vì hostname)
+-X	Hiện dữ liệu dạng hex/ascii
+-v/-vv/-vvv	Tăng mức độ chi tiết hiển thị
+4. Ví dụ thực tế
+
+    Bắt HTTP traffic và lưu lại:
+
+tcpdump -i eth0 port 80 -w http.pcap
+
+Chỉ xem gói liên quan tới SSH:
+
+tcpdump -i eth0 port 22 -n
+
+Chỉ bắt traffic tới 1 site:
+
+    tcpdump -i eth0 host example.com
+
+5. Lưu ý khi dùng
+
+    Cần quyền root để bắt gói.
+
+    Có thể làm “lộ thông tin” nếu không cẩn thận trên hệ thống thật.
+
+    Khi cần lọc traffic, ưu tiên filter từ đầu để giảm log rác.
+
+    Có thể “sniff” password, token, cookie trên mạng chưa mã hóa (HTB/CTF thường dùng).
+
+6. Tài liệu tham khảo
+
+    man tcpdump
+
+    Cheat sheet: https://danielmiessler.com/study/tcpdump/
+
+    HackTricks - Packet Sniffing

@@ -1,0 +1,82 @@
+rpcclient là một công cụ dòng lệnh của bộ Samba trên Linux, dùng để giao tiếp với dịch vụ RPC trên máy chủ Windows thông qua giao thức SMB. Đây là công cụ không thể thiếu cho dân pentest khi kiểm tra hệ thống Windows trong giai đoạn Information Gathering & Enumeration (liệt kê thông tin).
+1. Tác dụng của rpcclient
+
+    Kết nối và liệt kê thông tin domain, user, group, share trên Windows Server hoặc máy tính Windows.
+
+    Dùng để dump account, SID, liệt kê share, tìm thông tin về policies, mật khẩu, v.v.
+
+    Hỗ trợ thực hiện rất nhiều lệnh như: lấy danh sách user (enumdomusers), group (enumdomgroups), thông tin máy chủ, danh sách share, v.v.
+
+2. Cách sử dụng cơ bản
+1. Kết nối đến máy chủ Windows (Domain Controller hoặc máy thường)
+
+Cú pháp:
+
+rpcclient -U <username> <target_ip>
+
+    Với <username> là user hợp lệ, có thể là Guest/Administrator hoặc bất kỳ account nào.
+
+    Nếu không có password thì để trống (sẽ hỏi password), hoặc dùng tùy chọn -N nếu anonymous.
+
+Ví dụ:
+
+rpcclient -U "" 192.168.1.10 -N
+
+    Kết nối anonymous (không cần mật khẩu).
+
+2. Một số lệnh hay dùng trong rpcclient
+
+Sau khi kết nối thành công, bạn sẽ được đưa vào giao diện giống shell:
+
+    Liệt kê user trên domain:
+
+enumdomusers
+
+Liệt kê group:
+
+enumdomgroups
+
+Liệt kê user trong group:
+
+querygroupmem <RID_group>
+
+Liệt kê share (thư mục chia sẻ):
+
+netshareenum
+
+Tìm thông tin chi tiết 1 user:
+
+queryuser <RID_user>
+
+Lấy thông tin máy chủ:
+
+srvinfo
+
+Lấy thông tin domain:
+
+    getdompwinfo
+
+3. Một số lưu ý
+
+    Phải có quyền truy cập vào SMB (cổng 445 hoặc 139).
+
+    Nếu server bật anonymous login hoặc tài khoản guest không có mật khẩu, bạn có thể thu thập rất nhiều thông tin mà không cần credential.
+
+    Nếu có tài khoản hợp lệ (ngay cả user yếu, bị vô hiệu hóa đăng nhập), vẫn có thể enum được rất nhiều thông tin nhạy cảm.
+
+4. Ví dụ tổng hợp thực tế
+
+rpcclient -U "" 10.10.10.5 -N
+
+Sau đó chạy các lệnh sau:
+
+enumdomusers
+enumdomgroups
+netshareenum
+srvinfo
+
+5. Tài liệu tham khảo
+
+    Samba official docs
+
+    Cheat sheet: https://book.hacktricks.xyz/network-services-pentesting/smb/smb-enumeration#rpcclient

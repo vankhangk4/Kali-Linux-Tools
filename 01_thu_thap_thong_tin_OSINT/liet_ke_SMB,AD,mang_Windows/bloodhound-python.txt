@@ -1,0 +1,88 @@
+bloodhound-python là tool CLI dùng để thu thập thông tin về Active Directory (AD) và tự động đẩy dữ liệu lên BloodHound (hoặc xuất ra file để import vào BloodHound GUI).
+Đây là phiên bản Python hiện đại, thay thế cho SharpHound khi bạn pentest từ máy Linux, Kali, Parrot… hoặc không dùng được công cụ Windows.
+1. Tác dụng của bloodhound-python
+
+    Thu thập toàn bộ thông tin cấu trúc AD: user, group, OU, máy tính, trust, quyền admin, session, ACL, GPO, RDP, SPN...
+
+    Hỗ trợ cả LDAP lẫn SMB, thu thập thông tin sâu (nếu có credential đủ mạnh).
+
+    Tự động xuất ra các file .json.zip – có thể import trực tiếp vào ứng dụng BloodHound để phân tích privilege escalation, lateral movement, attack path trong domain.
+
+    Có thể tự upload lên Neo4j DB của BloodHound server (nếu cấu hình).
+
+2. Cách dùng bloodhound-python cơ bản
+1. Cài đặt
+
+pip install bloodhound
+
+Hoặc:
+
+pip install bloodhound[ldap]
+
+(tùy version và nhu cầu, nên dùng Python 3.x)
+2. Thu thập thông tin domain cơ bản
+
+bloodhound-python -u <user> -p <password> -d <domain> -dc <DC-ip> -c all
+
+    -u: username
+
+    -p: password
+
+    -d: domain (ví dụ: corp.local)
+
+    -dc: IP/FQDN của Domain Controller
+
+    -c all: thu thập tất cả dữ liệu
+    (hoặc chọn các module nhỏ: -c session,trusts,acl,...)
+
+Ví dụ:
+
+bloodhound-python -u khang -p 123456 -d corp.local -dc 10.10.10.10 -c all
+
+3. Nếu cần sử dụng Kerberos (ticket)
+
+bloodhound-python -u khang -d corp.local -k -no-pass -dc 10.10.10.10 -c all
+
+    -k: dùng ticket Kerberos (nếu có)
+
+    -no-pass: không hỏi password
+
+4. Output
+
+Sau khi chạy, sẽ sinh ra file .json.zip (thường là 20240722-xxxxxx_BloodHound.zip).
+Bạn có thể:
+
+    Import trực tiếp vào ứng dụng BloodHound GUI (chạy trên Windows, Linux, Docker…)
+
+    Hoặc upload vào Neo4j server nếu cấu hình
+
+3. Một số option hữu ích
+Option	Ý nghĩa
+-u/-p	Username/Password
+-d	Tên domain
+-dc	Domain Controller
+-ns	DNS server (nếu cần custom)
+-c all	Thu thập tất cả thông tin
+-c session	Chỉ lấy session info
+-c trust	Chỉ lấy thông tin trust
+-k -no-pass	Dùng ticket Kerberos (không cần password)
+--zip	Xuất output thành file .zip
+--disable-smb-enum	Không enumerate SMB (chỉ LDAP)
+--ldap-port	Port LDAP tuỳ chỉnh (mặc định 389 hoặc 636)
+4. Kinh nghiệm thực chiến
+
+    Thường chỉ cần user domain bình thường là đủ để thu thập sơ bộ AD, muốn sâu hơn cần credential admin.
+
+    File output import vào BloodHound GUI sẽ show mọi privilege escalation path: từ user thường lên admin, các mối quan hệ group, dịch vụ, RDP session, ACL lỏng lẻo…
+
+    Rất phù hợp cho Red Team, Blue Team, Audit bảo mật nội bộ.
+
+    Kết hợp với các tool như ldapdomaindump, impacket, crackmapexec, evil-winrm, ... để tối ưu hóa quá trình thu thập.
+
+5. Tài liệu tham khảo
+
+    Github: bloodhound-python
+
+    BloodHound Docs
+
+    HackTricks BloodHound

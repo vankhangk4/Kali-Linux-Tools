@@ -1,0 +1,6 @@
+steghide
+zsteg
+exiftool
+stegsolve
+outguess
+binwalk

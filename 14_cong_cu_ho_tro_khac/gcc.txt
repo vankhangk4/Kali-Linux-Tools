@@ -1,0 +1,245 @@
+1. Giới thiệu GCC
+
+    GCC là bộ biên dịch mã nguồn mở phổ biến nhất trên Linux/Unix (biên dịch C, C++, Objective-C, Fortran, Ada, Go, v.v.).
+
+    GCC là chuẩn de-facto để biên dịch phần mềm nguồn mở.
+
+2. Cài đặt GCC
+
+    Ubuntu/Debian:
+
+sudo apt update
+sudo apt install build-essential
+
+(gồm gcc, g++, make…)
+
+Fedora/CentOS/RHEL:
+
+sudo dnf groupinstall "Development Tools"
+
+hoặc
+
+sudo yum groupinstall "Development Tools"
+
+Kiểm tra phiên bản:
+
+    gcc --version
+
+3. Sử dụng GCC cơ bản
+Biên dịch file C:
+
+gcc hello.c -o hello
+
+    hello.c: source file
+
+    -o hello: tên file thực thi đầu ra
+
+Chạy chương trình
+
+./hello
+
+Biên dịch nhanh
+
+gcc hello.c
+# sẽ ra a.out (tên mặc định)
+
+4. Các tùy chọn cơ bản của GCC
+Tùy chọn	Ý nghĩa
+-o <file>	Đặt tên file xuất ra
+-c	Chỉ biên dịch ra file object (.o)
+-Wall	Bật tất cả cảnh báo phổ biến
+-Wextra	Bật thêm nhiều cảnh báo
+-std=c99	Chọn chuẩn C
+-g	Thêm debug symbol (debug bằng gdb)
+-O2, -O3	Tối ưu hóa code (mạnh hơn)
+-I<dir>	Thêm đường dẫn tìm header
+-L<dir>	Thêm đường dẫn tìm thư viện
+-l<lib>	Link thêm thư viện (vd: -lm cho math)
+-E	Chỉ chạy preprocessor
+-S	Dịch sang assembly (.s)
+5. Chu trình biên dịch
+
+    GCC gồm 4 giai đoạn:
+
+        Preprocessing: Xử lý chỉ thị #include, #define, …
+
+        Compilation: Dịch sang assembly
+
+        Assembly: Dịch sang mã máy (object .o)
+
+        Linking: Ghép nhiều object thành file thực thi
+
+Chia nhỏ từng bước:
+
+gcc -E hello.c           # Chạy preprocessor, ra mã nguồn sau #include/#define
+gcc -S hello.c           # Biên dịch ra file hello.s (assembly)
+gcc -c hello.c           # Biên dịch ra hello.o (object file)
+gcc hello.o -o hello     # Link thành file thực thi
+
+6. Biên dịch nhiều file
+
+gcc -c file1.c -o file1.o
+gcc -c file2.c -o file2.o
+gcc file1.o file2.o -o app
+
+Hoặc gộp 1 lệnh:
+
+gcc file1.c file2.c -o app
+
+7. Tối ưu hóa và tăng tốc
+
+    Cấp độ tối ưu hóa:
+
+        -O0: Không tối ưu (mặc định, debug tốt)
+
+        -O1, -O2, -O3: Tối ưu từ thấp lên cao
+
+        -Ofast: Tối ưu cực mạnh (có thể bỏ qua chuẩn IEEE)
+
+        -Os: Tối ưu dung lượng nhỏ nhất
+
+    Tối ưu cho CPU:
+
+        -march=native (tối ưu cho CPU hiện tại)
+
+        -mtune=native
+
+Ví dụ:
+
+gcc -O2 -march=native myprog.c -o myprog
+
+8. Debug với GCC
+
+    Thêm thông tin debug:
+
+gcc -g myprog.c -o myprog
+
+Dùng gdb để debug:
+
+    gdb ./myprog
+
+    Gỡ lỗi dòng code, kiểm tra biến, backtrace...
+
+9. Cảnh báo và kiểm tra code
+
+    Luôn dùng:
+
+    gcc -Wall -Wextra -pedantic ...
+
+    Thêm -Werror để biến cảnh báo thành lỗi.
+
+10. Link thư viện ngoài
+
+    Link thư viện toán học:
+
+gcc prog.c -lm
+
+Link thư viện tự tạo:
+
+    gcc prog.c -L/path/to/lib -lmylib
+
+11. Cross-compile (biên dịch cho hệ điều hành/kiến trúc khác)
+
+    Cài GCC cross:
+
+        Ví dụ cho ARM trên Ubuntu:
+
+    sudo apt install gcc-arm-linux-gnueabihf
+
+Biên dịch cho ARM:
+
+    arm-linux-gnueabihf-gcc hello.c -o hello.arm
+
+12. Bảo mật & hardening
+
+    Chống stack overflow:
+
+        -fstack-protector
+
+        -fstack-protector-all
+
+    Không sinh thông tin debug (ẩn symbol):
+
+        -s
+
+    Ngăn thực thi trên stack:
+
+        -z noexecstack
+
+    PIE/ASLR (ngẫu nhiên hóa địa chỉ):
+
+        -fPIE -pie
+
+Ví dụ:
+
+gcc -fstack-protector-strong -z noexecstack -fPIE -pie -D_FORTIFY_SOURCE=2 hello.c -o hello
+
+13. Các trick nâng cao
+
+    Xem assembly code:
+
+gcc -S -O2 hello.c -o hello.s
+cat hello.s
+
+Chỉ chạy preprocessor (macro expansion):
+
+gcc -E hello.c
+
+Định nghĩa macro từ dòng lệnh:
+
+    gcc -DDEBUG hello.c
+
+14. Makefile & Automation
+
+    Makefile dùng gcc để tự động hóa build.
+
+    File Makefile mẫu:
+
+    CC = gcc
+    CFLAGS = -Wall -O2
+
+    all: app
+
+    app: main.o utils.o
+    	$(CC) $(CFLAGS) main.o utils.o -o app
+
+    %.o: %.c
+    	$(CC) $(CFLAGS) -c $< -o $@
+
+    clean:
+    	rm -f *.o app
+
+15. Một số lỗi phổ biến khi dùng GCC và cách xử lý
+Lỗi	Nguyên nhân/giải pháp
+undefined reference to xyz	Thiếu link thư viện, thiếu object file
+multiple definition of xyz	Khai báo hàm/biến trùng, include sai cách
+No such file or directory	Thiếu file source, thiếu header
+segmentation fault	Lỗi runtime (lỗi code, debug bằng -g & gdb)
+16. Tham khảo, tra cứu thêm
+
+    man gcc
+
+    Tài liệu GCC chính thức
+
+    Compiler Explorer (godbolt.org) – Xem assembly trực tuyến
+
+    GCC Command Options
+
+17. Một số lệnh hữu ích tổng hợp
+
+# Biên dịch C code với tối ưu hóa và cảnh báo
+gcc -Wall -Wextra -O2 mycode.c -o myapp
+
+# Debug với GDB
+gcc -g mycode.c -o myapp
+gdb ./myapp
+
+# Xem mã assembly
+gcc -S -O2 mycode.c -o mycode.s
+
+# Cross-compile cho ARM
+arm-linux-gnueabihf-gcc hello.c -o hello.arm
+
+# Biên dịch code C++ (dùng g++):
+g++ main.cpp -o main
+

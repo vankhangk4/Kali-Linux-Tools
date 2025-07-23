@@ -1,0 +1,187 @@
+1. sendemail là gì?
+
+    sendemail là một tool dòng lệnh thuần Perl rất nhẹ, không liên quan tới mailx hay mutt.
+
+    Cho phép gửi email trực tiếp từ CLI/script, hỗ trợ SMTP AUTH, TLS/SSL, gửi kèm file, fake header, gửi hàng loạt.
+
+    Dùng được trên Linux, macOS, Windows (có Perl).
+
+    Phù hợp gửi email automation, test relay SMTP, spam/phishing lab, báo cáo tự động từ script, pentest report, CTF, alert monitoring, forensic (log gửi nhận), v.v.
+
+2. Cài đặt sendemail
+2.1. Trên Linux (Debian/Ubuntu)
+
+sudo apt update
+sudo apt install sendemail libio-socket-ssl-perl libnet-ssleay-perl
+
+2.2. Trên CentOS/RHEL
+
+sudo yum install sendemail perl-IO-Socket-SSL perl-Net-SSLeay
+
+2.3. Trên Windows/macOS
+
+    Tải từ: https://caspian.dotconf.net/menu/Software/SendEmail/
+
+    Cần có Perl (ActivePerl trên Windows).
+
+3. Cú pháp cơ bản của sendemail
+
+sendemail -f sender@domain.com -t target@domain.com -u "Subject" -m "Body" -s smtp.server.com:port -xu username -xp password
+
+Các tham số chính:
+
+    -f: địa chỉ người gửi
+
+    -t: địa chỉ nhận (nhiều địa chỉ cách nhau dấu phẩy)
+
+    -u: tiêu đề (subject)
+
+    -m: nội dung (body, text)
+
+    -s: server SMTP (host:port, ví dụ: smtp.gmail.com:587)
+
+    -xu: user SMTP
+
+    -xp: pass SMTP
+
+    -o tls=yes: bật TLS (rất quan trọng với Gmail/Yahoo)
+
+    -a file: đính kèm file
+
+    -cc, -bcc: gửi thêm CC/BCC
+
+4. Ví dụ thực chiến từ cơ bản đến nâng cao
+4.1. Gửi email đơn giản (dùng Gmail)
+
+sendemail -f yourmail@gmail.com -t target@mail.com \
+-u "Test email" -m "Hello, đây là mail test từ sendemail." \
+-s smtp.gmail.com:587 -xu yourmail@gmail.com -xp 'YOUR_APP_PASSWORD' -o tls=yes
+
+Lưu ý: Gmail phải bật App Password hoặc "Less secure app access" (tài khoản chính hãng mới support App Password).
+4.2. Gửi email kèm file đính kèm
+
+sendemail -f admin@domain.com -t victim@mail.com \
+-u "Báo cáo tháng" -m "Xem file đính kèm." \
+-s smtp.domain.com:587 -xu admin@domain.com -xp 'mypass' -a /path/to/report.pdf -o tls=yes
+
+4.3. Gửi cho nhiều người, CC, BCC
+
+sendemail -f user@domain.com -t a@x.com,b@y.com -cc c@z.com -bcc d@w.com \
+-u "Hello team" -m "Đây là thông báo cho nhiều người." \
+-s smtp.domain.com:25 -xu user@domain.com -xp pass
+
+4.4. Gửi HTML email
+
+sendemail -f boss@company.com -t user@domain.com \
+-u "Thông báo" -m "<h1>Thông báo quan trọng</h1><p>Vui lòng click vào <a href='https://evil.com'>đây</a>.</p>" \
+-s smtp.domain.com:587 -xu boss@company.com -xp pass -o message-content-type=html
+
+4.5. Fake sender (email spoofing demo/lab phishing)
+
+sendemail -f ceo@company.com -t target@company.com \
+-u "Tuyển dụng khẩn" -m "Gửi bạn, đây là email rất quan trọng!" \
+-s smtp-relay.server.com:25
+
+    Lưu ý: SMTP relay phải cho phép spoofing (phù hợp lab pentest, internal test). Gửi public server hầu như bị chặn/phishing filter!
+
+4.6. Gửi email automation (trong script Bash/Python)
+
+Ví dụ Bash (monitoring, alert):
+
+#!/bin/bash
+if [ $(df / | awk 'NR==2 {print $5}' | tr -d '%') -ge 90 ]; then
+    sendemail -f alert@server.com -t admin@domain.com \
+    -u "Disk full alert" -m "Disk sắp đầy trên $(hostname)!" \
+    -s smtp.domain.com:587 -xu alert@server.com -xp pass
+fi
+
+Ví dụ Python (os.system hoặc subprocess):
+
+import os
+os.system('sendemail -f bot@domain.com -t you@domain.com -u "Alert" -m "Check server!" -s smtp.domain.com:587 -xu bot@domain.com -xp pass')
+
+5. Mẹo thực chiến & nâng cao cho pentester, red team, sysadmin, forensic, CTF
+5.1. Pentest/Red Team
+
+    Tích hợp sendemail với các tool phishing lab (SET, Gophish, tự code...) để gửi mail automation.
+
+    Dùng SMTP relay nội bộ để bypass spam filter (lab), tạo attack simulation.
+
+    Gửi email cá nhân hóa theo biến shell (-u "Hi $name" -m "...").
+
+    Fake header (test): -o message-header="X-Custom-Header: value"
+
+5.2. Sysadmin/DevOps
+
+    Gửi log/báo cáo tự động hàng ngày/giờ.
+
+    Nhúng sendemail trong cronjob để cảnh báo disk full, web service die, log có lỗi bất thường,...
+
+    Tích hợp với script backup để gửi log backup về email.
+
+5.3. Forensic/CTF
+
+    Phân tích header mail gửi từ sendemail (trường Received, IP gửi, user-agent).
+
+    Xây dựng challenge: yêu cầu phân tích chain gửi, tìm mail spoofing.
+
+5.4. Phishing/Spam lab
+
+    Test khả năng lọc spam của hệ thống mail (Gmail, O365, Zimbra, Exchange,...).
+
+    Kết hợp fake sender, HTML body, shortlink, payload đính kèm.
+
+    Chú ý SPF, DKIM, DMARC sẽ gây cảnh báo/phản thư rác.
+
+6. Một số tuỳ chọn nâng cao thú vị
+
+    -l logfile.txt: Ghi log gửi mail ra file (debug automation).
+
+    -o message-charset=utf-8: Hỗ trợ tiếng Việt.
+
+    -o tls=no: Disable TLS (chỉ dùng cho server nội bộ test, không nên xài trên Internet).
+
+    -o reply-to=mail@domain.com: Thay đổi trường reply-to.
+
+    -o message-header="X-Priority: 1": Đánh dấu email “khẩn”.
+
+7. So sánh với các tool khác
+
+    sendemail nhẹ, dễ dùng hơn mailx, ssmtp, swaks, mutt.
+
+    Không hỗ trợ IMAP/POP, chỉ gửi SMTP.
+
+    Không hỗ trợ gửi dạng interactive (phải điền đủ thông tin command line).
+
+    Tuyệt vời cho automation, lab, pentest, không phù hợp email client thật.
+
+8. Lưu ý bảo mật và pháp lý
+
+    Không gửi email giả mạo tới bên ngoài/phạm vi chưa được phép (pháp lý!).
+
+    Không spam, không dùng cho mục đích tấn công thật bên ngoài lab/diễn tập.
+
+    Luôn dùng App Password hoặc tài khoản SMTP test, không để lộ mật khẩu production trên script.
+
+9. Tài liệu, resource, nâng cao
+
+    Trang chủ sendemail (caspian)
+
+    man sendemail
+
+    StackOverflow: Các trick hay với sendemail
+
+    Phishing lab with sendemail
+
+10. Kết luận
+
+sendemail là tool CLI cực kỳ hữu ích, từ đơn giản đến nâng cao, dùng cho automation, pentest, sysadmin, spam/phishing lab, forensic, CTF...
+Nếu bạn cần:
+
+    Script mẫu gửi mail automation (giám sát, backup, alert, phishing…)
+
+    Mẫu fake sender, demo phishing, report tự động
+
+    Cách debug gửi/nhận mail, forensic trace header
+    => Cứ hỏi thêm, mình có thể viết sẵn theo kịch bản bạn cần.
+

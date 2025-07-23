@@ -1,0 +1,62 @@
+fierce là một công cụ dòng lệnh cổ điển để dò tìm subdomain, map hạ tầng DNS của domain mục tiêu. Công cụ này được dân pentest, bug bounty và CTF sử dụng rộng rãi từ lâu, đặc biệt hữu ích khi bạn muốn tìm các subdomain ẩn, phát hiện dải IP, phân tích hệ thống DNS của một tổ chức.
+1. Tác dụng của fierce
+
+    Tìm subdomain của một domain bằng kỹ thuật brute-force (từ wordlist).
+
+    Xác định các dải IP liên quan đến domain (bằng reverse lookup và phân tích DNS).
+
+    Phát hiện host ẩn, hệ thống mail, máy chủ dev, staging...
+
+    Tìm các máy chủ “nội bộ” (intranet, test, old server...) qua các bản ghi DNS công khai.
+
+    Hỗ trợ truy tìm thông tin cho bước footprinting & reconnaissance.
+
+2. Cách dùng fierce cơ bản
+1. Quét subdomain với wordlist mặc định
+
+fierce -dns example.com
+
+    Tự động brute-force với wordlist tích hợp sẵn.
+
+2. Chỉ định wordlist custom
+
+fierce -dns example.com -wordlist sublist.txt
+
+3. Tùy chỉnh dải IP quét (phát hiện host sống)
+
+fierce -dns example.com -range 10.0.0.0-10.0.0.255
+
+4. Một số tuỳ chọn hữu ích
+Tuỳ chọn	Ý nghĩa
+-dns <domain>	Domain mục tiêu
+-wordlist <file>	File chứa danh sách subdomain
+-range <dải>	Dải IP để brute-force reverse lookup
+-search <host>	Chỉ scan host chứa chuỗi nhất định (lọc nhanh output)
+-file <file>	Lưu output ra file
+-delay <ms>	Chèn delay giữa các request (tránh bị block/quá tải DNS)
+-threads <num>	Số luồng chạy song song (giảm thời gian quét)
+3. Ví dụ thực tế
+
+    Quét toàn bộ subdomain với wordlist lớn:
+
+fierce -dns company.com -wordlist /usr/share/seclists/Discovery/DNS/shubs-subdomains.txt
+
+Tìm các host sống trong dải 192.168.1.0/24:
+
+fierce -dns company.com -range 192.168.1.0-192.168.1.255
+
+Quét domain và xuất output ra file:
+
+    fierce -dns company.com -file output.txt
+
+4. Điểm mạnh & hạn chế
+
+    Mạnh: Dễ dùng, brute-force tốt, có reverse lookup, thích hợp cho recon thủ công hoặc CTF.
+
+    Hạn chế: Không passive như amass, không tích hợp nhiều nguồn OSINT, brute-force là chủ yếu nên phụ thuộc vào wordlist.
+
+5. Tài liệu tham khảo
+
+    Github: Fierce
+
+    HackTricks DNS Recon

@@ -1,0 +1,240 @@
+1. journalctl là gì?
+
+    journalctl là công cụ đọc log của systemd journal trên các hệ điều hành sử dụng systemd (Ubuntu, Debian, CentOS, Fedora, Arch, ...).
+
+    Thay thế cho dmesg, /var/log/messages, /var/log/syslog truyền thống.
+
+    Log của toàn hệ thống, gồm boot, kernel, service, ứng dụng, ...
+
+    Mặc định log lưu ở:
+    /run/log/journal (RAM, volatile)
+    /var/log/journal (ổ cứng, persistent – nếu có thư mục này)
+
+2. Cơ bản: Xem log
+
+    Xem toàn bộ log:
+
+journalctl
+
+Cuộn lên/xuống, tìm kiếm như less (q để thoát).
+
+Xem log mới nhất, như tail -f:
+
+journalctl -f
+
+Xem log boot gần nhất:
+
+journalctl -b
+
+(Có thể thêm -b -1, -b -2 để xem boot trước đó)
+
+Giới hạn số dòng:
+
+    journalctl -n 50
+
+    (50 dòng cuối)
+
+3. Lọc log theo thời gian
+
+    Theo ngày, giờ:
+
+journalctl --since "2024-07-01 10:00:00" --until "2024-07-01 12:00:00"
+
+hoặc
+
+    journalctl --since yesterday
+    journalctl --since today
+    journalctl --since "1 hour ago"
+
+4. Lọc log theo service, unit, process
+
+    Theo service systemd:
+
+journalctl -u nginx
+journalctl -u sshd
+
+Nhiều service cùng lúc:
+
+journalctl -u nginx -u apache2
+
+Theo PID:
+
+journalctl _PID=1234
+
+Theo executable:
+
+journalctl _COMM=sshd
+
+Theo user/system:
+
+journalctl _UID=0
+
+Theo syslog facility/priority:
+
+    journalctl PRIORITY=3      # lỗi nghiêm trọng
+
+5. Lọc theo kernel
+
+    Chỉ log kernel (như dmesg):
+
+    journalctl -k
+
+6. Hiển thị định dạng khác nhau
+
+    Xuất sang text đơn giản:
+
+journalctl --no-pager
+
+Định dạng JSON:
+
+journalctl -o json
+
+Định dạng cho máy đọc (script):
+
+    journalctl -o json-pretty
+    journalctl -o short-monotonic
+    journalctl -o cat
+
+7. Lọc nâng cao
+
+    Kết hợp nhiều điều kiện:
+
+journalctl -u nginx --since "2024-07-01" --grep "error"
+
+Tìm chuỗi (grep):
+
+    journalctl | grep "memory"
+    journalctl -u nginx --grep "failed"
+
+8. Log Persistent vs Volatile
+
+    Volatile: (mặc định trên nhiều distro) log chỉ lưu trong RAM, reboot là mất.
+
+    Persistent: log lưu vĩnh viễn, reboot không mất.
+
+Tạo persistent log:
+
+sudo mkdir -p /var/log/journal
+sudo systemd-tmpfiles --create --prefix /var/log/journal
+sudo systemctl restart systemd-journald
+
+Kiểm tra trạng thái:
+
+journalctl --disk-usage
+
+9. Quản lý dung lượng log
+
+    Xem dung lượng log đang chiếm:
+
+journalctl --disk-usage
+
+Xoá log cũ:
+
+    sudo journalctl --vacuum-size=500M      # chỉ giữ lại 500MB
+    sudo journalctl --vacuum-time=7d        # chỉ giữ lại log 7 ngày gần nhất
+    sudo journalctl --vacuum-files=5        # chỉ giữ lại 5 file log gần nhất
+
+10. Xem log khi system boot fail, troubleshooting
+
+    Xem log của boot gần nhất:
+
+journalctl -b
+
+Xem lỗi của service khi khởi động:
+
+journalctl -u <service-name> -b
+
+Xem log trước khi máy bị crash, power off:
+
+    journalctl --list-boots
+    journalctl -b -1
+
+11. Gửi log ra file hoặc remote
+
+    Xuất ra file:
+
+    journalctl -u nginx --since today > nginx.log
+
+    Gửi log đến syslog server, hoặc forwarding qua network (cấu hình nâng cao trong /etc/systemd/journald.conf với các tuỳ chọn như ForwardToSyslog, ForwardToConsole,...)
+
+12. Tùy chỉnh /etc/systemd/journald.conf
+
+    Các option phổ biến:
+
+        Storage=auto|persistent|volatile|none
+
+        SystemMaxUse, SystemKeepFree, SystemMaxFileSize
+
+        RuntimeMaxUse
+
+        MaxRetentionSec
+
+        ForwardToSyslog=yes|no
+
+        Compress=yes|no
+
+    Sau khi chỉnh:
+
+    sudo systemctl restart systemd-journald
+
+13. Xem metadata, debug nâng cao
+
+    Xem metadata của log:
+
+journalctl -u sshd -o verbose
+
+Lọc log với nhiều trường:
+
+journalctl _SYSTEMD_UNIT=nginx.service _HOSTNAME=myserver
+
+Lọc nhiều trường trên 1 dòng:
+
+    journalctl _COMM=nginx _PID=1234
+
+14. Một số mẹo nâng cao
+
+    Đếm số log trong một khoảng thời gian:
+
+journalctl --since today | wc -l
+
+Kết hợp với awk, grep, sed… để phân tích tự động:
+
+    journalctl -u nginx --since yesterday | grep "404" | awk '{print $NF}' | sort | uniq -c
+
+    Chạy trên máy không có systemd:
+    Chỉ sử dụng khi systemd được bật (không dùng trên alpine/minimal unix không có systemd)
+
+15. Một số lỗi thường gặp & xử lý
+Lỗi	Cách xử lý
+journalctl: command not found	Cài gói systemd hoặc systemd-journal trên hệ thống
+Cannot assign requested address	Kiểm tra cấu hình forwarding log hoặc cổng network
+Bị mất log sau reboot	Kiểm tra /var/log/journal tồn tại và có đủ quyền
+Log không đầy đủ, thiếu	Kiểm tra Storage, dung lượng ổ cứng, cấu hình journald
+16. Tham khảo tài liệu
+
+    man journalctl
+
+    man systemd.journald
+
+    systemd documentation
+
+17. Một số lệnh tổng hợp cực hữu ích
+
+# Xem log lỗi của service trong hôm nay
+journalctl -u nginx --since today --priority=3
+
+# Xem log kernel hôm qua
+journalctl -k --since yesterday
+
+# Xem 100 dòng log gần nhất của sshd
+journalctl -u sshd -n 100
+
+# Tìm sự kiện "segfault"
+journalctl --grep "segfault"
+
+# Xem log service boot trước đó
+journalctl -u myservice -b -1
+
+# Giải phóng dung lượng log về còn 200MB
+sudo journalctl --vacuum-size=200M
+

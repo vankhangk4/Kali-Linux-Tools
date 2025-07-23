@@ -1,0 +1,15 @@
+autopsy
+foremost
+binwalk
+volatility
+sleuthkit
+testdisk
+photorec
+bulk_extractor
+chkrootkit
+plaso
+pdfid
+pdf-parser
+SAM/SYSTEM file
+hashcat
+john the ripper

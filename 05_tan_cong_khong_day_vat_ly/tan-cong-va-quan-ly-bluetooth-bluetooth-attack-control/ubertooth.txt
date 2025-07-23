@@ -1,0 +1,175 @@
+1. Ubertooth là gì?
+
+    Ubertooth One là USB dongle SDR chuyên Bluetooth/BLE do Great Scott Gadgets phát triển.
+
+    Thu tín hiệu Bluetooth Classic (BR/EDR) & Bluetooth Low Energy (BLE) ở mức PHY (raw packet), giúp:
+
+        Scan thiết bị, sniff traffic, bắt kết nối, phân tích/giải mã packet
+
+        Track beacon, track device, enumerate info, reverse BLE app, hack pairing, MITM…
+
+        Pentest/Blueteam/CTF/forensic Bluetooth, IoT, xe hơi, thiết bị y tế, smart home, BLE tags, anti-stalking, v.v.
+
+2. Cài đặt Ubertooth & tool cần thiết
+A. Cài driver + firmware + tool
+
+sudo apt update
+sudo apt install git build-essential libusb-1.0-0-dev python3-pip wireshark
+git clone https://github.com/greatscottgadgets/ubertooth.git
+cd ubertooth/host
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+
+(Nếu cần: update firmware theo hướng dẫn của repo.)
+B. Kiểm tra nhận thiết bị
+
+ubertooth-util -v
+ubertooth-util -i
+
+    Hiện version, info, số serial là OK.
+
+3. Các lệnh & tool cơ bản với Ubertooth
+Tool/lệnh	Chức năng
+ubertooth-util	Quản lý thiết bị, info, status, fw, spectrum analyzer
+ubertooth-scan	Scan thiết bị BLE (beacon, adv, mac, RSSI, type)
+ubertooth-btle	Sniff BLE packet, export PCAP (Wireshark)
+ubertooth-rx	Thu raw Bluetooth Classic (BR/EDR) packet
+ubertooth-follow	Track 1 thiết bị BLE (follow MAC, theo dõi session)
+ubertooth-specan-ui	GUI spectrum analyzer (X11, real-time spectrum)
+4. Scan thiết bị BLE xung quanh (beacon, IoT, tag)
+
+ubertooth-scan
+
+    In ra MAC, type, channel, RSSI, adv data của BLE thiết bị xung quanh
+
+    Có thể detect các beacon ẩn (không hiện trong bluetoothctl scan)
+
+5. Sniff BLE packet & export về Wireshark
+A. Sniff BLE, export PCAP
+
+ubertooth-btle -f -c <channel> -o capture.pcap
+
+    -f: follow connection, tự nhảy kênh để bắt full session
+
+    -c: channel (0–39, mặc định tự detect)
+
+    -o: file xuất (PCAP)
+
+Thường để mặc định:
+
+ubertooth-btle -f -o btle-capture.pcap
+
+(Bắt toàn bộ BLE session đang kết nối gần dongle, mạnh nhất khi bắt pairing hoặc data transfer)
+B. Phân tích PCAP với Wireshark
+
+    Mở file capture trong Wireshark, filter “btle”, “btatt”, “bthci_evt”
+
+    Inspect packet, GATT, attribute, security, pairing, UUID, v.v.
+
+    Có thể dùng Wireshark để “decode” payload, reverse app BLE, theo dõi sensor, beacon...
+
+6. Sniff Bluetooth Classic (BR/EDR)
+
+ubertooth-rx -o classic.pcap
+
+    Thu packet Classic Bluetooth (OBEX, file transfer, HSP/HFP, legacy pairing…)
+
+    Phân tích trên Wireshark (filter “bthci_evt”, “bthci_cmd”...)
+
+7. Track, follow, enumerate BLE device nâng cao
+A. Track 1 thiết bị BLE (bám MAC, follow connection)
+
+ubertooth-follow -t <BLE_MAC>
+
+    Khi thiết bị kết nối, Ubertooth sẽ tự follow hopping channel, sniff full traffic.
+
+B. Scan, enumerate, automation
+
+    Script python/bash loop ubertooth-scan để detect thiết bị mới xuất hiện, log RSSI, phát hiện beacon/fake beacon/phishing BLE.
+
+    Kết hợp với bluepy, gatttool, bluetoothctl để auto interact, dump info, pairing/fuzzing attack.
+
+8. Spectrum analyzer, mapping signal Bluetooth
+A. Real-time GUI spectrum
+
+ubertooth-specan-ui
+
+    Mở GUI, xem sóng BLE/Classic, mapping signal theo kênh (chuyên dùng để tìm jam, RF noise, device stealth...)
+
+B. CLI spectrum analyzer
+
+ubertooth-specan
+
+    Xuất số liệu spectrum, plot bằng Gnuplot/Python.
+
+9. Một số workflow pentest Bluetooth thực chiến
+A. Sniff BLE pairing/key exchange
+
+    Mở Ubertooth gần thiết bị & host khi thực hiện ghép đôi → bắt được key, đôi khi giải mã luôn traffic sau này (nếu BLE không bật “secure pairing”/LE Secure Connection).
+
+    Dump PCAP, dùng script giải mã, hoặc dùng Wireshark plugin “BTLE” để crack pairing.
+
+B. Track, detect, audit beacon ẩn
+
+    Phát hiện BLE tag/asset lén lút, anti-stalking (AirTag, Tile, beacon nội bộ…).
+
+    Log RSSI, mapping di chuyển.
+
+C. Phân tích, reverse BLE app/device
+
+    Sniff session khi app IoT kết nối sensor → extract UUID, service, reverse API, debug bug logic (ví dụ: unlock smart lock, spoof value).
+
+D. Bluetooth Classic sniff (BR/EDR)
+
+    Audit legacy device, transfer file, audio, headset, printer, xe hơi, v.v.
+
+10. Script hóa & automation với Ubertooth
+
+    Viết script python/bash gọi ubertooth-scan, parse output, alert nếu có thiết bị lạ/unknown MAC.
+
+    Tự động log RSSI theo thời gian (hunting BLE tag trong phòng, định vị device).
+
+    Kết hợp với MQTT, webhook, hoặc push notification cho hệ thống BLE detection/blue team/forensic.
+
+    Auto scan + capture + phân tích BLE traffic khi thấy thiết bị mục tiêu xuất hiện.
+
+11. Mẹo mạnh & fix lỗi
+Vấn đề/Thực tế	Fix/Mẹo
+Không nhận thiết bị Ubertooth	Thử cổng khác, update firmware, check dmesg/lsusb, chạy sudo
+Capture không đủ full session BLE	Phải để dongle rất gần cả host + target (BLE truyền công suất thấp, hopping channel rất nhanh)
+Không decode được packet	Wireshark cài đúng plugin BLE, check filter, update bản mới, kiểm tra firmware Ubertooth
+Không sniff được pairing	Chỉ bắt được khi pairing thực hiện gần Ubertooth (không phải reconnect), BLE bật chế độ "Just Works"/Legacy pairing thì dễ sniff nhất
+Track thiết bị BLE không ổn định	RSSI yếu, nhiều thiết bị cùng kênh, nhiều traffic noise, dùng thêm ăng-ten external nếu có
+Không support BLE 5.x mới	Update firmware/tool Ubertooth bản mới nhất (tuy nhiên, BLE 5 nhiều tính năng vẫn chưa support sniff 100%)
+12. So sánh Ubertooth với tool khác
+Tool/Device	Ưu điểm Ubertooth	Khác biệt
+Ubertooth One	Giá rẻ, chuyên BLE/Classic, mạnh cho sniff packet, track, audit	Chỉ thu, không phát, không MITM trực tiếp, không decode BLE 5.x đầy đủ
+HackRF	SDR đa năng, thu/phát mọi RF	Không chuyên decode BLE, khó sniff full session, không có tool sniff BLE như Ubertooth
+Bluefruit, BTlejack	Sniff BLE, MITM, hacking	BTlejack mạnh MITM, multi-dongle, nhưng không thu Classic BT, chỉ BLE
+Bluetooth adapter	Kết nối, scan, enumerate	Không sniff packet raw, không track, không decode PHY
+RTL-SDR	Thu RF rẻ, spectrum	Không decode BLE/BT, không dùng sniff packet BT/BLE thực tế
+13. Tài liệu, link hữu ích
+
+    Ubertooth Official
+
+    Ubertooth Github
+
+    Ubertooth Wiki
+
+    Hacktricks BLE
+
+    PayloadAllTheThings – Bluetooth
+
+    BLE CTF (TryHackMe)
+
+Tóm tắt nhanh
+
+    Ubertooth One là dongle SDR mạnh nhất cho pentest/audit/hack BLE/BT classic: scan, sniff, capture, export Wireshark, track beacon/tag, reverse BLE app, forensic, automation blue team.
+
+    Workflow mạnh: scan beacon → sniff session → capture pairing → Wireshark analyze → decode/fuzz/service enumeration.
+
+    Phối hợp tool: bluepy, gatttool, bluetoothctl, HackRF, BTlejack, Wireshark plugin BLE...
+
+    Luôn update firmware/tool mới nhất, test vị trí dongle gần host + device, chú ý pháp lý khi sniff real-world!

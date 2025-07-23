@@ -1,0 +1,201 @@
+1. King Phisher là gì?
+
+    King Phisher là một framework mã nguồn mở dành cho mô phỏng tấn công phishing cực mạnh, phát triển bởi SecureState/Trustwave.
+
+    Hỗ trợ cả GUI client (chạy trên Windows, Linux, MacOS) và server (chạy trên Linux, thường là Ubuntu).
+
+    Cho phép thiết kế, gửi, quản lý, và phân tích các chiến dịch phishing thực tế (spear-phishing, mass-phishing, SMiShing).
+
+    Có khả năng tự động hóa cực cao, hỗ trợ plugin, script, API, template HTML đa dạng.
+
+    Dùng trong pentest, red team, đào tạo nội bộ, kiểm thử nhận thức bảo mật, forensic/CTF.
+
+2. Tính năng nổi bật & khác biệt của King Phisher
+
+    Giao diện client GUI đẹp, trực quan, dễ quản lý nhiều campaign cùng lúc.
+
+    Template đa dạng: Hỗ trợ soạn email HTML chuyên nghiệp, landing page động, cá nhân hóa từng email.
+
+    Tracking mạnh: Theo dõi open mail, click link, submit form, thu thập credential, tracking OS, browser, địa chỉ IP, location.
+
+    Hỗ trợ 2FA, OTP bypass demo (trong mô phỏng).
+
+    Plugin System: Viết thêm plugin Python để custom workflow, tích hợp automation.
+
+    API Server: Giao tiếp qua RPC, script tự động, tích hợp CI/CD, report tự động.
+
+    Template variable: Cá nhân hóa email, landing page (first name, last name, custom token...).
+
+3. Cài đặt King Phisher
+3.1. Server (trên Ubuntu/Debian)
+
+# Clone source:
+git clone https://github.com/securestate/king-phisher.git
+cd king-phisher
+
+# Cài đặt requirements:
+sudo ./tools/install.sh
+# Hoặc: sudo python3 -m pip install -r requirements.txt
+
+# Cấu hình:
+sudo cp data/server_config.yml.example data/server_config.yml
+sudo nano data/server_config.yml # chỉnh các trường cần thiết
+
+# Khởi động server:
+sudo ./KingPhisherServer
+
+    Server mặc định sẽ lắng nghe trên 0.0.0.0:80 (HTTP) hoặc 443 (HTTPS).
+
+    Cần public IP hoặc domain, SSL cert càng tốt (nâng cao).
+
+    Có thể chạy trên VPS (DigitalOcean, AWS EC2, Azure, v.v).
+
+3.2. Client (Windows, Linux, MacOS)
+
+    Có thể cài qua pip hoặc download bản release.
+
+    Đề xuất dùng Linux/Mac để dễ quản lý, còn Windows thì chạy qua installer.
+
+pip3 install king-phisher
+king-phisher
+
+    Lưu ý: Client và server phải cùng version, kết nối nội bộ qua port 22 (SSH tunnel), hoặc qua Internet nếu mở port.
+
+4. Workflow sử dụng King Phisher
+
+Quy trình tổng quát gồm:
+
+    Tạo danh sách người nhận: Import từ CSV/Excel, tự động hóa thu thập (tích hợp OSINT, Maltego, theHarvester…).
+
+    Soạn email template: Soạn HTML email, chèn biến cá nhân hóa, có thể nhúng tracking pixel, link landing page.
+
+    Tạo landing page: Tạo hoặc clone trang đăng nhập giả, form thu thập credential, page báo lỗi, redirect…
+
+    Thiết lập campaign: Chọn sender (SMTP profile), nhóm mục tiêu, email, landing page, thiết lập tracking và reporting.
+
+    Gửi thử nghiệm (test mode): Gửi email tới email của mình/team kiểm thử trước, chỉnh sửa cho hợp lý.
+
+    Chạy chiến dịch thật: Gửi tới user mục tiêu, tracking real-time (ai mở mail, ai click link, ai nhập password…).
+
+    Theo dõi & Báo cáo: Báo cáo chi tiết (ai bị lừa, trình duyệt, IP, geo info, thời gian thao tác…), export CSV, PDF, HTML, API automation.
+
+5. Các attack vector phổ biến với King Phisher
+
+    Spear phishing email: Tùy biến nội dung cho từng mục tiêu.
+
+    Mass phishing: Gửi hàng loạt (khuyến nghị rate limit để tránh spam block).
+
+    Fake landing page: Trang login, reset password, hoặc upload file giả.
+
+    Attachment payload: Gửi file lừa (PDF, DOC, XLS, ZIP), chèn macro hoặc social engineering file.
+
+    Fileless attack: Gửi link dẫn tới download payload trực tiếp (ẩn qua landing).
+
+    SMiShing (nâng cao): Gửi SMS phishing (tích hợp API Twilio/plugin ngoài).
+
+    Credential harvesting: Thu thập password, session, token, cookie.
+
+    OAuth phishing: Lừa lấy token Google, Facebook, O365 (demo awareness).
+
+6. Tự động hóa, Plugin, Script, API
+
+    King Phisher hỗ trợ plugin Python, có thể viết thêm để tự động tạo campaign, báo cáo, xử lý kết quả, tích hợp với SIEM, Slack, Email...
+
+    API server: Có thể sử dụng từ command line, Python script, hoặc workflow tự động (CI/CD).
+
+    Scheduler: Hỗ trợ gửi email theo lịch, delay, từng đợt.
+
+    Custom variables: Chèn biến động vào email/landing page theo từng target (rất phù hợp cá nhân hóa spear phishing).
+
+    Integration: Có thể kết nối với Splunk, ELK stack, các hệ thống SIEM cho forensic, alert.
+
+7. Mẹo thực chiến, tips, trick cho pentester, red team, sysadmin, CTF-er, forensic
+Pentester, Red Team
+
+    Luôn test campaign trước với một nhóm nhỏ, kiểm tra vào inbox hay spam.
+
+    Dùng domain gần giống, thuê subdomain, đăng ký SSL hợp lệ để tăng độ tin cậy.
+
+    Soạn email ngắn gọn, kích thích hành động (tâm lý urgency, curiosity, fear, v.v).
+
+    Landing page nên redirect về site thật sau khi nhập để tránh nghi ngờ.
+
+    Kết hợp với OSINT để cá nhân hóa nội dung (tên, vị trí, chức vụ, ngày sinh, v.v).
+
+Sysadmin, Sinh viên bảo mật
+
+    Dùng King Phisher để huấn luyện nhận biết phishing cho nội bộ, từng quý hoặc định kỳ.
+
+    Lưu log để làm bài học, tổng kết, báo cáo cho lãnh đạo hoặc bộ phận an ninh thông tin.
+
+CTF-er, Forensic
+
+    Sử dụng traffic, log của King Phisher để xây dựng challenge phân tích, truy vết (ai bị dính, credential thu được, IP nguồn…).
+
+    Phân tích template email, landing page để nhận diện kỹ thuật tấn công trong real world.
+
+Automation/Plugin
+
+    Viết plugin gửi report tự động về Slack, Email, Telegram khi có nạn nhân click/submit.
+
+    Plugin tự động tạo campaign từ file danh sách đầu vào (CSV, Google Sheet, API CRM).
+
+8. Một số trick nâng cao & lưu ý pháp lý
+
+    Dùng tracker pixel (1x1 GIF) để đo open rate mà không cần user click.
+
+    Tạo custom SMTP (Postfix, Sendgrid, Mailgun…) để tăng khả năng vào inbox, tránh SPF/DKIM/DMARC fail.
+
+    Kết hợp phishing với malware delivery: Dẫn tới file độc hại, reverse shell, macro.
+
+    Chú ý pháp lý: Chỉ tấn công trong phạm vi hợp đồng/được phép, tránh gây hậu quả thật sự.
+
+    Có thể kết hợp multi-factor (gửi OTP giả, lừa lấy luôn OTP user).
+
+9. So sánh King Phisher với Gophish, SET
+
+    King Phisher mạnh hơn về automation, plugin, GUI, tracking, forensic, đa dạng use case (so với Gophish).
+
+    Gophish dễ cài hơn, phù hợp cho tổ chức nhỏ/lab, workflow đơn giản.
+
+    SET chủ yếu dùng CLI, tấn công phishing + malware, script hóa nhanh, không đẹp về report.
+
+    King Phisher được dùng phổ biến trong các khóa pentest/awareness training chuyên nghiệp của châu Âu/Mỹ.
+
+10. Tài liệu, demo, resource, video
+
+    GitHub chính thức
+
+    Wiki, HDSD chi tiết
+
+    Video thực chiến King Phisher (YouTube)
+
+    Plugin reference
+
+    API Doc
+
+11. Demo workflow (minh họa thực chiến)
+
+    Setup King Phisher server trên VPS/localhost.
+
+    Client kết nối server, import danh sách nạn nhân (CSV).
+
+    Soạn email template (HTML, chèn biến).
+
+    Tạo landing page (clone OWA, Google, Facebook...).
+
+    Thiết lập campaign, gửi thử nội bộ (test mode).
+
+    Gửi thật, theo dõi real-time: số nạn nhân mở mail, click, nhập pass, location...
+
+    Export báo cáo, phân tích log: forensically hoặc report cho lãnh đạo.
+
+12. Những gì nên tránh khi dùng King Phisher
+
+    Không gửi email đồng loạt dễ bị spam/phishing filter block domain/server.
+
+    Không dùng domain, server cá nhân vào attack thật bên ngoài phạm vi hợp đồng (vướng pháp lý, nguy cơ blacklist IP/domain).
+
+    Không lưu thông tin nạn nhân thật (password, email...) quá thời gian cần thiết, tuân thủ GDPR/các quy định bảo mật dữ liệu.
+
+Tóm lại: King Phisher là một trong những framework phishing mạnh nhất hiện nay, chuyên nghiệp, đa năng, phù hợp cho pentest thực chiến, đào tạo nhận thức bảo mật nội bộ, automation, CTF, forensic.

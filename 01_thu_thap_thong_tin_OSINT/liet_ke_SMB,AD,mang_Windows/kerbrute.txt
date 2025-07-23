@@ -1,0 +1,75 @@
+kerbrute là một tool brute-force/enum cực mạnh cho giao thức Kerberos, thường dùng trong pentest và Red Team để liệt kê user, kiểm tra login, crack password và tìm TGT (Ticket Granting Ticket) trên hệ thống Windows Active Directory.
+Công cụ này được phát triển bởi ropnop và là vũ khí không thể thiếu khi cần “đập cửa” AD.
+1. Tác dụng của kerbrute
+
+    Brute-force username: Tìm các user tồn tại trong domain thông qua Kerberos.
+
+    Brute-force password: Thử username:password để xác định credential hợp lệ (password spraying).
+
+    Tự động enumerate service account, tìm user có TGT, kiểm thử các kỹ thuật liên quan Kerberos
+
+    Không bị lockout account khi chỉ enum username (vì chỉ check AS-REQ/AS-REP, không xác thực thật).
+
+2. Các tính năng chính
+
+    userenum: Liệt kê user hợp lệ trên domain.
+
+    passwordspray: Thử một mật khẩu cho nhiều user (rất khó bị lock account).
+
+    bruteuser: Brute-force password cho một user cụ thể.
+
+    Keytab: Test login bằng file keytab.
+
+3. Cách dùng kerbrute cơ bản
+1. Liệt kê user hợp lệ trên domain
+
+kerbrute userenum -d <domain> <userlist.txt> --dc <dc-ip>
+
+    -d <domain>: Domain cần enum, ví dụ corp.local
+
+    <userlist.txt>: File danh sách user muốn thử
+
+    --dc <ip>: Địa chỉ Domain Controller (bắt buộc khi thử trên môi trường CTF/pentest)
+
+Ví dụ:
+
+kerbrute userenum -d example.com users.txt --dc 10.10.11.10
+
+2. Password spraying
+
+kerbrute passwordspray -d <domain> <userlist.txt> <password> --dc <dc-ip>
+
+Ví dụ:
+
+kerbrute passwordspray -d example.com users.txt 'Summer2024!' --dc 10.10.11.10
+
+    Sẽ thử tất cả user trong file với mật khẩu 'Summer2024!'
+
+3. Brute-force password cho 1 user
+
+kerbrute bruteuser -d <domain> <passwordlist.txt> <user> --dc <dc-ip>
+
+Ví dụ:
+
+kerbrute bruteuser -d example.com passwords.txt 'administrator' --dc 10.10.11.10
+
+4. Một số lưu ý khi dùng kerbrute
+
+    Enum username bằng kerbrute KHÔNG gây lockout account (trừ khi dùng brute-force password).
+
+    Muốn nhanh phải có wordlist tốt (phổ biến: SecLists, ADRecon, hoặc tự thu thập).
+
+    Kết quả sẽ show ra những user hợp lệ trên domain (rất hữu dụng để chuẩn bị password spray).
+
+    Rất hợp cho lab HTB, TryHackMe, hoặc pentest nội bộ.
+
+5. Cài đặt và tham khảo
+
+    Download bản release: https://github.com/ropnop/kerbrute/releases
+
+    Hoặc build Go:
+
+go install github.com/ropnop/kerbrute@latest
+
+Docs và ví dụ nâng cao:
+HackTricks - Kerbrute

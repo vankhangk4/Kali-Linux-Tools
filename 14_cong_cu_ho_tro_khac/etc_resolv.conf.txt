@@ -1,0 +1,149 @@
+1. /etc/resolv.conf là gì?
+
+    Là file cấu hình DNS resolver của hệ điều hành Linux/Unix.
+
+    Nó chỉ định DNS server nào sẽ được dùng để phân giải tên miền (ví dụ: từ www.google.com sang IP).
+
+2. Vị trí & Cấu trúc
+
+    Đường dẫn: /etc/resolv.conf
+
+    File dạng text, dễ chỉnh sửa bằng nano, vim, cat,...
+
+Ví dụ nội dung:
+
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+search example.com
+options timeout:2 attempts:3
+
+Các trường quan trọng:
+
+    nameserver <ip>
+    Địa chỉ IP của máy chủ DNS.
+    VD: nameserver 8.8.8.8
+
+    search <domain>
+    Danh sách domain sẽ được tự động gắn thêm khi bạn gõ 1 tên ngắn.
+    VD: Nếu bạn gõ server1, nó sẽ thử server1.example.com.
+
+    domain <domain>
+    Thiết lập domain mặc định. Thường ít dùng, bị thay bởi search.
+
+    options
+    Nhiều tuỳ chọn nâng cao cho resolver (timeout, attempts, rotate...).
+
+3. Cơ chế hoạt động
+
+    Khi ứng dụng cần phân giải tên miền, resolver library sẽ đọc file này và hỏi lần lượt các nameserver cho kết quả.
+
+    Nếu nameserver đầu tiên không phản hồi, sẽ chuyển sang nameserver tiếp theo.
+
+4. Một số tuỳ chọn nâng cao với options:
+
+    timeout:n
+    Số giây chờ mỗi lần truy vấn DNS. VD: options timeout:2
+
+    attempts:n
+    Số lần thử mỗi nameserver. VD: options attempts:3
+
+    rotate
+    Luân phiên truy vấn các nameserver thay vì lúc nào cũng ưu tiên cái đầu tiên.
+
+    ndots:n
+    Số lượng dấu chấm tối thiểu trước khi thử search domain. VD: options ndots:2
+
+Ví dụ:
+
+options timeout:1 attempts:5 rotate ndots:2
+
+5. Lưu ý khi chỉnh sửa /etc/resolv.conf
+
+    File này có thể bị ghi đè bởi các service như NetworkManager, systemd-resolved, dhclient,...
+
+    Nếu chỉnh sửa bằng tay mà bị các service ghi đè, bạn phải cấu hình lại chúng (ví dụ tắt quản lý DNS tự động hoặc cấu hình đúng chỗ).
+
+Ví dụ với NetworkManager:
+Đặt DNS cố định trong /etc/NetworkManager/NetworkManager.conf
+
+[main]
+dns=none
+
+Rồi chỉnh /etc/resolv.conf bằng tay.
+
+Hoặc tạo symlink:
+
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+(nếu bạn dùng systemd-resolved)
+6. Một số lệnh liên quan
+
+    Kiểm tra DNS đang dùng:
+
+cat /etc/resolv.conf
+
+Kiểm tra DNS đang hoạt động:
+
+nslookup google.com
+dig google.com
+
+Làm mới DNS cache (tùy distro):
+
+    sudo systemd-resolve --flush-caches
+
+7. Ví dụ thực tế
+Cấu hình DNS Google cho toàn hệ thống
+
+sudo bash -c 'echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /etc/resolv.conf'
+
+Chặn DNS rò rỉ qua VPN:
+
+    Đảm bảo /etc/resolv.conf chỉ chứa DNS của VPN.
+
+    Một số ứng dụng VPN tự chỉnh file này, bạn nên kiểm tra lại sau khi kết nối.
+
+8. Một số vấn đề thường gặp
+
+    /etc/resolv.conf bị ghi đè: Do DHCP client hoặc NetworkManager.
+
+    Không resolve được domain: Kiểm tra DNS server trong resolv.conf.
+
+    DNS bị chậm: Sửa timeout, attempts, hoặc đổi DNS server nhanh hơn.
+
+9. Nâng cao: Quản lý DNS động
+Dùng resolvconf
+
+    Quản lý tự động file resolv.conf khi có nhiều interface.
+
+    Lệnh cơ bản:
+
+    sudo resolvconf -a eth0 < file-chứa-nameserver
+    sudo resolvconf -d eth0
+    sudo resolvconf -u  # cập nhật lại file /etc/resolv.conf
+
+Dùng systemd-resolved (hệ thống mới)
+
+    File /etc/resolv.conf có thể là symlink tới /run/systemd/resolve/stub-resolv.conf hoặc /run/systemd/resolve/resolv.conf.
+
+    Đặt DNS cho từng interface với systemd-resolve hoặc qua NetworkManager GUI.
+
+10. Security note
+
+    Nếu DNS bị trỏ về địa chỉ xấu, có thể bị tấn công “DNS hijack”.
+
+    Không nên set DNS tới máy lạ/trong mạng LAN không kiểm soát.
+
+11. Một số mẹo
+
+    Đổi sang DNS của Cloudflare cho nhanh, riêng tư:
+
+    nameserver 1.1.1.1
+    nameserver 1.0.0.1
+
+    Dùng DNS-over-HTTPS (DoH) hoặc DNS-over-TLS với các resolver hiện đại.
+
+Tài liệu tham khảo
+
+    man resolv.conf
+
+    systemd-resolved documentation

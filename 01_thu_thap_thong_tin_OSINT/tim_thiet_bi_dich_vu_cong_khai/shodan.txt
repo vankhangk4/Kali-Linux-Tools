@@ -1,0 +1,85 @@
+1. Shodan là gì?
+
+    Shodan là công cụ tìm kiếm (search engine) chuyên cho thiết bị, dịch vụ, hệ thống kết nối Internet (IoT, server, webcam, router, industrial control, database, v.v.).
+
+    Không giống Google/Bing – Shodan scan và lập chỉ mục các dịch vụ, banner, port, version, lỗ hổng... của thiết bị trên toàn cầu.
+
+    Được mệnh danh là “Google của các hacker”.
+
+2. Tác dụng của Shodan
+
+    Tìm kiếm thiết bị/phần mềm public trên Internet: camera, server, router, SCADA, database, printer, ...
+
+    Phát hiện các thiết bị dễ bị tấn công: open port, config sai, lỗ hổng bảo mật, version lỗi thời.
+
+    Tìm kiếm domain, IP, range, lỗ hổng, SSL cert, …
+
+    Phục vụ pentest, OSINT, threat hunting, audit bảo mật, điều tra sự cố.
+
+3. Cách sử dụng Shodan
+1. Truy cập web
+
+    https://www.shodan.io/
+
+    Đăng ký tài khoản để tìm kiếm nâng cao, lưu kết quả, API.
+
+2. Tìm kiếm nhanh trên web
+
+    Search theo port/service:
+    port:22 country:"VN"
+
+    Search theo banner:
+    "MongoDB"
+    "Server: Apache"
+
+    Search theo IP/domain:
+    net:192.168.1.0/24
+    hostname:gov.vn
+
+    Search theo city/country:
+    city:"Hanoi"
+
+3. Dùng Shodan CLI (command-line interface)
+Cài đặt:
+
+pip install shodan
+shodan init <APIKEY>
+
+(API key lấy trong tài khoản Shodan)
+Ví dụ lệnh:
+
+    Tìm camera mở port 554 (RTSP):
+
+shodan search port:554 has_screenshot:true
+
+Tìm web server Apache ở Việt Nam:
+
+shodan search "Server: Apache" country:VN
+
+Tìm thông tin IP cụ thể:
+
+    shodan host 8.8.8.8
+
+4. Một số tips mạnh của Shodan
+
+    Tìm thiết bị với version cụ thể:
+    "Server: nginx" version:1.18
+
+    Tìm IoT để pentest:
+    product:Webcam city:"Ho Chi Minh City"
+
+    Tìm hệ thống lộ credentials:
+    "default password" "root"
+
+    Tìm các hệ thống dính lỗ hổng:
+    vuln:CVE-2021-44228 (Log4Shell)
+
+5. Tài liệu tham khảo
+
+    Shodan official
+
+    Shodan CLI Docs
+
+    Shodan Search Filters
+
+    HackTricks Shodan

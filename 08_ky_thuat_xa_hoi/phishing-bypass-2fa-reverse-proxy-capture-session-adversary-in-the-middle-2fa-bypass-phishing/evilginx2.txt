@@ -1,0 +1,165 @@
+1. Evilginx2 Là Gì?
+
+    Evilginx2 là framework man-in-the-middle (MiTM) dùng để phishing thông tin đăng nhập, session cookie, và bypass xác thực hai yếu tố (2FA) của các dịch vụ phổ biến (Google, Facebook, Microsoft, v.v).
+
+    Không cần khai thác lỗ hổng ứng dụng web.
+
+    Giả lập hoàn toàn giao diện login, thực hiện proxy request giữa victim và server thật.
+
+2. Nguyên Lý Hoạt Động
+
+    Tạo phishing proxy: evilginx2 sẽ đứng giữa, relay toàn bộ traffic giữa user và server thật.
+
+    Khi victim đăng nhập, evilginx2 thu thập username, password, và session cookie (token xác thực) –> Dùng để đăng nhập trực tiếp, bypass cả 2FA.
+
+    Không cần phải biết password hoặc OTP, chỉ cần cookie là có thể chiếm account.
+
+3. Cài Đặt Evilginx2
+3.1. Yêu Cầu
+
+    VPS/public server (Ubuntu/Debian)
+
+    Domain riêng
+
+    Quyền root
+
+3.2. Cài Evilginx2
+
+sudo apt update && sudo apt install git make gcc
+git clone https://github.com/kgretzky/evilginx2.git
+cd evilginx2
+make
+sudo ./bin/evilginx -p ./phishlets/
+
+Hoặc dùng prebuilt release.
+3.3. Cấu Hình DNS
+
+    Tạo subdomain (vd: login.yourdomain.com)
+
+    Tạo record A trỏ về IP VPS evilginx2
+
+3.4. Cài SSL Let's Encrypt
+
+Evilginx2 có thể tự generate cert, hoặc dùng certbot:
+
+sudo apt install certbot
+sudo certbot certonly --standalone -d login.yourdomain.com
+
+4. Cấu Hình Evilginx2
+4.1. Tạo Phishlet
+
+    Phishlet = file cấu hình cho từng dịch vụ (google, facebook, outlook...)
+
+    Có thể tải sẵn hoặc tự viết/customize.
+
+Ví dụ tải phishlet google:
+
+wget https://raw.githubusercontent.com/kgretzky/evilginx2/master/phishlets/google.yml -P phishlets/
+
+4.2. Edit Phishlet
+
+    Sửa các domain về đúng domain/subdomain của bạn
+
+    Sửa các upstream về đúng domain thật của service.
+
+4.3. Load Phishlet
+
+phishlets hostname google login.yourdomain.com
+phishlets enable google
+
+5. Triển Khai Thực Chiến
+5.1. Tạo Link Phishing
+
+lures create google
+
+Lấy link, gửi cho victim.
+5.2. Theo Dõi Kết Quả
+
+sessions
+
+Thấy thông tin session, cookie, token đã thu thập được.
+5.3. Sử Dụng Cookie Đã Thu Thập
+
+    Dùng cookie (đặc biệt là session/auth/bearer) để đăng nhập vào account thật, bypass 2FA.
+
+Tool hỗ trợ: Cookie-Editor extension
+6. Kỹ Thuật Nâng Cao
+6.1. Custom Phishlet
+
+    Có thể tự viết phishlet cho dịch vụ chưa có mẫu
+
+    Yêu cầu hiểu cấu trúc login flow, request, domain, header của ứng dụng gốc
+
+    Dùng Burp Suite/Fiddler để bắt và phân tích
+
+6.2. ByPass Detection
+
+    Sử dụng domain giả lập (typo, lookalike)
+
+    Sử dụng dịch vụ CDN, proxy, or domain rotation
+
+    Bypass Google Safe Browsing, bảo vệ SPF/DMARC
+
+6.3. Automation & Scripting
+
+    Dùng API của evilginx2 hoặc parse log để tự động lưu trữ, alert khi có session mới.
+
+    Kết hợp với custom payload, macro, social engineering.
+
+6.4. Ẩn Danh/Chống Trace
+
+    Dùng VPS thuê bằng crypto, VPN, TOR để giảm trace-back.
+
+    Sử dụng hệ thống disposable/phishing infrastructure như gh0st.sh, evilginx2-quickstart.
+
+7. Lưu Ý Khi Sử Dụng Evilginx2
+
+    Chỉ dùng cho mục đích pentest/hợp pháp!
+
+    Sử dụng đúng trong engagement, với sự cho phép của client.
+
+    Không dùng để hack tài khoản người khác ngoài phạm vi cho phép, có thể bị truy tố hình sự.
+
+8. Ví Dụ Thực Tế
+8.1. Phishing Google Account
+
+    Dùng phishlet google, tạo lure gửi cho victim
+
+    Khi victim đăng nhập, evilginx2 lưu lại cookie
+
+    Dùng cookie đăng nhập trên browser mới, không cần OTP
+
+8.2. Phishing Facebook, Microsoft, Github...
+
+    Tương tự, chỉ cần đổi phishlet và domain.
+
+8.3. Chống Evilginx2
+
+    Đề xuất bảo vệ: Hardware token, FIDO2, U2F key, device binding.
+
+    Cảnh báo user về lookalike domain, phishing detection, khóa session lạ.
+
+9. Một Số Lệnh Cơ Bản Evilginx2
+
+help                # Show help
+phishlets           # List phishlets
+phishlets enable [name]
+phishlets disable [name]
+phishlets hostname [name] [yourdomain]
+lures               # List lures (phishing links)
+lures create [phishlet]
+sessions            # Show captured sessions
+sessions [id] show  # Show detail session
+
+10. Tài Liệu Tham Khảo & Mẹo
+
+    Evilginx2 GitHub
+
+    Danh sách phishlet mới
+
+    Hướng dẫn bypass 2FA Google
+
+    Đọc kỹ phishlet, hiểu flow, kiểm tra update thường xuyên (nhiều dịch vụ đổi flow liên tục)
+
+    Dùng plugin/extension để import cookie dễ dàng.
+

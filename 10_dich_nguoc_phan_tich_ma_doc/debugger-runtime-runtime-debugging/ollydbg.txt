@@ -1,0 +1,186 @@
+1. OllyDbg là gì?
+
+    OllyDbg là một debugger động (dynamic debugger) miễn phí nổi tiếng dành cho hệ điều hành Windows, chuyên dùng để phân tích, debug, reverse engineering các file thực thi PE (EXE, DLL...).
+
+    Được ưa chuộng vì dễ sử dụng, giao diện đồ họa trực quan, mạnh ở phân tích mã assembly, theo dõi register, memory, stack, API call, patching...
+
+2. Tính năng chính của OllyDbg
+
+    Dynamic analysis: Debug file PE “live”, dừng, chạy, step, đặt breakpoint, xem thay đổi trạng thái.
+
+    Disassembly: Hiển thị code assembly rõ ràng, phân tích flow, jump, call.
+
+    Hex Dump: Xem/patch trực tiếp binary/hex, thay đổi dữ liệu trên memory/file.
+
+    API monitoring: Theo dõi call tới các hàm WinAPI (chống dump, anti-debug, v.v).
+
+    Breakpoint thông minh: Đặt breakpoint thường, on-access, on-write, conditional, memory, hardware...
+
+    Plugin system: Hỗ trợ rất nhiều plugin mạnh (unpacking, anti-anti-debug, script automation...).
+
+    Script & automation: Dùng OLLYScript để tự động hóa task debug, crackme, unpack.
+
+    Memory Map: Phân tích layout memory, tìm shellcode, scan code inject, v.v.
+
+    Call Stack/Thread: Theo dõi từng thread/process, stack trace, khắc phục lỗi crash.
+
+3. Cài đặt OllyDbg
+
+    Tải bản chính thức: http://www.ollydbg.de/
+
+        Bản v1.10: Ổn định nhất, phổ biến trong crackme/CTF (nhiều plugin nhất).
+
+        Bản v2.01: Có cải tiến nhưng ít plugin hỗ trợ.
+
+    Cài thêm plugin: Nên tải thêm gói plugin phổ biến, giải nén vào thư mục plugins.
+
+4. Giao diện OllyDbg – Giải thích các khung
+
+    CPU Window: Hiển thị code assembly, vị trí hiện tại (EIP), breakpoint.
+
+    Registers: Giá trị register chính (EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP...).
+
+    Hex Dump: Hiển thị memory/binary dạng hex.
+
+    Stack Window: Theo dõi call stack, tham số truyền hàm, return address.
+
+    Memory Map: Layout memory (PE, heap, stack, DLL...).
+
+    Log window: Báo lỗi, các thao tác debug, trace API.
+
+    Executable Modules: Danh sách các module nạp (DLL, EXE).
+
+5. Các thao tác cơ bản (Beginner)
+5.1. Mở file và bắt đầu debug
+
+    File → Open → Chọn EXE/DLL cần phân tích.
+
+    Chương trình sẽ chưa chạy, ở trạng thái suspended tại entry point.
+
+    Debug → Run (F9): Bắt đầu chạy.
+
+    F7 (Step Into), F8 (Step Over): Chạy từng lệnh.
+
+    Ctrl+F2: Reset process về trạng thái ban đầu.
+
+5.2. Đặt breakpoint
+
+    Click chuột phải vào dòng code muốn dừng, chọn Breakpoint → Toggle hoặc nhấn F2.
+
+    Khi tới lệnh đó, OllyDbg sẽ tự động pause lại.
+
+5.3. Xem/thay đổi register, memory
+
+    Double click lên giá trị register để sửa, thử nghiệm.
+
+    Chọn vùng memory, click chuột phải → Edit → Patch bytes để chỉnh nội dung.
+
+6. Phân tích mã độc/crackme (Intermediate)
+6.1. Tìm serial check, anti-debug
+
+    Dùng Ctrl+S (Search for text) để tìm các chuỗi như “serial”, “password”, “wrong”, “success”, “congratulations”...
+
+    Đặt breakpoint gần đó, chạy và quan sát các lệnh so sánh (cmp, jne, je...).
+
+    Đọc logic, thay đổi flow (patch jump, skip check).
+
+6.2. Unpacking, bypass protection
+
+    Theo dõi GetProcAddress, LoadLibraryA (anti-unpack thường dựa vào dynamic import).
+
+    Tìm OEP (Original Entry Point) sau unpack stub, dump lại file (Plugin: OllyDumpEx, LordPE).
+
+    Bypass anti-debug: Patch lệnh check như IsDebuggerPresent, CheckRemoteDebuggerPresent, hoặc dùng plugin HideOD để ẩn dấu hiệu debug.
+
+7. Trick nâng cao & automation (Advanced)
+7.1. OLLYScript – Script tự động hóa
+
+    Có thể viết script lặp lại các bước: đặt breakpoint, chạy tới, dump memory, patch code...
+
+    Ví dụ:
+
+    BP 00401000
+    RUN
+    MOV EAX, 1
+
+7.2. Plugin mạnh cho OllyDbg
+
+    OllyDumpEx: Dump file sau khi unpack.
+
+    HideOD: Ẩn dấu hiệu debug (bypass anti-debug).
+
+    StrongOD: Anti-anti-debug mạnh hơn HideOD.
+
+    Analyze This!: Phân tích control flow, find function auto.
+
+    Search String: Tìm string nhanh.
+
+    CommandBar: Thêm command bar như IDA.
+
+    API Logger: Theo dõi call API quan trọng.
+
+    Universal Unpacker: Unpack PE phổ thông.
+
+    ODbgScript: Chạy script mạnh, tự động hóa deep hơn OLLYSCRIPT.
+
+    Trace API: Monitor API call chi tiết.
+
+7.3. Patching & Save file
+
+    Patch byte trực tiếp (edit mã hex), hoặc patch lệnh asm.
+
+    Chọn vùng code → Chuột phải → Edit → Assemble → Gõ lệnh muốn patch.
+
+    Sau khi patch, save file (Plugins > OllyDumpEx > Dump full process).
+
+8. Phân tích malware, shellcode, exploit (Forensic/Red Team)
+
+    Dùng OllyDbg để theo dõi hành vi runtime, phát hiện shellcode inject, unpack packer malware, phân tích dropper, ransomware loader...
+
+    Theo dõi API suspicious: WriteProcessMemory, VirtualAlloc, CreateRemoteThread, InternetOpen, v.v.
+
+    Debug exploit, reverse shell, kiểm soát flow (patch stack, sửa return address...).
+
+9. Mẹo/thủ thuật thực chiến
+
+    Ctrl+G: Đi đến địa chỉ bất kỳ (entry point, jump, call...).
+
+    Alt+M: Xem toàn bộ module loaded.
+
+    Ctrl+L: Tìm reference tới string/code/data.
+
+    Ctrl+E: Danh sách module, DLL liên quan.
+
+    Ctrl+N: Tìm hàm (function) tự động.
+
+    Search > Name: Tìm symbol, hàm hệ thống (thường trong DLL).
+
+    Search > All referenced text strings: Cực hữu ích cho crackme, malware.
+
+    Quick patch jump: Dùng Assemble để sửa JNZ thành JMP/JZ để bypass check.
+
+    Xem stack khi gọi hàm: Đặt breakpoint trước call, quan sát stack.
+
+10. OllyDbg vs. các debugger khác
+Tool	Ưu điểm	Nhược điểm
+OllyDbg	Dễ dùng, nhẹ, nhiều plugin, CTF/crackme	Chỉ hỗ trợ 32-bit, ít update, GUI cũ
+x64dbg	Hỗ trợ 64-bit, plugin mới	Cần học lại giao diện mới
+WinDbg	Siêu mạnh, debug kernel, 64bit, driver	Khó dùng, không thân thiện GUI
+IDA Pro	Kết hợp cả static/dynamic, cực mạnh	Trả phí, dùng để reverse chuyên sâu
+
+OllyDbg vẫn là số 1 cho beginner và các task crackme/malware 32-bit trên Windows.
+11. Tài liệu và tài nguyên nâng cao
+
+    Trang chủ OllyDbg
+
+    Plugin collection
+
+    Tổng hợp crackme cho luyện tập
+
+    Tut4You - Diễn đàn reverse, plugin, tutorial
+
+    x64dbg – Debugger thế hệ mới
+
+    Video hướng dẫn OllyDbg
+
+    Cheat sheet OllyDbg

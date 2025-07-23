@@ -1,0 +1,164 @@
+1. Kerbrute là gì?
+
+    Kerbrute là tool Go (dòng lệnh), giúp:
+
+        Enumerate user (tìm tài khoản hợp lệ trên domain) cực nhanh qua Kerberos.
+
+        Brute-force password cho user domain (tương tự AS-REP Roasting, password spray).
+
+        Kiểm tra, dò thông tin domain, hỗ trợ automation trong AD pentest.
+
+    Không yêu cầu quyền truy cập, chỉ cần biết DC (Domain Controller) IP/hostname.
+
+2. Cài đặt Kerbrute
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install kerbrute
+
+(Nhiều bản Kali cài sẵn. Nếu không có, dùng bản Go ở dưới)
+B. Build bằng Go (mọi OS)
+
+go install github.com/ropnop/kerbrute@latest
+
+(Binary thường nằm ở ~/go/bin/kerbrute)
+C. Tải bản release
+
+    Tải tại: https://github.com/ropnop/kerbrute/releases
+
+3. Các chức năng chính của Kerbrute
+
+    User enumeration (dò user hợp lệ qua Kerberos)
+
+    Password brute-force (cho user/domain)
+
+    Tìm user không cần password (AS-REP Roasting)
+
+4. Enumerate user (dò tên tài khoản hợp lệ)
+
+Cách hoạt động:
+Kerberos trả về lỗi khác biệt khi user tồn tại hoặc không, giúp xác định user valid không cần brute pass!
+A. Lệnh cơ bản
+
+kerbrute userenum -d <domain.local> users.txt --dc <DC_IP>
+
+    -d: tên domain (AD, ví dụ: megacorp.local)
+
+    users.txt: wordlist user (dùng SecLists, danh sách phổ biến)
+
+    --dc: IP hoặc hostname domain controller (không bắt buộc nếu domain DNS đúng)
+
+Ví dụ thực tế:
+
+kerbrute userenum -d hackthebox.local users.txt --dc 10.10.10.100
+
+5. Brute-force mật khẩu Kerberos
+
+    Brute mật khẩu 1 user với list pass:
+
+kerbrute passwordspray -d domain.local user.txt passlist.txt --dc 192.168.1.10
+
+Brute nhiều user với 1 pass (password spraying):
+
+kerbrute passwordspray -d domain.local users.txt 'Password123' --dc 192.168.1.10
+
+Brute nhiều user và nhiều pass:
+
+    kerbrute passwordspray -d domain.local users.txt passlist.txt --dc 192.168.1.10
+
+Note: Nên chọn tốc độ scan hợp lý, tránh lockout account (scan chậm, spray từng đợt).
+6. AS-REP Roasting Enumeration (tìm user không cần pre-auth)
+
+    List các user có thể bị tấn công AS-REP Roasting (nếu Pre-authentication bị tắt, dễ bị crack hash offline).
+
+    kerbrute asreproast -d domain.local users.txt --dc 192.168.1.10
+
+    Output là hash dùng cho crack (John, hashcat).
+
+7. Các tuỳ chọn nâng cao
+Tham số	Ý nghĩa
+--dc	Chỉ định domain controller IP/host
+-o <file>	Lưu output ra file
+-t <num>	Đa luồng (default 10, có thể tăng lên 50+)
+-v	Verbose (in chi tiết)
+-h	Help, doc lệnh
+
+Ví dụ tăng tốc:
+
+kerbrute userenum -d domain.local users.txt --dc 192.168.1.10 -t 50 -o valid_users.txt
+
+8. Automation – batch scan, workflow thực tế
+
+    Tìm user hợp lệ → brute pass → AS-REP roast (quy trình pentest AD):
+
+        Enum user:
+
+kerbrute userenum -d company.local users.txt --dc 10.10.10.10 -o valid.txt
+
+Brute/spray pass:
+
+kerbrute passwordspray -d company.local valid.txt passwords.txt --dc 10.10.10.10
+
+AS-REP roast:
+
+        kerbrute asreproast -d company.local valid.txt --dc 10.10.10.10 -o hashes.txt
+
+        Crack hash bằng hashcat/John.
+
+9. Kết hợp với tool khác
+
+    LDAP + Kerbrute:
+
+        Sử dụng ldapsearch để dump user, rồi dùng kerbrute để brute/spray pass.
+
+    Impacket:
+
+        Nếu lấy được hash, chuyển cho impacket để kiểm thử đăng nhập, lateral movement.
+
+    Bloodhound:
+
+        Lấy info AD (user, group...) để tối ưu brute.
+
+10. Một số mẹo thực chiến
+
+    Chỉ brute user phổ biến, top 1000 đầu tiên để tránh bị lockout.
+
+    Chạy bằng Tor/Proxy để ẩn IP nếu pentest ngoài.
+
+    Chia nhỏ wordlist, brute dạng “sáng/tối” (password spray theo ca).
+
+    Dùng các output -o, filter script để automation cho report, dashboard.
+
+    Enum user trước khi brute pass để tiết kiệm thời gian.
+
+11. So sánh Kerbrute với tool khác
+Tool	Ưu điểm	Nhược điểm
+Kerbrute	Nhanh, đa luồng, Go, dùng trên mọi OS, enum user mạnh	Không check group, ít module so với Impacket
+Impacket	Đa chức năng AD, nhiều giao thức	Chạy Python, chậm hơn nếu chỉ enum user
+CrackMapExec	Tích hợp mọi tool vào 1, đa luồng, report	Dễ bị block nếu scan mạnh, cần nhiều quyền
+nmap NSE	Có script enum user, pass Kerberos	Không mạnh bằng Kerbrute
+12. Fix lỗi, lưu ý thực chiến
+Lỗi	Xử lý
+Không enum được	Check tên domain, IP DC đúng, port 88 mở
+Báo timeout	Giảm thread, check firewall, route
+Không thấy valid user	Check wordlist, thử spray thêm
+Bị lockout account	Giảm tốc độ, chỉ spray các pass an toàn, limit thread
+13. Tài liệu, link hữu ích
+
+    Kerbrute Github
+
+    AS-REP Roasting (HackTricks)
+
+    PayloadAllTheThings Kerberos
+
+    SecLists Usernames
+
+    Hướng dẫn Kerbrute Pentest
+
+Tóm tắt nhanh
+
+    Kerbrute: tool mạnh nhất enumerate user và brute Kerberos trong pentest/red team AD, cực nhanh, dễ dùng, automation mạnh.
+
+    Workflow: Enum user ➝ brute pass ➝ AS-REP roast ➝ crack hash ➝ lateral movement.
+
+    Nên brute có chiến lược, không brute “mass” gây lockout, lọc log output kỹ để phát hiện nhanh user/pass valid.

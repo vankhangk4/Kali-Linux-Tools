@@ -1,0 +1,195 @@
+1. Drozer là gì?
+
+    Drozer là bộ công cụ mã nguồn mở mạnh mẽ pentest, kiểm thử bảo mật ứng dụng Android nổi tiếng nhất, do MWR InfoSecurity phát triển (giờ thuộc NCC Group).
+
+    Tính năng chính:
+
+        Khai thác lỗ hổng bảo mật Android (Insecure IPC, permission, content provider, exposed component, intent, broadcast, SQLi, path traversal, code exec...)
+
+        Tương tác trực tiếp với app cài trên thiết bị Android (giả lập/emulator hoặc device thật).
+
+        Hỗ trợ scripting, automation, tạo module tùy biến.
+
+    Tương tự “Metasploit cho Android”, dùng cho cả pentester, red teamer, bug hunter, malware analyst.
+
+2. Cài đặt Drozer
+2.1. Chuẩn bị
+
+    Hệ điều hành: Windows, Linux, MacOS (server).
+
+    Java 8, Python 2.7 (hoặc dùng docker/virtualenv nếu hệ mới).
+
+    Android device hoặc emulator (Genymotion, AVD).
+
+    adb (Android Debug Bridge).
+
+2.2. Cài Drozer
+
+Trên máy tính (Drozer console/server):
+
+    Clone/cài đặt drozer:
+
+    git clone https://github.com/FSecureLABS/drozer.git
+    cd drozer
+    pip install .
+    # hoặc pip install drozer
+
+    Một số distro không có sẵn pip2, cần tạo python2 venv.
+
+Trên Android device (Drozer Agent):
+
+    Tải file drozer-agent.apk từ GitHub Releases hoặc build lại.
+
+    Cài vào thiết bị/emulator:
+
+    adb install drozer-agent.apk
+
+    Mở agent trên điện thoại, bật embedded server (hoặc kết nối qua port forward adb).
+
+Kết nối agent & console:
+
+    Forward port qua adb:
+
+adb forward tcp:31415 tcp:31415
+
+Trên máy tính:
+
+    drozer console connect
+
+3. Kiến trúc hoạt động
+
+    Drozer agent (trên Android): Đóng vai trò là backdoor để nhận lệnh pentest từ server.
+
+    Drozer console (trên máy tính): Là terminal shell điều khiển, chạy module khai thác, enumerate, automation.
+
+    Kết nối qua ADB, Wifi (tùy network).
+
+4. Các thao tác cơ bản
+4.1. Liệt kê các package/app cài đặt
+
+run app.package.list
+run app.package.info -a com.example.targetapp
+
+4.2. Phân tích component (activity, service, receiver, provider)
+
+run app.activity.info -a com.example.targetapp
+run app.provider.info -a com.example.targetapp
+run app.broadcast.info -a com.example.targetapp
+run app.service.info -a com.example.targetapp
+
+4.3. Kiểm tra exported (public) component
+
+    Xem các component có exported=true (dễ bị khai thác nếu không được kiểm soát permission).
+
+run app.activity.info -a com.example.targetapp | grep "EXPORTED"
+
+5. Khai thác thực chiến (Exploit module)
+5.1. Content Provider – Dump/Modify dữ liệu
+
+    Tìm provider export:
+
+run app.provider.info -a com.example.targetapp
+
+Query dữ liệu (giả sử content provider chưa bảo vệ):
+
+run app.provider.query content://com.example.targetapp.provider/table_name
+
+Update/delete/inject SQL:
+
+    run app.provider.update content://... --selection ... --projection ...
+    run app.provider.delete content://...
+
+5.2. Khai thác Broadcast/Intent
+
+    Liệt kê broadcast receiver:
+
+run app.broadcast.info -a com.example.targetapp
+
+Gửi intent “độc”:
+
+    run app.broadcast.send --component com.example.targetapp/.Receiver --extras "..."
+
+5.3. Khai thác Service
+
+    Liệt kê và thử start/stop service (nếu exported):
+
+    run app.service.info -a com.example.targetapp
+    run app.service.start --component com.example.targetapp/.ServiceName
+
+5.4. Khai thác Activity
+
+    Mở activity ẩn/độc (có thể bypass auth):
+
+    run app.activity.start --component com.example.targetapp/.ActivityName
+
+6. Static/Info Gathering
+
+    Liệt kê permission:
+
+    run app.package.permissions -a com.example.targetapp
+
+    Tìm activity nào bypass auth, có thể truy cập trái phép, exported, permission lỏng lẻo.
+
+7. Khai thác SQL Injection trong Content Provider
+
+    Thử các query đặc biệt để test SQLi:
+
+    run app.provider.query content://com.target.provider/users --selection "1=1;--"
+
+8. Automation & scripting nâng cao
+
+    Drozer hỗ trợ viết module mới bằng Python, tái sử dụng API để automate hoặc exploit lỗ hổng phức tạp.
+
+    Kết hợp với Burp, Frida, Apktool/JADX cho workflow pentest Android.
+
+9. Các module nâng cao hay dùng
+
+    scanner.provider.finduris: Tìm các URI provider export toàn hệ thống.
+
+    scanner.provider.sqltables: Liệt kê table/field, dò database ẩn.
+
+    exploit.provider.injection: Test và khai thác SQLi tự động.
+
+    exploit.misc.nfc: Dò NFC exploit.
+
+    exploit.package.privilege escalation: Test privilege escalation.
+
+10. Mẹo thực chiến / trick
+
+    Có thể sử dụng drozer trên Genymotion để pentest nhanh, rollback snapshot dễ.
+
+    Tận dụng combo Drozer + Apktool + Jadx + Frida để “nhìn xuyên” từ smali tới API, runtime patch/hook.
+
+    Dùng run app.package.attacksurface -a [package] để tóm tắt attack surface siêu nhanh.
+
+    Khi gặp lỗi kết nối, kiểm tra adb, port, firewall, device policy (nhiều bản Android mới sẽ chặn drozer).
+
+11. Khắc phục các vấn đề thường gặp
+
+    Drozer agent không chạy được: Cần cho phép cài app “không rõ nguồn gốc”, bật embedded server, hoặc forward adb.
+
+    Không thấy port 31415: Kiểm tra lại port forwarding, thử adb forward lại hoặc khởi động lại adb server.
+
+    Android 8.0+ hoặc emulator mới có thể chặn drozer, nên dùng máy ảo Android cũ hoặc patch agent.
+
+12. Tài nguyên, link quan trọng
+
+    Drozer (FSecure/NCC Group) - GitHub
+
+    Drozer Agent APK Releases
+
+    Drozer Docs
+
+    Hướng dẫn pentest Android bằng Drozer (PDF)
+
+    Video tutorial Drozer
+
+    CTF Android Writeup (search: drozer)
+
+13. So sánh Drozer với các công cụ khác
+Tool	Ưu điểm	Nhược điểm
+Drozer	Tương tác trực tiếp, scripting, exploit	Outdated, Android mới khó chạy
+Frida	Runtime hook mạnh, bypass deep	Không static, cần viết script
+Apktool	Decompile, patch static, mod resource	Không runtime, không exploit
+Jadx	Đọc code Java nhanh, hỗ trợ automation	Không exploit, không runtime
+MobSF	Tự động static + dynamic analysis	Chưa exploit sâu như Drozer

@@ -1,0 +1,212 @@
+1. htop là gì?
+
+    htop là công cụ giám sát tài nguyên hệ thống (process viewer, giống Task Manager trên Windows) chạy trên terminal Linux/Unix.
+
+    Thay thế cho top truyền thống nhưng giao diện thân thiện, hiển thị đẹp, dễ thao tác bằng phím mũi tên, màu sắc trực quan.
+
+2. Cài đặt htop
+
+    Ubuntu/Debian:
+
+sudo apt update && sudo apt install htop
+
+CentOS/RHEL:
+
+sudo yum install htop
+
+macOS:
+
+brew install htop
+
+Chạy:
+
+    htop
+
+3. Giao diện & ý nghĩa
+
+    Dải màu trên cùng: CPU, Mem, Swap (dưới dạng cột & biểu đồ)
+
+    Bảng process: Danh sách tiến trình đang chạy, có thể cuộn bằng phím lên/xuống, trái/phải để xem thông tin chi tiết
+
+    Thanh dưới cùng: Các phím tắt thao tác (F1: Help, F2: Setup, F9: Kill, F10: Quit, ...)
+
+4. Ý nghĩa các cột mặc định
+
+    PID: Process ID
+
+    USER: Chủ sở hữu tiến trình
+
+    PRI, NI: Độ ưu tiên, nice value
+
+    VIRT: Bộ nhớ ảo tiến trình dùng
+
+    RES: Bộ nhớ thực tiến trình dùng
+
+    SHR: Shared memory
+
+    S: Trạng thái tiến trình (S: Sleep, R: Running, Z: Zombie...)
+
+    CPU%: % CPU tiến trình dùng
+
+    MEM%: % RAM tiến trình dùng
+
+    TIME+: Tổng thời gian CPU dùng
+
+    Command: Tên lệnh/tiến trình
+
+    Bạn có thể tuỳ chỉnh cột hiển thị bằng F2 (Setup) → Columns.
+
+5. Các phím tắt quan trọng
+Phím	Chức năng
+F1	Trợ giúp (Help)
+F2	Cấu hình (Setup)
+F3	Tìm kiếm tiến trình
+F4	Lọc tiến trình theo tên
+F5	Hiển thị cây tiến trình (Tree view)
+F6	Sắp xếp theo cột khác
+F7/F8	Giảm/tăng nice value
+F9	Kết thúc tiến trình (Kill)
+F10	Thoát htop
+Space	Đánh dấu tiến trình (Mark/Unmark)
+u	Chọn USER để lọc
+t	Chuyển đổi hiển thị CPU Bar/Graph
+h	Chuyển đổi hiển thị các thread
+H	Ẩn/hiện thread
+k	Gửi tín hiệu kill
+6. Cách dùng thực tế
+a) Lọc tiến trình
+
+    Nhấn F4 → Gõ từ khoá (vd: apache, mysql)
+
+    Hoặc nhấn u để lọc theo user
+
+b) Sắp xếp tiến trình
+
+    Nhấn F6 → Chọn cột muốn sort (CPU, MEM, TIME,...)
+
+c) Xem cây tiến trình (Tree view)
+
+    Nhấn F5 để hiện quan hệ cha-con giữa các process (rất hữu ích khi debug)
+
+d) Tìm kiếm process
+
+    Nhấn F3 → Nhập tên process cần tìm
+
+e) Kill process
+
+    Dùng phím mũi tên chọn tiến trình → Nhấn F9 → Chọn tín hiệu (default là SIGTERM, bạn có thể chọn SIGKILL)
+
+f) Thay đổi độ ưu tiên (nice value)
+
+    Chọn tiến trình → F7 (giảm), F8 (tăng)
+
+7. Tùy chỉnh giao diện (F2 - Setup)
+
+    Columns: Thêm/bớt cột hiển thị
+
+    Available meters: Thêm các “đồng hồ” hiển thị CPU riêng lẻ, RAM, Swap, Network, Load average, Uptime, ...
+
+    Colors: Đổi màu theme
+
+    Display options: Chỉnh format bar, ẩn hiện thông tin, cấu hình refresh rate...
+
+8. Một số tuỳ chọn dòng lệnh khi chạy htop
+Tuỳ chọn	Ý nghĩa
+htop -u <user>	Chỉ xem process của user đó
+htop -p <pid1>,<pid2>	Chỉ xem các PID cụ thể
+htop --sort-key <col>	Sắp xếp mặc định theo cột
+htop -d <delay>	Đặt tốc độ refresh (tính bằng 1/10 giây, vd: htop -d 10 refresh mỗi 1 giây)
+htop --tree	Mở sẵn ở chế độ cây tiến trình
+9. Nâng cao: Xuất log & chạy không cần giao diện
+a) Chạy htop xuất log về CPU/RAM...
+
+htop chủ yếu là tool giao diện, nếu muốn xuất log hãy dùng top hoặc ps!
+
+Nếu vẫn muốn xuất ảnh màn hình htop dạng text:
+
+htop -C | tee snapshot.txt
+
+Hoặc dùng htop rồi nhấn F10 để dừng, copy/paste.
+b) Giám sát từ xa qua SSH
+
+ssh user@server 'htop'
+
+(Cần cài htop trên server)
+c) Theo dõi process theo tên
+
+htop -p $(pgrep -d',' nginx)
+
+Chỉ hiển thị các tiến trình nginx.
+10. Phân tích ý nghĩa các màu sắc (Bar Color)
+
+    CPU Bar:
+
+        Xanh lá: user process
+
+        Đỏ: system process
+
+        Cam: nice process
+
+        Xám: IO wait
+
+        Tím: IRQ
+
+        Xanh da trời: Soft IRQ
+
+    Memory Bar:
+
+        Xanh lá: RAM dùng bởi process
+
+        Xanh dương: buffer
+
+        Cam: cache
+
+11. Cấu hình nâng cao, tuỳ biến & script
+
+    Bạn có thể lưu cấu hình giao diện, màu sắc vào file:
+
+    ~/.config/htop/htoprc
+
+    Chỉnh sửa file này giúp đồng bộ giữa nhiều máy.
+
+12. Một số mẹo thực chiến
+
+    Xem nhanh process nào ăn CPU/RAM nhiều:
+    Nhấn F6 → chọn CPU% hoặc MEM%
+    Hoặc nhấn 2 lần F6 để đảo thứ tự giảm dần
+
+    Xem tất cả thread của process:
+    Nhấn h hoặc H
+
+    Ẩn process của user khác:
+    Nhấn u → chọn user
+
+    Hiển thị network, disk IO:
+    Thêm meter ở F2 → Available meters (nếu bản htop có build tính năng này)
+
+13. Một số vấn đề & câu hỏi thường gặp
+
+    htop không hiển thị Network/Disk IO?
+    → Một số bản cũ/bản compile không đủ module, bạn cần build lại hoặc dùng tool chuyên dụng như nmon, glances.
+
+    Muốn lọc theo nhiều điều kiện?
+    → Dùng F4, F3 hoặc kết hợp với cột và filter, nhưng htop chỉ hỗ trợ lọc khá đơn giản.
+
+14. So sánh htop với các công cụ khác
+
+    htop: Đẹp, màu sắc, thao tác trực quan
+
+    top: Truyền thống, ít màu, không dễ dùng bằng htop
+
+    glances: Nhiều thông tin hơn, có export log, hỗ trợ web UI, nhưng nặng hơn
+
+    atop: Phù hợp monitoring chuyên sâu, xuất log tự động
+
+15. Tổng kết
+
+    htop là tool must-have cho quản trị viên, devops, lập trình viên, pentester, v.v...
+
+    Giao diện đẹp, trực quan, thao tác dễ, cực kỳ mạnh khi quản lý server.
+
+    Nếu bạn muốn monitoring sâu (network/disk IO, export log, báo động) — hãy thử thêm glances, atop.
+

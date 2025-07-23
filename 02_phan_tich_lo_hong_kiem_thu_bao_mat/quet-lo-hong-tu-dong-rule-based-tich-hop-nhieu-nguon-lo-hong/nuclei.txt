@@ -1,0 +1,182 @@
+1. Nuclei là gì?
+
+    Nuclei là một công cụ quét lỗ hổng siêu nhanh, mã nguồn mở, tập trung vào các lỗi web (web vulnerabilities), hoạt động dựa trên các “template” YAML.
+
+    Được phát triển bởi ProjectDiscovery – cùng nhóm với naabu, subfinder.
+
+    Thích hợp cho cả bug bounty lẫn automation scan trên diện rộng.
+
+    Cập nhật liên tục, cộng đồng đóng góp hàng nghìn template!
+
+2. Cài đặt Nuclei
+Trên Linux (có Go):
+
+go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+
+Nó sẽ cài ở ~/go/bin/nuclei
+Hoặc tải binary sẵn:
+
+wget https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei_Linux_amd64.zip
+unzip nuclei_Linux_amd64.zip
+sudo mv nuclei /usr/local/bin/
+
+3. Cập nhật template (vô cùng quan trọng!)
+
+nuclei -update                        # Update bản mới nhất của tool
+nuclei -update-templates              # Update template mới nhất (lỗ hổng mới liên tục)
+
+4. Sử dụng cơ bản
+Quét một website đơn giản:
+
+nuclei -u https://example.com
+
+    Nuclei sẽ tự dùng tất cả template mặc định.
+
+Quét nhiều website từ file:
+
+nuclei -l list.txt
+
+Với list.txt chứa danh sách URL/IP.
+5. Lọc loại lỗ hổng bằng template (theo tag)
+
+    Chỉ quét lỗ hổng CVE:
+
+nuclei -u https://target.com -t cves/
+
+Chỉ quét misconfiguration:
+
+nuclei -u https://target.com -t misconfiguration/
+
+Chỉ quét exposed-panels (admin, login, dashboard…):
+
+nuclei -u https://target.com -t exposed-panels/
+
+Chỉ quét files (backup, sensitive files…):
+
+nuclei -u https://target.com -t files/
+
+Chỉ quét những lỗ hổng liên quan đến wordpress:
+
+    nuclei -u https://target.com -tags wordpress
+
+6. Nâng cao: Các tùy chọn thường dùng
+Tham số	Ý nghĩa
+-t <folder or file>	Chọn template hoặc folder template
+-tags <tag1,tag2>	Quét theo tag (CMS, vuln, tech, CVE, ... )
+-severity <level>	Chỉ quét theo độ nguy hiểm: low, medium, high, critical
+-rate-limit 100	Giới hạn tốc độ request
+-proxy <url>	Chạy nuclei qua proxy (debug với burp, zap)
+-o <file.txt>	Xuất kết quả ra file
+-silent	Kết quả ngắn gọn, dễ filter
+
+Ví dụ:
+
+nuclei -l list.txt -t cves/ -severity high,critical -o result.txt
+nuclei -u https://mybank.com -proxy http://127.0.0.1:8080
+nuclei -l list.txt -tags wordpress,exposure -o wp_exposed.txt -silent
+
+7. Automation và kết hợp với các tool khác
+
+    Kết hợp subfinder/assetfinder + httpx + nuclei:
+    Quét hàng loạt subdomain, chỉ quét những subdomain sống:
+
+    subfinder -d example.com -silent | httpx -silent | nuclei -silent -t cves/ -o cve.txt
+
+    Scan dải IP/port:
+
+        Nuclei bản mới có thể quét IP và nhiều loại giao thức (http, tcp, dns...).
+
+8. Tự viết/custom template
+
+    Template Nuclei là file YAML, rất dễ sửa hoặc tự viết mới!
+
+    Ví dụ một template check header đơn giản:
+
+id: example-header
+
+info:
+  name: Example Header Check
+  author: yourname
+  severity: info
+  tags: misc
+
+requests:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "X-Example-Header"
+
+    Lưu lại, rồi chạy:
+
+    nuclei -u https://target.com -t ./example-header.yaml
+
+9. Các mẹo/tip tối ưu Nuclei
+
+    Chạy song song nhiều thread:
+
+    nuclei -l target.txt -c 100
+
+    Loại trừ false positive:
+
+        Đọc kỹ description, severity, chỉnh template nếu cần.
+
+        Có thể tích hợp Burp, ZAP để debug real traffic.
+
+    Automation bằng script:
+
+        Kết hợp với bash/python, hoặc CI/CD để auto scan security khi deploy code mới.
+
+10. Báo cáo và lọc kết quả
+
+    Xuất JSON dễ import lên dashboard, SIEM:
+
+nuclei -u https://target.com -json -o result.json
+
+Chỉ lấy CVE và severity critical:
+
+    nuclei -u https://target.com -t cves/ -severity critical -o cve_critical.txt
+
+11. Một số template hữu ích (nên thử):
+
+    exposed-panels/ – Bảng admin, login, dashboard
+
+    misconfiguration/ – Lỗi cấu hình thường gặp
+
+    files/ – Backup, nhạy cảm
+
+    vulnerabilities/ – Lỗ hổng ứng dụng web phổ biến
+
+    takeovers/ – Subdomain takeover
+
+    technologies/ – Xác định công nghệ đang chạy
+
+    dns/ – DNS related issues
+
+    ssl/ – SSL, cert, ciphers
+
+12. Nguồn template cực lớn
+
+    Official Nuclei Templates:
+    https://github.com/projectdiscovery/nuclei-templates
+
+    Tự viết, tự đóng góp template:
+    Có thể pull request template của bạn lên GitHub để chia sẻ cộng đồng.
+
+13. Một số vấn đề thường gặp
+Vấn đề	Xử lý
+False positive	Đọc mô tả template, chỉnh lại matchers, debug traffic
+Quá tải, bị block	Giảm rate-limit, dùng proxy, tăng thời gian sleep
+Không tìm ra bug	Update template, chọn đúng tag, thử scan dạng khác
+14. Tài liệu, tham khảo
+
+    Tài liệu chính thức
+
+    Template Official
+
+    Nuclei Blog ProjectDiscovery
+
+    nuclei -help

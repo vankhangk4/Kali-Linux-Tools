@@ -1,0 +1,194 @@
+1. Social-Engineer Toolkit (SET) là gì?
+
+SET là một công cụ mã nguồn mở mạnh mẽ dành cho tấn công kỹ thuật xã hội (social engineering attack framework).
+Tác giả: Dave Kennedy, TrustedSec.
+Mục đích: Hỗ trợ mô phỏng/phát triển các chiến dịch tấn công như phishing, spear phishing, USB drops, attack vector qua website, v.v.
+
+Tính năng nổi bật:
+
+    Giao diện CLI menu trực quan.
+
+    Tạo website phishing giả lập (cloning, credential harvest, Java Applet, Metasploit payload...).
+
+    Tạo email phishing có link hoặc đính kèm mã độc.
+
+    Hỗ trợ automation và scripting.
+
+    Hỗ trợ attack vector qua USB/CD, tạo mã QR lừa đảo, tạo malicious payload,...
+
+2. Cài đặt và khởi động SET
+2.1. Cài đặt trên Kali Linux/Ubuntu
+
+SET có sẵn trên Kali, hoặc bạn cài như sau:
+
+sudo apt update
+sudo apt install set
+# hoặc clone từ GitHub để bản mới nhất:
+git clone https://github.com/trustedsec/social-engineer-toolkit.git
+cd social-engineer-toolkit
+pip3 install -r requirements.txt
+sudo python3 setup.py install
+sudo setoolkit
+
+    Chạy SET:
+    sudo setoolkit
+
+3. Giao diện Menu và các tính năng chính
+
+Khi chạy, SET có menu như sau:
+
+   Social-Engineer Toolkit (SET)
+   1) Social-Engineering Attacks
+   2) Penetration Testing (Fast-Track)
+   3) Third Party Modules
+   4) Update the Social-Engineer Toolkit
+   5) Update SET configuration
+   6) Help, Credits, and About
+   99) Exit the Social-Engineer Toolkit
+
+Bạn sẽ dùng chủ yếu mục 1: Social-Engineering Attacks.
+Các attack vector nổi bật (dùng nhiều nhất):
+3.1. Spear-Phishing Attack Vectors (Tấn công email cá nhân hóa)
+
+    Gửi email có link hoặc file đính kèm (payload).
+
+    Tùy chọn: link tới landing page giả, file .exe/.pdf/docx độc hại...
+
+3.2. Website Attack Vectors (Tấn công qua web)
+
+    Credential Harvester: Tạo trang đăng nhập giả, thu thập username/password.
+
+    Tabnabbing: Tấn công giả giao diện trình duyệt, đánh lừa chuyển tab.
+
+    Java Applet Attack: Chèn applet độc hại vào web giả.
+
+3.3. Infectious Media Generator
+
+    Tạo USB/CD có mã độc, lừa nạn nhân click/auto chạy.
+
+3.4. Create a Payload and Listener
+
+    Tạo payload (reverse shell, Meterpreter, v.v.), kết hợp với Metasploit.
+
+3.5. QRCode Generator Attack
+
+    Tạo mã QR dẫn tới site phishing hoặc tải payload.
+
+4. Thực chiến SET: Demo từng tấn công cơ bản
+4.1. Tạo chiến dịch email phishing
+
+    Chọn Spear-Phishing Attack Vectors
+
+    Chọn Perform a Mass Email Attack
+
+    Nhập SMTP server (có thể dùng mail giả, mailtrap, hoặc local SMTP)
+
+    Nhập nội dung email (HTML/Plain Text, đính kèm link/phishing)
+
+    Gửi tới danh sách email mục tiêu
+
+4.2. Website Attack: Credential Harvester (Thu thập credential)
+
+    Vào Website Attack Vectors
+
+    Chọn Credential Harvester Attack Method
+
+    Chọn Site Cloner (clone site thật: Google, Facebook, OWA, web công ty,...)
+
+    Nhập URL cần clone, ví dụ: https://mail.congty.com
+
+    Nhập IP/Máy chủ lắng nghe
+
+    Gửi link phishing cho nạn nhân
+
+Kết quả: Nếu nạn nhân nhập user/pass, bạn sẽ thấy log trong SET CLI.
+4.3. USB Drop (Tạo USB/CD độc hại)
+
+    Vào Infectious Media Generator
+
+    Chọn loại payload: reverse shell, Meterpreter, v.v.
+
+    Copy file vào USB, phân phối USB ngoài văn phòng (kịch bản Red Team).
+
+4.4. QRCode Generator Attack
+
+    Vào QRCode Generator Attack
+
+    Nhập URL payload hoặc trang phishing
+
+    In mã QR, dán ở nơi công cộng/office (Red Team, awareness training)
+
+5. Automation – Script hóa & tuỳ biến nâng cao
+5.1. Chạy SET với script (không cần CLI)
+
+    SET hỗ trợ tham số command-line và config file (set.config).
+
+    Bạn có thể ghi automation script Python/bash để chạy lặp lại các tấn công (tự động hóa phishing cho pentest định kỳ).
+
+5.2. Tùy biến landing page/phishing page
+
+    Clone, sửa HTML trang web để chống nhận diện phishing (bypass spam/phishing filter).
+
+    Chèn tracking code, JS, thay đổi domain gần giống domain thật.
+
+    Dùng proxy/ngrok public site để tấn công trên mạng thật.
+
+5.3. Kết hợp Metasploit nâng cao
+
+    Tích hợp tạo listener tự động (Meterpreter, shell, v.v.)
+
+    Tạo file office có macro độc hại.
+
+6. Mẹo thực tế & tips
+Dành cho pentester, red team
+
+    Dùng SET kết hợp recon (OSINT, theHarvester, maltego) để cá nhân hóa nội dung email, tăng tỉ lệ mở.
+
+    Dùng domain, display name gần giống công ty.
+
+    Có thể nhúng tracking pixel/email để kiểm tra ai đọc mail.
+
+    Clone landing page chuyên nghiệp, redirect sau khi nhập credential để tránh nghi ngờ.
+
+Dành cho CTF/forensic
+
+    Tạo challenge: để log các credential, hành động của victim.
+
+    Phân tích log (access.log, credential log) để tìm IP, thời gian, phương pháp tấn công.
+
+Dành cho sysadmin, sinh viên bảo mật
+
+    Tập huấn nội bộ, gửi thử các campaign phishing, theo dõi tỉ lệ nhận diện/phản ứng.
+
+    Dùng kết quả làm bài học tăng awareness.
+
+7. Bảo mật & pháp lý
+
+    Tuyệt đối không tấn công ngoài phạm vi cho phép.
+
+    Chỉ dùng trong lab, đào tạo, pentest được cấp phép, CTF hoặc diễn tập.
+
+    Không phát tán malware thực ra ngoài.
+
+8. Một số trick nâng cao
+
+    Bypass browser warning: Đăng ký SSL cho domain phishing.
+
+    Dùng shortlink (bitly, tinyurl) hoặc custom redirect để che giấu link thật.
+
+    Tự động hóa gửi mail hàng loạt bằng SMTP relay, kết hợp spam test.
+
+    Kết hợp C2 framework (Cobalt Strike, Covenant, Metasploit...) để mở rộng payload.
+
+9. Tài liệu, video, lab
+
+    GitHub: https://github.com/trustedsec/social-engineer-toolkit
+
+    Docs chính thức (wiki): https://github.com/trustedsec/social-engineer-toolkit/wiki
+
+    Video hướng dẫn chi tiết:
+
+        YouTube: SET tutorial (Eng)
+
+        [Việt hóa: search “SET toolkit hướng dẫn thực chiến” trên YouTube]
+

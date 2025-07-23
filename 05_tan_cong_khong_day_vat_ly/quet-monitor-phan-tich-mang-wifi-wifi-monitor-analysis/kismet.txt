@@ -1,0 +1,170 @@
+1. Kismet là gì?
+
+    Kismet là một wireless network detector, sniffer, and IDS (HIDS) mạnh nhất mã nguồn mở.
+
+    Phát hiện, phân tích, thu thập, theo dõi real-time mọi tín hiệu RF:
+
+        Wi-Fi 802.11 a/b/g/n/ac/ax (2.4GHz, 5GHz, 6GHz)
+
+        Bluetooth, BLE, Zigbee, ADS-B, SDR, LoRa, RFID, DECT...
+
+    Thu thập handshake, phân tích beacon, phát hiện AP ẩn, monitor rogue AP, evil twin, device mapping, GPS track (wardriving)...
+
+    Cực mạnh cho pentest Wi-Fi, blue team wireless defense, phân tích forensic, hunt threat nội bộ.
+
+2. Cài đặt Kismet
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install kismet
+
+(Luôn nên cài bản mới nhất từ source nếu muốn tính năng mới nhất.)
+B. Cài bản mới nhất (Linux mọi distro)
+
+git clone https://www.kismetwireless.net/git/kismet.git
+cd kismet
+./configure
+make
+sudo make install
+
+(Xem doc chi tiết: https://www.kismetwireless.net/docs/readme/)
+3. Cấu hình card Wi-Fi cho Kismet
+
+    Yêu cầu: card hỗ trợ monitor mode (Atheros, Ralink, Intel, Realtek... – USB hoặc PCIe).
+
+    Enable monitor mode (có thể auto):
+
+    sudo ip link set wlan1 down
+    sudo iw dev wlan1 set type monitor
+    sudo ip link set wlan1 up
+
+    Hoặc để Kismet tự detect & enable.
+
+    Có thể dùng nhiều card đồng thời (scan đa băng tần).
+
+4. Khởi động Kismet – giao diện web cực mạnh
+A. Chạy Kismet
+
+sudo kismet
+
+    Giao diện mặc định ở http://localhost:2501
+
+    Đăng nhập user đầu tiên, đặt pass (bạn là admin).
+
+B. Kết nối remote:
+
+    Có thể remote qua LAN/WAN, dùng agent hoặc server tập trung.
+
+5. Sử dụng Kismet cơ bản
+A. Scan và thu thập Wi-Fi
+
+    Truy cập giao diện web.
+
+    Chọn card Wi-Fi (interface), start scan.
+
+    Real-time thấy SSID, AP, client, traffic, encryption, kênh, vendor, RSSI, probe request...
+
+B. Lưu log (PCAP, NetXML, log GPS, alert...)
+
+    Có thể export mọi loại log để phân tích về sau (cho Wireshark, tshark, custom tool).
+
+C. Phân tích AP, client, frame
+
+    Click từng AP/client để xem chi tiết beacon, probe, handshake, auth, association...
+
+    Xem history connection, mapping device theo thời gian.
+
+6. Tính năng nâng cao của Kismet
+Tính năng mạnh	Ứng dụng thực chiến
+Wardriving/GPS track	Gắn GPS (usb, module, điện thoại), mapping mạng Wi-Fi ngoài thực địa, vẽ heatmap coverage
+Phát hiện AP ẩn, SSID hidden	Phân tích beacon/probe, bóc SSID ẩn, dò tìm “evil twin”
+IDS/Alert rogue AP, attack detection	Alert khi có AP mới, SSID fake, auth flood, deauth, beacon spam, ARP spoof
+Thu thập WPA handshake, PMKID	Export PCAP để crack offline (aircrack-ng, hashcat)
+Sniff BLE/Bluetooth/Zigbee/SDR	Phát hiện IoT device, leak thông tin BLE, theo dõi tracking thiết bị
+Data fusion	Kết hợp nhiều card sniff đa kênh, multi-protocol (wifi + BLE cùng lúc)
+Plugin/add-on	Lập trình thêm tính năng, automation, alert, export custom
+Integration API	Kết nối với Splunk, ELK, SIEM, threat intel...
+7. Workflow thực chiến pentest với Kismet
+A. Wardriving / Asset discovery
+
+    Gắn GPS, start Kismet (hoặc kết nối app GPS trên điện thoại).
+
+    Thu thập log toàn bộ AP, mapping coverage mạng quanh bạn.
+
+    Export log, vẽ bản đồ coverage, tìm “mạng lạ”, rogue AP, mapping asset thật.
+
+B. Phát hiện Evil Twin, rogue AP
+
+    Dùng tab Alerts, bật detection “SSID duplicate”, “AP new on channel”, “abnormal beacon interval”,…
+
+    Khi client probe tới SSID không broadcast, Kismet vẫn log được request này (thường lộ rõ pass hoặc SSID nhạy cảm).
+
+C. Thu thập WPA handshake, PMKID
+
+    Kismet sẽ tự động lưu PCAP các handshake vào thư mục log (thường /var/log/kismet/).
+
+    Export file, crack bằng aircrack-ng/hashcat:
+
+    aircrack-ng -w wordlist.txt handshake.pcap
+    hashcat -m 22000 handshake.hc22000 wordlist.txt
+
+D. Phân tích traffic, forensic wireless
+
+    Dùng log PCAP cho Wireshark, tshark, trình phân tích protocol.
+
+    Lọc packet theo SSID, MAC, event, frame type...
+
+E. Hunting & threat detection
+
+    Định nghĩa rule alert tự động: rogue AP, beacon flood, auth deauth attack, presence unknown device...
+
+    Alert gửi về email, Slack, syslog, API...
+
+8. Automation/script hóa với Kismet
+
+    API: Kismet cung cấp REST API lấy real-time data, log, event cho automation/script/python.
+
+    Kismetdb: Export log .kismetdb (sqlite), dễ dàng phân tích với script/batch, dashboard.
+
+    Batch export PCAP cho nhiều SSID, filter client/AP theo pattern:
+
+        Tự động filter/alert client probe tới SSID nhạy cảm, dò leak thông tin người dùng.
+
+    Kismet Remote Agent: Scan nhiều site, gửi log về 1 server tổng hợp.
+
+9. Fix lỗi & mẹo thực tế
+Lỗi phổ biến	Fix/Note
+Không thấy card Wi-Fi	Chạy với sudo, check card support monitor, tắt network manager hoặc unbind trước
+Card không lên monitor mode	Thử airmon-ng start wlanX, check firmware/driver, test card khác
+Không log được handshake	Card không hỗ trợ injection, chọn đúng channel AP, victim chưa kết nối
+Log quá nặng	Định kỳ dọn /var/log/kismet/, chỉ bật interface cần thiết
+GPS không nhận	Kết nối gpsd đúng port, kiểm tra perm /dev/ttyUSBx, hoặc dùng GPS over WiFi app
+Alert false positive	Tinh chỉnh rule, threshold, filter device known/trusted
+10. So sánh Kismet với các tool khác
+Tool	Ưu điểm Kismet	Khác biệt
+Kismet	Đa giao thức, alert, web UI, automation, multi-protocol, plugin, phân tích sâu	Cài đặt phức tạp hơn, GUI không đẹp như các tool thương mại
+airodump-ng	Siêu nhẹ, CLI, thu handshake, realtime	Không alert, không automation, chỉ Wi-Fi
+Wifite/airgeddon	Pentest Wi-Fi auto, handshake, evil twin nhanh	Không phải IDS, không mapping, không phân tích traffic
+Bettercap	Sniff, MITM, BLE, CLI/web	Không mạnh về phân tích log Wi-Fi
+Commercial (Ekahau, AirMagnet)	Enterprise, UI pro, mapping 3D	Mất phí cao, nhiều feature hơn Kismet
+11. Tài liệu, link hữu ích
+
+    Kismet Official
+
+    Kismet Docs
+
+    Hacktricks – Wi-Fi pentest
+
+    Aircrack-ng Project
+
+    PayloadAllTheThings – WiFi
+
+    Kismet API
+
+Tóm tắt nhanh
+
+    Kismet là IDS/sniffer/wardriving tool mạnh nhất cho pentest, security, wireless forensic — phân tích AP, client, phát hiện rogue, thu thập handshake, alert attack, mapping GPS, scan đa protocol (Wi-Fi/BLE/Zigbee/SDR...).
+
+    Web UI trực quan, automation mạnh, plugin/add-on, export log sâu cho mọi mục tiêu pentest, audit, blue team defense.
+
+    Nên phối hợp với aircrack-ng, hashcat, Wireshark, script Python, SIEM... để nâng workflow!

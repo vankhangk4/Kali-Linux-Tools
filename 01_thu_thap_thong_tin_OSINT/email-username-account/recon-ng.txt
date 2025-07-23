@@ -1,0 +1,114 @@
+recon-ng là framework mã nguồn mở cực mạnh để thực hiện OSINT (Open Source Intelligence), đặc biệt chuyên cho recon (thu thập thông tin) về domain, email, tài khoản, IP, tổ chức…
+Nó hoạt động giống Metasploit nhưng dành cho OSINT: có giao diện dòng lệnh, tập trung vào module, tự động hóa, xuất báo cáo chuyên nghiệp.
+1. Tác dụng của recon-ng
+
+    Tự động hóa quá trình thu thập thông tin về domain, email, username, IP, host, lỗ hổng, dữ liệu rò rỉ, social account, ...
+
+    Tích hợp hàng trăm module cho từng mục tiêu cụ thể: từ passive (liệt kê subdomain, search engine, certificate transparency...) đến active (brute-force, khai thác lỗ hổng nhỏ...).
+
+    Tích hợp API của các dịch vụ lớn: Shodan, Censys, VirusTotal, HaveIBeenPwned, BinaryEdge, Google, Bing...
+
+    Lưu dữ liệu thu thập vào database (SQLite), xuất report HTML, CSV, JSON, v.v.
+
+    Hỗ trợ scripting/automation (thực thi nhiều module liên tục theo workspace).
+
+    Rất mạnh để chuẩn hóa, tự động và lặp lại quá trình OSINT/profiling mục tiêu.
+
+2. Cách sử dụng recon-ng cơ bản
+1. Cài đặt
+
+sudo apt install recon-ng
+
+Hoặc:
+
+git clone https://github.com/lanmaster53/recon-ng.git
+cd recon-ng
+pip install -r REQUIREMENTS
+./recon-ng
+
+2. Giao diện sử dụng
+
+    Khởi động:
+
+recon-ng
+
+Giao diện giống như Metasploit:
+
+    [recon-ng][default] >
+
+3. Workflow cơ bản
+
+    Tạo workspace (tùy chọn, nên dùng khi điều tra nhiều target):
+
+workspaces create ten_workspace
+
+Nhập thông tin mục tiêu:
+
+    Domain:
+
+add domains example.com
+
+Email:
+
+    add contacts email@example.com
+
+Liệt kê và load module:
+
+show modules
+use recon/domains-hosts/bing_domain_web
+
+Thiết lập options cho module:
+
+show options
+set SOURCE example.com
+
+Chạy module:
+
+run
+
+Xem kết quả:
+
+show hosts
+show contacts
+show vulnerabilities
+
+Xuất báo cáo:
+
+    export csv report.csv
+
+3. Một số module OSINT phổ biến
+Module	Tác dụng
+recon/domains-hosts/google_site_web	Tìm host qua Google
+recon/domains-contacts/whois_pocs	Lấy thông tin liên hệ WHOIS
+recon/domains-vulnerabilities/xssed	Kiểm tra domain có bị dính XSS
+recon/hosts-hosts/resolve	DNS resolve subdomain
+recon/domains-credentials/haveibeenpwned	Check credential rò rỉ
+recon/hosts-hosts/shodan_hostname	Lấy thông tin host qua Shodan
+recon/profiles-profiles/linkedin	Tìm thông tin profile LinkedIn
+4. Lưu ý khi sử dụng
+
+    Nhiều module cần API key: Phải cấu hình API (keys add <provider> <apikey>) trước.
+
+    Kết quả lưu tự động vào database: Dễ quản lý, so sánh, xuất report hàng loạt.
+
+    Có thể viết script .rc để tự động hóa nhiều bước trong 1 lệnh.
+
+    Có thể bị giới hạn (rate limit) nếu dùng API miễn phí.
+
+5. Ví dụ quy trình recon-ng tìm subdomain
+
+workspaces create test
+add domains example.com
+use recon/domains-hosts/certspotter
+set SOURCE example.com
+run
+show hosts
+export csv hosts.csv
+
+6. Tài liệu tham khảo
+
+    Recon-ng Docs & Module List
+
+    Recon-ng Guide
+
+    HackTricks: recon-ng

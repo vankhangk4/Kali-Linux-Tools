@@ -1,0 +1,152 @@
+1. OpenVAS là gì?
+
+    OpenVAS (Open Vulnerability Assessment System): Bộ công cụ mã nguồn mở mạnh mẽ để quét, phát hiện lỗ hổng bảo mật hệ thống, ứng dụng, network, dịch vụ…
+
+    Ngày nay, nó là phần lõi của Greenbone Vulnerability Management (GVM).
+
+    So sánh: OpenVAS = “Nessus open-source”, cực mạnh, liên tục cập nhật các lỗ hổng mới.
+
+2. Cài đặt OpenVAS/GVM
+Trên Kali Linux/Ubuntu
+
+sudo apt update
+sudo apt install openvas
+sudo gvm-setup
+
+    Cài xong, dùng lệnh sau để khởi động dịch vụ:
+
+sudo gvm-check-setup      # Kiểm tra setup đã ổn chưa
+sudo gvm-start            # Khởi động tất cả service cần thiết
+
+    Web UI mặc định: https://127.0.0.1:9392
+    (user/pass sẽ hiện khi setup lần đầu, hoặc dùng sudo gvm-manage-certs -a để tạo lại)
+
+3. Sử dụng cơ bản – Quét lỗ hổng đầu tiên
+A. Truy cập Web UI (GVM/OpenVAS Web Interface)
+
+    Mở trình duyệt: https://127.0.0.1:9392
+
+    Đăng nhập với user/pass đã tạo.
+
+B. Các bước quét cơ bản
+
+    Tạo Target (mục tiêu quét):
+
+        Scans > Targets > New Target
+
+        Nhập IP/Domain
+
+    Tạo Scan Task (Nhiệm vụ quét):
+
+        Scans > Tasks > New Task
+
+        Chọn Target vừa tạo, chọn Scan Config (ví dụ: Full and Fast, Full and Very Deep…)
+
+    Start Scan: Nhấn nút play để bắt đầu quét.
+
+    Xem kết quả:
+
+        Sau khi scan xong, vào Results/Reports để xem các lỗ hổng đã tìm được.
+
+4. Giải thích kết quả quét
+
+    Severity (Mức độ nguy hiểm): Critical, High, Medium, Low, Log.
+
+    NVT: Network Vulnerability Tests – tên các bài kiểm tra.
+
+    CVSS: Điểm chuẩn mức độ nguy hiểm (theo chuẩn quốc tế).
+
+    References: Liên kết tới CVE, Exploit-DB, vendor advisory, v.v.
+
+    Fix suggestion: Gợi ý cách khắc phục từng lỗ hổng.
+
+5. Các tuỳ chọn và cấu hình nâng cao
+A. Cấu hình các loại scan
+
+    Scan Config:
+
+        Full and fast: Phổ biến nhất, quét nhanh nhưng vẫn tìm được nhiều lỗ hổng.
+
+        Full and very deep: Rất kỹ, rất lâu, dùng cho pentest kỹ càng.
+
+        Host Discovery: Chỉ quét xem host có sống không.
+
+        Web application: Quét tập trung vào lỗ hổng web.
+
+    Có thể tự clone và custom scan config để phù hợp hệ thống của bạn.
+
+B. Tùy chỉnh exclude, include port, service
+
+    Khi tạo Target, bạn có thể chọn port cụ thể hoặc exclude dịch vụ không muốn quét (giảm false positive, tăng tốc scan).
+
+C. Quét nhiều mục tiêu
+
+    Nhập danh sách IP hoặc subnet (VD: 192.168.1.0/24) để quét nhiều máy một lúc.
+
+    Lên lịch scan định kỳ (Schedule).
+
+D. Tích hợp Credentialed Scan
+
+    Thêm user/pass (local/remote) để quét sâu, kiểm tra cấu hình bên trong OS/DB/Webserver…
+
+E. Export báo cáo
+
+    Xuất báo cáo ra PDF, XML, CSV, HTML… phù hợp gửi quản trị viên hoặc khách hàng.
+
+6. OpenVAS Command-line nâng cao (gvm-cli, omp)
+
+    Có thể dùng gvm-cli hoặc omp để tự động hóa, tích hợp với script bash/python.
+
+    Ví dụ:
+
+gvm-cli ssh --hostname <host> --gmp-username <user> --gmp-password <pass>
+
+    Script quét tự động hàng trăm host, hoặc scan định kỳ, gửi email báo cáo.
+
+7. Một số mẹo, trick và best-practice
+
+    Update Feed thường xuyên:
+
+    sudo greenbone-feed-sync --type GVMD_DATA
+    sudo greenbone-feed-sync --type SCAP
+    sudo greenbone-feed-sync --type CERT
+
+    Giúp bạn cập nhật NVT và lỗ hổng mới nhất!
+
+    Tối ưu tốc độ scan:
+
+        Chỉ quét các service thực sự đang chạy.
+
+        Hạn chế range port (chỉ quét 22,80,443,445... nếu cần).
+
+        Quét ngoài giờ làm việc để tránh ảnh hưởng service.
+
+    Xử lý false positive:
+
+        Đọc kỹ kết quả, so sánh với banner/service thực tế.
+
+        Có thể “override” hoặc “ignore” các cảnh báo sai.
+
+8. Tích hợp với các công cụ khác
+
+    Có thể xuất kết quả và import vào:
+
+        Metasploit, Splunk, ELK, SIEM, AWVS, Nessus, OpenSCAP v.v…
+
+    Làm thành pipeline kiểm thử liên tục (CI/CD security).
+
+9. Xử lý sự cố thường gặp
+Vấn đề	Cách xử lý
+Feed lỗi, không update NVT	Chạy lại sync hoặc xóa cache, thử mạng khác
+Web UI không vào được	Kiểm tra firewall, service (gvm-start)
+Quét bị treo, quá chậm	Thu hẹp phạm vi, giảm số target, chỉ quét port cần thiết
+Kết quả scan trống	Kiểm tra target, port, network có “bật” không, firewall có block không
+10. Tài liệu và link hữu ích
+
+    Greenbone Docs
+
+    OpenVAS on Kali Wiki
+
+    OpenVAS Tips
+
+    Github Greenbone

@@ -1,0 +1,189 @@
+1. systemctl là gì?
+
+    systemctl là công cụ dòng lệnh để quản lý các service, unit, trạng thái hệ thống trên các hệ điều hành sử dụng systemd.
+
+    Thay thế cho các lệnh cũ như: service, chkconfig, init.d.
+
+2. Cấu trúc unit trong systemd
+
+    Service unit: quản lý dịch vụ (*.service)
+
+    Socket unit: quản lý socket (*.socket)
+
+    Target unit: tập hợp nhiều unit (*.target)
+
+    Timer unit: lên lịch thực thi (*.timer)
+
+    Mount unit: quản lý mount point (*.mount)
+
+    ... còn nhiều loại khác.
+
+3. Cú pháp cơ bản
+
+systemctl [COMMAND] [NAME] [OPTION]
+
+Ví dụ:
+
+systemctl status nginx
+systemctl start sshd
+systemctl restart apache2.service
+
+4. Các lệnh phổ biến nhất
+Lệnh	Ý nghĩa
+systemctl status <service>	Xem trạng thái dịch vụ
+systemctl start <service>	Khởi động dịch vụ
+systemctl stop <service>	Dừng dịch vụ
+systemctl restart <service>	Khởi động lại dịch vụ
+systemctl reload <service>	Reload dịch vụ (không khởi động lại hoàn toàn)
+systemctl enable <service>	Cho phép dịch vụ tự động khởi động cùng hệ thống
+systemctl disable <service>	Bỏ tự động khởi động cùng hệ thống
+systemctl is-enabled <service>	Kiểm tra dịch vụ có đang được enable không
+systemctl is-active <service>	Kiểm tra dịch vụ có đang chạy không
+systemctl list-units --type=service	Liệt kê tất cả các service
+systemctl daemon-reload	Reload lại systemd (khi sửa file unit)
+5. Ví dụ thực tế
+Khởi động, dừng, khởi động lại nginx:
+
+systemctl start nginx
+systemctl stop nginx
+systemctl restart nginx
+
+Xem trạng thái sshd:
+
+systemctl status sshd
+
+Bật dịch vụ mysql khởi động cùng hệ thống:
+
+systemctl enable mysql
+systemctl is-enabled mysql
+
+Dừng không cho apache2 tự chạy khi boot:
+
+systemctl disable apache2
+
+6. Kiểm soát toàn hệ thống
+Lệnh	Ý nghĩa
+systemctl reboot	Khởi động lại máy
+systemctl poweroff	Tắt máy
+systemctl suspend	Đưa hệ thống vào trạng thái suspend
+systemctl hibernate	Ngủ đông
+systemctl halt	Ngừng hệ thống
+7. Các lệnh nâng cao & tuỳ chọn
+a. Liệt kê unit/service
+
+systemctl list-units --type=service           # Đang hoạt động
+systemctl list-units --all --type=service     # Tất cả, kể cả không hoạt động
+systemctl list-unit-files --type=service      # Tất cả file .service (trạng thái enable/disable)
+
+b. Xem log dịch vụ (journal)
+
+journalctl -u nginx
+journalctl -xe
+journalctl -b      # Log kể từ lần boot gần nhất
+journalctl --since "2024-07-01 00:00:00"
+
+c. Mask/Unmask service (vô hiệu hoá tạm thời)
+
+systemctl mask apache2    # Vô hiệu hóa hoàn toàn, không thể khởi động kể cả thủ công
+systemctl unmask apache2  # Bỏ mask
+
+d. Reload lại systemd (sau khi chỉnh file unit/service)
+
+systemctl daemon-reload
+
+8. Unit file – cách tự viết service cho script/app của bạn
+
+    Unit file thường đặt ở /etc/systemd/system/ hoặc /lib/systemd/system/.
+
+Ví dụ tạo service cho script custom:
+
+Tạo file /etc/systemd/system/myscript.service:
+
+[Unit]
+Description=My Custom Script
+
+[Service]
+ExecStart=/usr/local/bin/myscript.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+Sau đó:
+
+systemctl daemon-reload
+systemctl enable myscript
+systemctl start myscript
+systemctl status myscript
+
+9. Một số lệnh hay dùng cho quản trị viên
+Kiểm tra trạng thái tất cả dịch vụ không chạy:
+
+systemctl --failed
+
+Tìm dịch vụ đang “hung” (stuck, crashed):
+
+systemctl list-units --state=failed
+
+Xem dependency giữa các unit:
+
+systemctl list-dependencies nginx
+
+10. Các lỗi thường gặp và khắc phục
+Lỗi/Thông báo	Nguyên nhân & khắc phục
+Unit xyz.service not found	Sai tên service, kiểm tra lại với list-unit-files
+Failed to start ...	Check log với journalctl -xe -u <service>
+System has not been booted with systemd	Hệ thống không dùng systemd (vd: Docker Alpine)
+Access denied	Thiếu quyền, chạy với sudo
+Sau khi sửa unit file không nhận thay đổi	Phải chạy systemctl daemon-reload
+11. Automation & Script thực chiến
+Khởi động lại tất cả service đang failed:
+
+for s in $(systemctl --failed --no-legend | awk '{print $1}'); do
+  systemctl restart $s
+done
+
+Lấy danh sách các service enable:
+
+systemctl list-unit-files --state=enabled
+
+Ghi log trạng thái toàn bộ service về file:
+
+systemctl list-units --type=service > services_status.txt
+
+12. So sánh systemctl với các lệnh cũ
+Tác vụ	Lệnh cũ	Lệnh systemctl
+Khởi động service	service nginx start	systemctl start nginx
+Bật tự động khi boot	chkconfig nginx on	systemctl enable nginx
+Kiểm tra trạng thái	service nginx status	systemctl status nginx
+Dừng service	service nginx stop	systemctl stop nginx
+13. Tài liệu, tra cứu thêm
+
+    Man page:
+
+    man systemctl
+    man systemd
+
+    Trang chủ:
+    https://www.freedesktop.org/wiki/Software/systemd/
+
+    Cheat sheet:
+    https://gist.github.com/tyru/74e37c8e9a5c4e84e13e
+
+14. Các mẹo & lưu ý thực chiến
+
+    Luôn chạy systemctl daemon-reload nếu bạn chỉnh sửa unit file thủ công.
+
+    Chạy systemctl restart <service> thay vì stop rồi start lại, để giảm downtime.
+
+    Khi gặp lỗi, dùng journalctl -xe -u <service> để xem log chi tiết.
+
+    mask chỉ nên dùng khi muốn "vô hiệu hóa cứng" một service, kể cả khi user/sudo chạy cũng không start được.
+
+    Có thể tạo các timer (*.timer) để thay thế cronjob.
+
+15. Tổng kết
+
+    systemctl là công cụ quản lý dịch vụ và hệ thống tiêu chuẩn trên Linux hiện đại.
+
+    Làm chủ systemctl giúp bạn vận hành server hiệu quả, quản lý service chủ động, xử lý sự cố chuyên nghiệp.

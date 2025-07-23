@@ -1,0 +1,92 @@
+smbclient là một công cụ dòng lệnh của bộ Samba trên Linux, dùng để truy cập và quản lý các chia sẻ SMB/CIFS trên mạng Windows (giống như bạn dùng Windows Explorer để truy cập \server\share vậy). Đây là tool cực kỳ phổ biến trong pentest, CTF và cả admin hệ thống khi cần truy cập, upload/download file, hoặc enumerate share trên hệ thống Windows từ Linux.
+1. Tác dụng của smbclient
+
+    Liệt kê các share (thư mục chia sẻ) trên máy chủ Windows.
+
+    Kết nối, upload/download file qua SMB.
+
+    Duyệt nội dung, tạo/xóa thư mục, copy file như FTP client.
+
+    Thử credential brute-force hoặc check anonymous access.
+
+    Tìm thông tin ẩn trên share (flag, backup, cấu hình...).
+
+2. Cách dùng smbclient cơ bản
+1. Liệt kê các share trên máy chủ Windows
+
+smbclient -L //<ip-address> -N
+
+    -L: Liệt kê (List) các share có trên host.
+
+    -N: Không cần password (anonymous).
+
+Ví dụ:
+
+smbclient -L //10.10.10.5 -N
+
+2. Kết nối vào 1 share cụ thể
+
+smbclient //<ip-address>/<share_name> -U <username>
+
+Hoặc kết nối anonymous:
+
+smbclient //<ip-address>/<share_name> -N
+
+Ví dụ:
+
+smbclient //10.10.10.5/backup -N
+
+Sau khi connect thành công, bạn sẽ vào giao diện giống FTP, có thể chạy các lệnh như:
+
+    ls: Liệt kê file/folder
+
+    cd <folder>: Đổi thư mục
+
+    get <file>: Tải file về
+
+    put <file>: Upload file lên
+
+    mget *: Tải nhiều file
+
+    prompt: Tắt/bật hỏi xác nhận
+
+    lcd <local_folder>: Đổi thư mục local
+
+3. Kết nối với user/password
+
+smbclient //<ip-address>/<share_name> -U <username>%<password>
+
+Ví dụ:
+
+smbclient //10.10.10.5/backup -U khang%123456
+
+4. Kết nối với domain
+
+smbclient //<ip-address>/<share_name> -U "domain\\username"
+
+Ví dụ:
+
+smbclient //10.10.10.5/backup -U "corp\\khang"
+
+3. Một số option hữu ích
+Tham số	Ý nghĩa
+-L	Liệt kê các share
+-N	Không cần password (anonymous)
+-U	Username
+-W	Chỉ định domain
+-c	Chạy lệnh tự động khi connect
+-p	Chỉ định port (thường là 445 hoặc 139)
+4. Kinh nghiệm thực chiến
+
+    Nhiều máy chủ bật SMB share anonymous: Có thể lấy được nhiều thông tin mà không cần password.
+
+    Kết hợp với tool khác: brute-force với hydra, enumerate với enum4linux, dump file bằng smbmap, v.v.
+
+    Upload reverse shell, khai thác lỗ hổng, lấy flag: Đây là phương pháp rất hay gặp trong CTF.
+
+5. Tài liệu tham khảo
+
+    Samba docs - smbclient
+
+    HackTricks SMB
+
