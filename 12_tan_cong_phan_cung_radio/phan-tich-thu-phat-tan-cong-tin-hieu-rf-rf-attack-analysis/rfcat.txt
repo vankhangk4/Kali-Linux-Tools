@@ -1,0 +1,182 @@
+1. RFCat là gì?
+
+    RFCat là một framework Python mạnh mẽ giúp giao tiếp với chip CC1111 (như YARD Stick One, RFCat dongle, Hacker RF...) để:
+
+        Thu/phát/gửi lệnh tùy ý (TX/RX)
+
+        Phân tích/clone remote garage, sensor, IoT, RFID, keyless entry, smart home...
+
+        Fuzzing, script hóa, automation attack, replay, brute-force…
+
+    Được yêu thích cho Sub-GHz hacking vì code Python cực tiện, nhiều module, có thể chạy interactive hoặc script.
+
+2. Thiết bị hỗ trợ RFCat
+
+    YARD Stick One (chip CC1111, phổ biến nhất, plug&play)
+
+    CC1111 USB dongle (china/clone, cần flash firmware RFCat)
+
+    Ubertooth (chỉ dùng cho BLE, ít dùng với RFCat)
+
+    Một số hackable dongle RF khác (check RFCat Github!)
+
+3. Cài đặt RFCat
+A. Trên Kali/Ubuntu/Debian
+
+sudo apt update
+sudo apt install python3-pip git
+pip3 install pyusb pyserial
+git clone https://github.com/atlas0fd00m/rfcat.git
+cd rfcat
+sudo python3 setup.py install
+
+B. Flash firmware RFCat (nếu thiết bị chưa có)
+
+    Dùng script trong repo RFCat hoặc tool rfcat_firmware.
+
+    Có nhiều bản fw cho CC1111, check doc repo.
+
+C. Kiểm tra thiết bị
+
+rfcat -l
+
+    Nếu thấy “Dongle: CC1111” là OK!
+
+4. Sử dụng RFCat interactive shell (basic)
+
+sudo rfcat -r
+
+    Truy cập interactive shell (>>), nhập Python trực tiếp điều khiển RF dongle.
+
+Lệnh cơ bản:
+
+# Set frequency (Hz)
+d.setFreq(433920000)     # Thường dùng 433.92 MHz (remote garage, sensor,...)
+d.setFreq(315000000)     # Remote Mỹ
+d.setFreq(868000000)     # Châu Âu, sensor
+
+# Set modulation (AM, ASK/OOK, FSK,...)
+d.setMdmModulation(MOD_ASK_OOK)
+d.setMdmModulation(MOD_2FSK)
+
+# Set baud rate (bps)
+d.setMdmDRate(4800)
+d.setMdmDRate(25000)
+
+# Set power
+d.setMaxPower()      # TX mạnh nhất
+
+# RX/thu tín hiệu
+d.RX()               # Bắt sóng
+
+# TX/gửi dữ liệu
+d.send(b"\xA1\xB2\xC3\xD4")
+
+# TX lặp liên tục (burst, fuzz)
+for i in range(100):
+    d.send(b"\xAA\x55\xAA\x55")
+
+# Đổi gain, filter...
+d.lowball()          # set mode hay dùng (433 MHz, OOK, 4800 baud)
+
+5. Thu tín hiệu RF (RX), phân tích, decode
+
+    d.setFreq(<freq>), d.setMdmDRate(<baud>), d.setMdmModulation(<mod>)
+
+    d.RX(), nhận tín hiệu vào buffer (Python object).
+
+    Copy output raw về phân tích tiếp bằng Inspectrum, Audacity, URH, sox...
+
+    Script Python filter/fuzz/record log buffer → file.
+
+6. Gửi tín hiệu (TX) – replay, brute, clone remote
+
+    d.send(b"<payload>"): gửi lệnh tự chọn.
+
+    d.setMdmSyncMode(0): tắt sync, giúp gửi tín hiệu "raw" hơn (dùng cho remote không chuẩn sync).
+
+    Replay lệnh vừa thu được:
+
+        Nhận tín hiệu của remote, tìm payload (pattern), gửi lại bằng d.send.
+
+    Brute-force payload:
+
+        Loop gửi nhiều pattern, fuzz tín hiệu, thử các giá trị điều khiển khác nhau.
+
+    Fuzzing attack (ví dụ, gửi mọi byte từ 0x00 đến 0xFF):
+
+    for b in range(0, 256):
+        d.send(bytes([b]*4))
+
+7. Script hóa RFCat (Python API)
+
+    Tạo file .py, import rfcat, điều khiển y như interactive.
+
+    Có thể batch fuzz, scan, log, auto replay, fuzz protocol (automation pentest, lab...).
+
+    Ví dụ:
+
+    from rflib import *
+    d = RfCat()
+    d.setFreq(433920000)
+    d.setMdmModulation(MOD_ASK_OOK)
+    d.setMdmDRate(4800)
+    d.setMaxPower()
+    while True:
+        d.send(b"\xA1\xB2\xC3\xD4")
+
+8. Mẹo thực chiến & tối ưu
+
+    Luôn thử các modulation phổ biến: OOK, 2FSK, 4FSK, GFSK
+
+    Tăng power khi gửi (TX), giảm khi thu (RX để giảm noise).
+
+    Test các baud rate phổ biến: 4800, 9600, 19200, 38400...
+
+    Kết hợp GQRX/RTL-SDR xác định chính xác tần số, burst, waveform trước khi decode/fuzz.
+
+    Script batch brute/fuzz để phát hiện device yếu/chưa có rolling code.
+
+    Log mọi output RX ra file để phân tích offline bằng Inspectrum/URH/Audacity.
+
+    Chạy rfcat với sudo, hoặc thêm user vào group dialout (trên Ubuntu).
+
+9. Fix lỗi thường gặp
+Lỗi	Cách xử lý
+"Dongle not found"	Cắm lại YARD Stick, flash đúng firmware, kiểm tra USB port
+"PyUSB/Permission"	Chạy với sudo, hoặc fix udev rule (cho phép user truy cập USB)
+"Không gửi/thu được tín hiệu"	Check tần số, modulation, baud rate, tăng power, đổi antenna
+Gửi tín hiệu không có tác dụng	Device target dùng rolling code, cần nghiên cứu protocol sâu hơn
+Lỗi import module	Đảm bảo cài đúng Python3, pyusb, pyserial, import đúng rfcat/rflib
+10. So sánh RFCat với các tool khác
+Tool/Device	Ưu điểm RFCat	Khác biệt
+RFCat + YARD Stick	Giao tiếp RF dễ với Python, automation, brute, replay cực nhanh, giá rẻ	Chỉ sub-GHz, không mạnh với RF phức tạp
+HackRF + GNURadio	Scan/quét/phân tích mọi tín hiệu RF 1–6GHz, mạnh hơn nhiều	Không điều khiển trực tiếp như Python, phức tạp với newbie
+RTL-SDR	Giá rẻ, thu RF, không phát	Chỉ RX, không replay/fuzz
+URH/Inspectrum	Decode, reverse protocol, visualize	Không gửi tín hiệu, không script automation
+Proxmark3	RFID NFC HF (13.56 MHz) hacking	Chỉ cho NFC, không sub-GHz
+11. Tài liệu, link hữu ích
+
+    RFCat Github
+
+    YARD Stick One
+
+    HackRF
+
+    Inspectrum
+
+    Universal Radio Hacker (URH)
+
+    SubGHz hacking – Hak5
+
+    PayloadAllTheThings – SDR
+
+    Hacktricks SDR/RF
+
+Tóm tắt nhanh
+
+    RFCat + YARD Stick One: combo hack Sub-GHz mạnh nhất, cho pentester, IoT/researcher, CTF – thu/phát, clone, replay, brute, fuzz RF, automation bằng Python.
+
+    Script hóa attack, dễ dùng, chi phí thấp, thích hợp phân tích mọi device Sub-GHz (remote garage, smart home, sensor, IoT...).
+
+    Nên phối hợp GQRX/HackRF/RTL-SDR để scan tần số, URH/Audacity/Inspectrum để decode offline, luôn kiểm soát pháp lý RF!
