@@ -1,0 +1,202 @@
+1. RTL-SDR là gì?
+
+    RTL-SDR là USB dongle rẻ tiền (~10-30$) biến máy tính thành thiết bị thu sóng vô tuyến SDR (Software Defined Radio).
+
+    Dải tần hỗ trợ: ~24MHz đến ~1.7GHz (có thể hơn tùy loại), đủ nghe FM, AM, sóng hàng không, AIS, ADS-B, pager, IoT, remote điều khiển, tín hiệu số/analog...
+
+    Ứng dụng:
+
+        Nghe lén, phân tích, hack remote, car key, IoT, wireless sensor
+
+        Nghe đài FM, police, hàng không, tàu thủy, pager
+
+        Phân tích phổ tần, phát hiện tấn công RF, cảnh báo/forensic
+
+2. Cài đặt và chuẩn bị RTL-SDR
+A. Phần cứng
+
+    Mua RTL-SDR dongle (tốt nhất là loại hỗ trợ TCXO, SMA, anten tốt)
+
+    Cắm vào máy tính Linux/Windows/MacOS
+
+B. Cài driver & tool cơ bản
+Trên Ubuntu/Kali/Debian
+
+sudo apt update
+sudo apt install rtl-sdr gqrx-sdr gnuradio gr-osmosdr sox
+
+    rtl-sdr: các tool dòng lệnh cơ bản (rtl_test, rtl_fm, rtl_tcp, rtl_power)
+
+    gqrx-sdr: phần mềm GUI nghe radio, spectrum
+
+    gnuradio, gr-osmosdr: framework mạnh, automation, decode/protocol analysis
+
+Windows
+
+    Dùng Zadig để chuyển driver sang WinUSB
+
+    Phần mềm: SDR#, HDSDR, GQRX, GNURadio, CubicSDR…
+
+3. Test và nhận diện RTL-SDR
+
+    Kiểm tra nhận USB:
+
+    lsusb
+    rtl_test
+
+        Output: "Found 1 device(s): …" là OK
+
+4. Nghe radio cơ bản bằng GQRX/SDR# (GUI)
+
+    Chạy gqrx
+
+    Chọn device: RTL2838/R820T
+
+    Chọn frequency (FM: 88–108MHz, hàng không: 118–137MHz…)
+
+    Tinh chỉnh gain, filter, mode (FM, AM, SSB)
+
+    Quan sát spectrum analyzer, waterfall để tìm tín hiệu mạnh/lạ
+
+5. Sniff, decode RF bằng dòng lệnh
+A. Nghe đài FM, xuất file wav
+
+rtl_fm -f 103.5M -M wbfm -s 200k -r 48k | sox -t raw -r 48k -e signed -b 16 -c 1 - -t wav fm.wav
+aplay fm.wav
+
+    -f: tần số (MHz)
+
+    -M: mode (wbfm, am, usb, lsb…)
+
+    -s: sample rate (Hz)
+
+    -r: output rate (Hz)
+
+B. Spectrum scan toàn dải tần
+
+rtl_power -f 24M:1.7G:1M -g 20 -i 10 -e 1h scan.csv
+
+    scan.csv sẽ có phổ tần, import vào heatmap, Excel để phân tích
+
+    Tìm các "peak" bất thường → bắt đầu sniff/decode
+
+6. Sniff, giải mã tín hiệu hàng không, tàu thủy, pager, IoT...
+A. ADS-B (máy bay)
+
+sudo apt install dump1090
+dump1090 --interactive --net
+# Web GUI: http://localhost:8080
+
+    Xem mọi máy bay, call sign, tọa độ xung quanh bạn!
+
+B. AIS (tàu biển)
+
+sudo apt install aisdecoder
+rtl_fm -f 161.975M -M fm -s 48k | aisdecoder -h localhost -p 10110
+
+# Hoặc dùng OpenCPN plugin để plot map tàu
+
+C. Pager/Flex/Pocsag/Capcode (tin nhắn công nghiệp)
+
+sudo apt install multimon-ng
+rtl_fm -f 137.950M -M fm -s 22050 -g 50 | multimon-ng -a FLEX -a POCSAG1200 -a POCSAG512 -t raw -
+
+    Đọc được hàng loạt tin nhắn nội bộ, cảnh báo, fire alarm!
+
+D. Decode remote, IoT sensor (433/315/868MHz)
+
+    Protocol phổ biến: ASK/OOK/FSK/BPSK, thường dùng giải mã bằng Universal Radio Hacker (URH), rtl_433, rfcat, hoặc GnuRadio.
+
+    Ví dụ rtl_433 (decode thiết bị IoT, cảm biến thời tiết, remote điều khiển cửa cuốn, ô tô):
+
+    sudo apt install rtl-433
+    rtl_433 -f 433.92M
+
+    Hỗ trợ decode tự động >200 loại sensor, remote, chuông cửa, đồng hồ đo…
+
+7. Automation script, hack thực chiến, forensic
+A. Script tự động spectrum scan + detect peak
+
+    Dùng rtl_power, tự động hóa bằng python:
+
+        Tìm peak bất thường → gửi alert
+
+        Forensic vùng RF (tìm tín hiệu lạ khi tấn công xảy ra)
+
+    Script mẫu:
+
+        Xem heatmap → phân tích có sự kiện RF bất thường (ví dụ trộm nhà dùng jammer, phát sóng lạ)
+
+B. Record raw IQ để phân tích lại
+
+rtl_sdr -f 433.92M -s 2.048M -g 40 -n 1e7 out.iq
+
+    Sau đó import vào Universal Radio Hacker (URH), GnuRadio để decode, reverse, tìm mã lệnh (phục vụ hack remote, replay attack)
+
+C. Hack remote, car key, garage door, IoT
+
+    Record & replay (nếu remote không có rolling code):
+
+        Dùng rtl_sdr/rtl_433/URH record tín hiệu khi bấm remote
+
+        Phân tích sóng (modulation, payload)
+
+        Sử dụng rfcat/YardStick/Flipper Zero/SDR khác để replay lại tín hiệu mở cửa, bật thiết bị...
+
+D. Automation + SIEM/monitor
+
+    Tích hợp python + rtl_433 để alert khi có sensor báo động
+
+    Dùng cron scan spectrum/ADS-B/AIS định kỳ để phát hiện sự cố/forensic
+
+8. Giao tiếp/stream từ xa (SDR server mode)
+A. Biến máy thành SDR TCP server
+
+rtl_tcp -a 0.0.0.0
+
+    Client GQRX, SDR#... kết nối qua mạng LAN/Internet, làm SDR cloud
+
+B. Đặt SDR tại vị trí xa, remote access, dùng cho project lớn (IoT/forensic/giám sát)
+9. Fix lỗi thực tế
+Lỗi	Fix
+Không nhận RTL-SDR	Dùng đúng driver, check lsusb, chạy rtl_test, cắm cổng USB khác
+Không nghe được tín hiệu	Gain quá thấp, anten yếu, chọn sai tần số/mode, test trên GQRX/spectrum
+Giải mã không đúng	Chọn sai modulation, sai sample rate, phân tích lại với URH/GnuRadio
+GQRX lag/treo	Card yếu, máy yếu, chạy background tool khác
+Phần mềm không nhận device	Bị lock bởi tool khác, close/restart, check permission group plugdev
+Record IQ file bị lỗi	Chọn sample rate phù hợp, thử lại với n mẫu nhỏ hơn
+10. So sánh RTL-SDR với các thiết bị và tool SDR khác
+Device/Tool	Ưu điểm RTL-SDR	Khác biệt
+RTL-SDR	Rẻ, phổ biến, dễ hack, cộng đồng lớn, hỗ trợ tool đa dạng	Không phát sóng (Rx only), dải tần trung bình, không chuyên nghiệp
+HackRF	Thu & phát (Tx/Rx), dải tần rộng (1MHz-6GHz), automation mạnh	Đắt hơn nhiều, tiêu thụ điện lớn, cần skill nâng cao
+BladeRF, USRP	Dải tần/protocol cực rộng, chuyên nghiệp, dùng cho research, GSM/4G/5G	Giá cực cao, chuyên dùng R&D
+SDR# (software)	GUI mạnh cho Windows	Không cross-platform, chỉ dùng Windows
+GQRX, CubicSDR	Cross-platform, GUI đẹp	Không automation mạnh như GNURadio
+rtl_433, multimon-ng	Decode sensor IoT, pager, remote tự động	Không decode tín hiệu lạ/custom
+11. Tài liệu, link hữu ích
+
+    RTL-SDR.com (Tổng hợp project, hướng dẫn, tool)
+
+    GQRX SDR
+
+    SDR#
+
+    Universal Radio Hacker (URH)
+
+    rtl_433
+
+    multimon-ng
+
+    GNURadio
+
+    ADS-B dump1090
+
+    AIS decoder
+
+    Awesome SDR list
+
+Tóm tắt nhanh
+
+    RTL-SDR: USB dongle giá rẻ biến máy tính thành thiết bị thu sóng radio, sniff & decode mọi loại tín hiệu RF, phân tích phổ tần, forensic, hack IoT/remote, chơi radio hobbyist, cảnh báo, automation project bảo mật/thú vị.
+
+    Kết hợp GQRX/SDR#/rtl_433/GNURadio/URH để automation, forensic, decode, reverse tín hiệu cho pentest/lab/hack IoT hoặc chơi hack RF!
