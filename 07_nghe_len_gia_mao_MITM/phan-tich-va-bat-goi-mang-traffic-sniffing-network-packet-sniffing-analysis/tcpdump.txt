@@ -1,0 +1,160 @@
+1. Giới thiệu về tcpdump
+
+    tcpdump là công cụ dòng lệnh cực kỳ mạnh để bắt và phân tích các gói tin mạng.
+
+    Dùng phổ biến trong kiểm tra, debug, điều tra bảo mật, forensics…
+
+    Hỗ trợ nhiều filter (bộ lọc) cực kỳ linh hoạt.
+
+2. Cài đặt tcpdump
+Trên Ubuntu/Debian/Kali Linux:
+
+sudo apt update
+sudo apt install tcpdump
+
+Trên CentOS/RHEL:
+
+sudo yum install tcpdump
+
+Kiểm tra phiên bản:
+
+tcpdump --version
+
+3. Các lệnh cơ bản
+Xem các card mạng có thể bắt:
+
+tcpdump -D
+
+Bắt gói trên interface (vd: eth0)
+
+sudo tcpdump -i eth0
+
+    Nếu không chỉ định -i thì tcpdump mặc định bắt trên interface đầu tiên.
+
+Bắt 10 gói rồi dừng:
+
+sudo tcpdump -i eth0 -c 10
+
+Bắt và lưu ra file:
+
+sudo tcpdump -i eth0 -w output.pcap
+
+    File này mở bằng Wireshark cũng được.
+
+Đọc file .pcap:
+
+tcpdump -r output.pcap
+
+4. Bộ lọc (filter) trong tcpdump
+
+Tcpdump hỗ trợ bộ lọc mạnh mẽ theo chuẩn BPF. Một số ví dụ:
+Bắt gói theo IP:
+
+tcpdump -i eth0 host 192.168.1.5
+
+Bắt gói theo nguồn hoặc đích:
+
+tcpdump -i eth0 src 192.168.1.5
+tcpdump -i eth0 dst 192.168.1.5
+
+Bắt gói theo port:
+
+tcpdump -i eth0 port 80
+tcpdump -i eth0 src port 22
+tcpdump -i eth0 dst port 443
+
+Bắt gói theo giao thức:
+
+tcpdump -i eth0 tcp
+tcpdump -i eth0 udp
+tcpdump -i eth0 icmp
+
+Kết hợp filter:
+
+tcpdump -i eth0 'src 192.168.1.5 and tcp and port 80'
+
+Loại trừ (not):
+
+tcpdump -i eth0 'not port 22'
+
+5. Một số tùy chọn nâng cao
+Hiển thị nhiều chi tiết hơn (-v, -vv, -vvv):
+
+tcpdump -i eth0 -vv
+
+Hiển thị dữ liệu payload dạng ASCII/hex (-X, -XX):
+
+tcpdump -i eth0 -X
+
+Bắt các gói lớn (tăng snaplen):
+
+tcpdump -i eth0 -s 0
+
+    Mặc định chỉ bắt 262 bytes đầu, muốn bắt đủ phải để -s 0.
+
+Bắt gói ra/vào host:
+
+tcpdump -i eth0 inbound
+tcpdump -i eth0 outbound
+
+Lọc nhiều điều kiện phức tạp:
+
+tcpdump -i eth0 '(src 192.168.1.5 and dst port 80) or (dst 192.168.1.10 and src port 22)'
+
+Lưu file giới hạn dung lượng, tự động xoay vòng file:
+
+tcpdump -i eth0 -C 100 -w capture.pcap
+
+    Khi file đạt 100MB thì tạo file mới.
+
+6. Phân tích thực tế
+
+Ví dụ 1: Bắt gói đăng nhập SSH
+
+tcpdump -i eth0 tcp port 22 -n -vvv
+
+    Bắt các kết nối SSH, không resolve DNS, hiển thị chi tiết.
+
+Ví dụ 2: Bắt HTTP POST
+
+tcpdump -i eth0 -A -s 0 'tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
+
+    Hiển thị dạng ASCII, có thể lọc ra nội dung POST.
+
+Ví dụ 3: Lọc SYN scan (quét port kiểu SYN)
+
+tcpdump 'tcp[13] & 2 != 0 and tcp[13] & 16 == 0'
+
+    Bắt các gói SYN, không có ACK (kiểu scan của nmap).
+
+7. Thủ thuật và mẹo với tcpdump
+
+    Không chạy với quyền root: Có thể dùng setcap để tcpdump không cần root.
+
+sudo setcap cap_net_raw,cap_net_admin=eip $(which tcpdump)
+
+Giới hạn tốc độ ghi: Dùng thêm -C (dung lượng file), -G (giới hạn theo thời gian).
+
+Ẩn MAC, IP: Dùng -q để hiển thị ít thông tin hơn, dùng grep/sed để ẩn.
+
+Kết hợp với grep, awk:
+
+    tcpdump -i eth0 -n | grep "192.168.1.5"
+
+    Chạy trên máy chủ, tải file pcap về máy local mở bằng Wireshark để phân tích chi tiết.
+
+Tài liệu và tham khảo
+
+    tcpdump official
+
+    man tcpdump
+
+    Cheat Sheet - tcpdump
+
+Tổng kết nhanh
+
+    tcpdump rất mạnh, khi dùng filter thuần thục thì điều tra cực nhanh.
+
+    Dùng -w để bắt gói rồi phân tích sau là mẹo phổ biến.
+
+    Kết hợp với Wireshark để đồ họa hóa, lọc sâu hơn.
