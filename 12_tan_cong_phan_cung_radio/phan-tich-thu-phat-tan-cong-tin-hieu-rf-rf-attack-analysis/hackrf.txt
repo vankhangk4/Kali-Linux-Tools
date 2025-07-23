@@ -1,0 +1,184 @@
+1. HackRF là gì?
+
+    HackRF One là thiết bị SDR (Software Defined Radio) nổi tiếng, open-source, giá rẻ (~$100–$300), dùng để scan, thu và phát mọi tín hiệu RF từ 1 MHz – 6 GHz.
+
+    Hỗ trợ half-duplex (không thu/phát đồng thời).
+
+    Phù hợp:
+
+        Pentest IoT, radio, RFID, wireless, BLE, garage, smart home, drone, ADS-B, GPS spoofing
+
+        Học/NGHIÊN cứu tín hiệu số, làm CTF/forensic RF, hobbyist radio, wardriving...
+
+2. Cài đặt driver & tool HackRF
+A. Cắm HackRF, kiểm tra nhận thiết bị
+
+lsusb | grep HackRF
+hackrf_info
+
+(Nếu lỗi, check driver, thử sudo)
+B. Cài tool cơ bản
+
+sudo apt update
+sudo apt install hackrf gqrx gnuradio gnuplot sox sox-fmt-all audacity baudline
+
+    hackrf-tools: dòng lệnh cơ bản (hackrf_info, hackrf_transfer, hackrf_sweep...)
+
+    GQRX: GUI spectrum analyzer, nghe radio FM, AM, decode analog/digital, test antenna
+
+    GNURadio: môi trường đồ hoạ mạnh để “lắp ghép” RF workflow tùy ý (block-based, drag & drop)
+
+    Audacity, sox: phân tích tín hiệu, chuyển đổi định dạng
+
+3. Scan tần số với HackRF (Spectrum sweep)
+A. Dùng hackrf_sweep (CLI)
+
+hackrf_sweep -f 100:1000   # Quét từ 100 MHz đến 1 GHz
+hackrf_sweep -f 400:4800 -l 32 -g 32
+
+    Kết quả trả về list tín hiệu theo tần số, mức sóng (dBm).
+
+    Import log vào Gnuplot hoặc Python/matplotlib để vẽ graph spectrum.
+
+B. Dùng GQRX GUI
+
+    Chọn HackRF device → Start.
+
+    Dùng chuột zoom tần số (FM radio ~ 88–108 MHz, BLE ~ 2.4 GHz, Wi-Fi ~ 2.4/5 GHz, garage/remote ~ 315/433/868 MHz...).
+
+    Xem real-time spectrum, demodulate analog, thu audio, record baseband (.wav, .iq).
+
+4. Thu tín hiệu (record RF signal)
+A. Thu file raw bằng hackrf_transfer
+
+hackrf_transfer -r out.iq -f 433920000 -s 2000000 -a 1 -g 40 -l 40 -n 20000000
+
+    -r: file output (IQ)
+
+    -f: tần số trung tâm (Hz)
+
+    -s: sample rate (Hz, max ~ 20MHz)
+
+    -a 1: mở nguồn cấp antenna
+
+    -g: gain (0–40, tùy tín hiệu)
+
+    -n: số mẫu (tăng cho record dài)
+
+B. Thu tín hiệu “vô tuyến” (garage, remote, alarm, keyfob, RFID…)
+
+    Xác định tần số qua hackrf_sweep hoặc Google, record đúng tần số, về phân tích.
+
+5. Phân tích, decode, xác định protocol
+
+    Mở file IQ bằng GNURadio, Audacity, Inspectrum, Universal Radio Hacker (URH)
+
+    Xác định:
+
+        Kiểu điều chế: AM/FM/ASK/FSK/PSK/OOK
+
+        Tốc độ bit, khung dữ liệu
+
+        Thử decode thủ công (nếu là remote key, rolling code, RFID, v.v.)
+
+    Inspectrum: cực mạnh để xem baseband, tìm pattern, phân tích burst (ví dụ phân tích remote garage, alarm...)
+
+6. Phát lại tín hiệu (Replay attack)
+A. Replay file IQ đã record
+
+hackrf_transfer -t out.iq -f 433920000 -s 2000000 -a 1 -x 40
+
+    -t: file IQ input
+
+    -x: TX gain (0–47)
+
+B. Demo thực tế
+
+    Record tín hiệu remote garage → phát lại đúng tần số, cửa mở!
+
+    WARNING: Replay attack bất hợp pháp nếu không được phép, chỉ demo lab/cá nhân.
+
+7. Tấn công nâng cao – decode, clone, spoof
+
+    Decode mã điều chế với GNURadio hoặc URH, viết lại tín hiệu, thay đổi data (giả mạo command, unlock device...)
+
+    RFID, BLE, Zigbee, LoRa, ADS-B, GPS spoof: tải flowchart mẫu, dùng GNURadio block để giả lập tín hiệu.
+
+    Crack rolling code (advanced): kết hợp thu nhiều lần, so sánh, reverse firmware...
+
+8. Một số use case thực chiến với HackRF
+
+    Wardriving RF: Quét spectrum để tìm “thiết bị lạ”, mapping sóng RF quanh bạn.
+
+    Hack remote garage, alarm, keyless entry: record + replay (nếu không phải rolling code).
+
+    Pentest IoT/BLE: capture packet, decode protocol.
+
+    ADS-B spoof/scan: theo dõi máy bay, phát tín hiệu giả (cho demo, phòng lab).
+
+    Phát bản tin FM, AM test (low power): kiểm thử, học điều chế RF.
+
+    GPS spoofing: hack GNSS receiver cho lab (dùng flowchart GNURadio).
+
+9. Automation, script hóa với HackRF
+
+    Batch quét spectrum, tự động log signal mạnh → gửi alert.
+
+    Script record/replay vào khung giờ định sẵn (python + cron + hackrf_transfer).
+
+    Kết hợp GNURadio Python block để xử lý tín hiệu, realtime decode/alert.
+
+10. Fix lỗi thường gặp & best-practice
+Lỗi/phổ biến	Cách xử lý
+Không nhận device	Cắm lại, update firmware, check hackrf_info, thử cổng khác
+Record/replay lỗi, không điều khiển được	Check sample rate, gain, đúng tần số, file IQ không bị cắt, antenna phù hợp
+SNR thấp, tín hiệu yếu	Đổi antenna, tăng gain, chọn sample rate hợp lý, gần nguồn phát
+Card nóng, lag	Thử giảm gain, sample rate, cho card nghỉ giữa các lần scan
+Replay mãi không được	Thiết bị rolling code/chống replay, thử nhiều lần, phân tích protocol
+Không nghe được âm thanh	Dùng sox convert IQ → WAV, mở bằng audacity hoặc GNURadio
+11. Tool/phần mềm kết hợp HackRF mạnh nhất
+Tool/Phần mềm	Ứng dụng chính
+GNURadio	Lập trình RF flowchart mọi loại, GUI block-based
+GQRX	Xem spectrum, thu/phát FM/AM/analog
+Inspectrum	Phân tích baseband, tìm pattern data
+URH (Universal Radio Hacker)	Decode, reverse, clone, brute-force RF
+Audacity/sox	Phân tích tín hiệu, convert IQ/wav
+SDR++	Spectrum analyzer đa nền tảng, realtime, plugin
+QRadioLink	SDR voice/data comms (two-way radio)
+SigDigger	Spectrum real-time GUI, phân tích sâu
+12. So sánh HackRF với SDR khác
+Thiết bị	Ưu điểm HackRF	Khác biệt
+HackRF One	Giá rẻ, phổ biến, quét/phát 1MHz–6GHz, full-duplex TX/RX	Không thu/phát cùng lúc, độ nhạy thấp hơn USRP, sample rate không cao bằng BladeRF, SDRPlay...
+RTL-SDR	Siêu rẻ, chỉ RX, <=1.7GHz	Không phát được, sample rate thấp, chỉ sniff
+BladeRF	Cao cấp, RX/TX, full-duplex, sample rate cao	Giá cao, phức tạp hơn
+USRP	Pro, research, học thuật, lab lớn	Giá rất cao, cần kiến thức chuyên sâu
+LimeSDR	Giá tầm trung, RX/TX, multi-protocol	Hơi phức tạp với người mới
+13. Tài liệu, link hữu ích
+
+    HackRF Official
+
+    HackRF Github
+
+    GNURadio Docs
+
+    Inspectrum
+
+    Universal Radio Hacker (URH)
+
+    GQRX
+
+    SDR++
+
+    PayloadAllTheThings – SDR
+
+    Hacktricks SDR/RF
+
+Tóm tắt nhanh
+
+    HackRF: thiết bị SDR mạnh, giá tốt, cho pentest, học, nghiên cứu, CTF, decode/replay mọi tín hiệu RF (Wi-Fi, BLE, RFID, ADS-B, garage, IoT, GPS...).
+
+    Kết hợp tool mạnh: GNURadio, GQRX, URH, Inspectrum, Audacity...
+
+    Workflow: Scan spectrum → record → decode → replay → script hóa → automation pentest.
+
+    Luôn lưu ý pháp luật RF nước sở tại khi phát/replay, chỉ test lab/hardware cá nhân, không làm nhiễu tín hiệu critical! 
