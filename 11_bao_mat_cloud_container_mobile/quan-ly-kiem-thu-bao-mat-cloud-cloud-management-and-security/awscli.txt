@@ -1,0 +1,89 @@
+awscli (AWS Command Line Interface) là bộ công cụ dòng lệnh chính thức của Amazon Web Services, dùng để quản lý, cấu hình và thao tác với dịch vụ AWS từ terminal hoặc script – thay vì phải dùng AWS Console trên web.
+1. Tác dụng của awscli
+
+    Quản lý tài nguyên AWS: EC2, S3, IAM, Lambda, RDS, CloudFormation, DynamoDB... gần như mọi dịch vụ AWS đều thao tác được bằng lệnh.
+
+    Tự động hoá các tác vụ quản trị: Viết script deploy, backup, upload/download S3, quản lý user/role, tạo/xóa VM, lấy log, v.v.
+
+    Tích hợp với CI/CD, automation, DevOps workflow.
+
+    Dùng cho pentest/red team khi kiểm thử bảo mật AWS (recon, enumerate, exfiltrate data...).
+
+2. Cách cài đặt awscli
+
+Trên Linux/macOS:
+
+pip install awscli
+# hoặc
+sudo apt install awscli
+
+Trên Windows:
+Download installer chính thức tại https://aws.amazon.com/cli/
+3. Cấu hình awscli (lần đầu dùng)
+
+Chạy:
+
+aws configure
+
+Sau đó nhập:
+
+    AWS Access Key ID
+
+    AWS Secret Access Key
+
+    Default region name (ví dụ: us-east-1)
+
+    Default output format (json, text, table)
+
+4. Một số lệnh cơ bản của awscli
+1. Kiểm tra cấu hình
+
+aws configure list
+
+2. Làm việc với S3 (object storage)
+
+    Liệt kê bucket:
+
+aws s3 ls
+
+Liệt kê file trong bucket:
+
+aws s3 ls s3://mybucket
+
+Tải file từ S3:
+
+aws s3 cp s3://mybucket/file.txt .
+
+Upload file lên S3:
+
+    aws s3 cp file.txt s3://mybucket/
+
+3. Quản lý EC2
+
+    Liệt kê EC2 instances:
+
+    aws ec2 describe-instances
+
+4. Quản lý user IAM
+
+    Liệt kê user:
+
+    aws iam list-users
+
+5. Quản lý Lambda
+
+    Liệt kê function:
+
+    aws lambda list-functions
+
+5. Các tuỳ chọn hữu ích
+Tuỳ chọn	Ý nghĩa
+--profile	Chỉ định profile AWS (nếu có nhiều cấu hình)
+--region	Chỉ định vùng (region) cụ thể
+--output	Định dạng output: json, text, table
+--endpoint-url	Tuỳ chỉnh endpoint (dùng với S3 Minio, pentest)
+6. Tài liệu tham khảo
+
+    AWS CLI official docs
+
+    Cheat sheet: AWS CLI Cheat Sheet
