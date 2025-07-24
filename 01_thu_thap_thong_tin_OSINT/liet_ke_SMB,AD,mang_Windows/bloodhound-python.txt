@@ -20,6 +20,9 @@ Hoặc:
 pip install bloodhound[ldap]
 
 (tùy version và nhu cầu, nên dùng Python 3.x)
+1. Them 1 nguoi dung vao 1 group 
+python3 adduser.py -dc-ip <IP_DC> <domain>/<username>:<password> '<target_group_dn>' '<user_dn>'
+
 2. Thu thập thông tin domain cơ bản
 
 bloodhound-python -u <user> -p <password> -d <domain> -dc <DC-ip> -c all
