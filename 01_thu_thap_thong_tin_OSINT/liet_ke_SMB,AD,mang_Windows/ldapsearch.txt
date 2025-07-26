@@ -43,6 +43,7 @@ ldapsearch -x -H ldap://10.10.10.10 -b "dc=corp,dc=local" "(sAMAccountName=admin
 Chỉ lấy user và trường cn, mail, sAMAccountName:
 
 ldapsearch -x -H ldap://10.10.10.10 -b "dc=corp,dc=local" "(objectClass=user)" cn mail sAMAccountName
+ldapsearch -x -H ldap://10.10.11.70 -D "ANT.EDWARDS@PUPPY.HTB" -W -b "DC=puppy,DC=htb" "(sAMAccountName=ADAM.SILVER)"
 
 3. Các tuỳ chọn quan trọng
 Tuỳ chọn	Ý nghĩa
