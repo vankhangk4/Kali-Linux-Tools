@@ -135,6 +135,13 @@ replace: userAccountControl
 userAccountControl: 512
 
 🔑 2. Tạo file reset_password.ldif – Đặt lại mật khẩu
+cat > enable.ldif << EOF
+dn: CN=Adam D. Silver,CN=Users,DC=PUPPY,DC=HTB
+changetype: modify
+replace: userAccountControl
+userAccountControl: 66048
+EOF
+
 
 Giả sử bạn muốn đặt mật khẩu: NewPassw0rd!
 Bước 1: Tạo mật khẩu Base64 (UTF-16LE và có dấu ngoặc kép " ")
