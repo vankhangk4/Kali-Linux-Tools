@@ -53,14 +53,14 @@ Giải thích:
 
 🔁 5. Kích hoạt hoặc vô hiệu hóa tài khoản
 
-    Kích hoạt: userAccountControl: 512
 
-    Vô hiệu hóa: userAccountControl: 514
-
-dn: CN=someuser,CN=Users,DC=example,DC=com
+ldapmodify -x -H ldap://10.10.11.70 -D "ANT.EDWARDS@PUPPY.HTB" -W << EOF
+dn: CN=Adam D. Silver,CN=Users,DC=PUPPY,DC=HTB
 changetype: modify
 replace: userAccountControl
-userAccountControl: 512
+userAccountControl: 66048
+EOF
+
 
 🧠 6. Các giá trị userAccountControl phổ biến
 Giá trị	Ý nghĩa
