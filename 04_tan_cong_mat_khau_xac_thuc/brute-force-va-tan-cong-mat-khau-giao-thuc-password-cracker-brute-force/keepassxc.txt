@@ -111,3 +111,65 @@ LastPass	❌	❌	✅	❌	Có
     Hướng dẫn chính thức: https://keepassxc.org/docs/
 
     File .kdbx có thể di động giữa máy Linux – Windows – Android (dùng KeePassDX, KeePass2Android)
+
+
+
+===============================================================================================================
+
+
+
+
+✅ Những lệnh cần dùng trong CLI (bạn đang ở recovery>)
+📁 1. Xem danh sách nhóm (thư mục):
+
+ls
+
+→ Hiển thị các nhóm như Email, Social, Bank, v.v.
+📂 2. Di chuyển vào nhóm cụ thể:
+
+cd TenNhom
+
+Ví dụ:
+
+cd Email
+
+🧾 3. Xem danh sách các entry:
+
+ls
+
+→ Bây giờ bạn sẽ thấy các entry cụ thể, ví dụ: Gmail, Yahoo, v.v.
+🔍 4. Xem chi tiết một entry:
+
+show Gmail
+
+→ Thay Gmail bằng tên entry bạn muốn xem.
+🔐 5. Xem chỉ mật khẩu hoặc username:
+
+show -a username Gmail
+show -a password Gmail
+
+🔙 6. Quay lại thư mục trước:
+
+cd ..
+
+❌ 7. Thoát khỏi CLI:
+
+exit
+
+📌 Ví dụ hoàn chỉnh:
+
+keepassxc-cli open recovery.kdbx
+Enter password to unlock recovery.kdbx:
+recovery> ls
+General
+Email
+Bank
+recovery> cd Email
+recovery/Email> ls
+Gmail
+Yahoo
+recovery/Email> show Gmail
+recovery/Email> show -a username Gmail
+recovery/Email> show -a password Gmail
+recovery/Email> exit
+
