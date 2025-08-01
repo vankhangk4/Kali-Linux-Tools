@@ -1,0 +1,113 @@
+🧩 1. KeePassXC là gì?
+
+    KeePassXC = KeePass Cross-Platform Community Edition.
+
+    Là phần mềm quản lý mật khẩu mã nguồn mở, miễn phí.
+
+    Dữ liệu được lưu trong file .kdbx, mã hóa bằng AES-256.
+
+    Không yêu cầu kết nối internet.
+
+    Hỗ trợ giao diện đồ họa (GUI) và dòng lệnh (CLI).
+
+🧭 2. Các chức năng chính
+Chức năng	Mô tả
+Quản lý mật khẩu	Lưu trữ username, password, TOTP, ghi chú, tệp đính kèm.
+Tổ chức theo nhóm/thư mục	Phân loại dữ liệu theo cấu trúc cây.
+Tìm kiếm nhanh	Tìm thông tin ngay khi gõ.
+Tự động nhập (Auto-Type)	Điền tự động thông tin vào form.
+TOTP (2FA)	Lưu và sinh mã OTP như Google Authenticator.
+File đính kèm	Đính kèm tài liệu, ảnh, v.v. vào entry.
+Đăng nhập bằng keyfile	Tăng bảo mật bằng việc kết hợp file khóa + mật khẩu.
+Đồng bộ qua cloud	Dễ dàng dùng cùng file .kdbx trên nhiều thiết bị (Dropbox, Nextcloud...).
+Hỗ trợ YubiKey / FIDO2	Tăng cường bảo mật 2 lớp.
+💻 3. Cài đặt KeePassXC
+🔹 Trên Kali / Ubuntu:
+
+sudo apt update
+sudo apt install keepassxc -y
+
+🔹 Trên Windows:
+
+    Tải tại: https://keepassxc.org/download/
+
+    Có bản cài đặt .exe và bản portable.
+
+🖥️ 4. Sử dụng GUI (giao diện đồ họa)
+🔸 Tạo file .kdbx mới:
+
+    File → New Database
+
+    Đặt tên DB, mật khẩu chính (master password), hoặc thêm keyfile.
+
+🔸 Thêm mật khẩu:
+
+    Add New Entry
+
+        Tên
+
+        Username
+
+        Password (tự sinh nếu muốn)
+
+        URL
+
+        TOTP (2FA)
+
+        Notes, Files...
+
+🔸 Tìm kiếm:
+
+    Ctrl + F → Gõ từ khóa tìm entry.
+
+🔸 Sinh mật khẩu:
+
+    Tools → Password Generator
+
+🧪 5. Sử dụng CLI (keepassxc-cli)
+📂 Liệt kê entry:
+
+keepassxc-cli ls file.kdbx
+
+🔍 Xem mật khẩu một entry:
+
+keepassxc-cli show file.kdbx "Đường dẫn entry"
+
+🔑 Xuất chỉ username/password:
+
+keepassxc-cli show -a username file.kdbx "Tên entry"
+keepassxc-cli show -a password file.kdbx "Tên entry"
+
+🔑 Mở interactive:
+
+keepassxc-cli open file.kdbx
+
+🔐 6. Bảo mật và mẹo
+Tính năng	Giải thích
+Mật khẩu mạnh	Dùng công cụ sinh mật khẩu ngẫu nhiên.
+Keyfile	Kết hợp file khóa riêng ngoài mật khẩu.
+TOTP	Lưu OTP 2FA nội bộ, không cần app khác.
+Lock timeout	Tự khóa DB sau vài phút không dùng.
+Cloud sync an toàn	File .kdbx có thể lưu trên Dropbox, Google Drive... vì đã mã hóa.
+🌐 7. Dùng với trình duyệt (plugin)
+
+    Trình duyệt được hỗ trợ:
+
+        Chrome, Firefox, Edge, Brave…
+
+    Cài extension: KeePassXC-Browser
+
+    Kết nối với KeePassXC GUI → Enable browser integration
+
+📦 8. So sánh với các trình quản lý mật khẩu khác
+Công cụ	Open Source	Offline	TOTP	Auto-Type	Cloud Sync
+KeePassXC	✅	✅	✅	✅	Tùy bạn
+Bitwarden	✅	Tùy	✅	❌	Có
+LastPass	❌	❌	✅	❌	Có
+📚 9. Tài nguyên học thêm
+
+    Trang chủ: https://keepassxc.org
+
+    Hướng dẫn chính thức: https://keepassxc.org/docs/
+
+    File .kdbx có thể di động giữa máy Linux – Windows – Android (dùng KeePassDX, KeePass2Android)
