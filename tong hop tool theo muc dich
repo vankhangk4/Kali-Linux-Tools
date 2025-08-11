@@ -1,0 +1,47 @@
+01 – Reconnaissance (trinh sát ngoài)
+theHarvester, Amass, Sublist3r, SpiderFoot, Maltego CE, Recon-NG, Metagoofil, DNSrecon, DNSenum, Fierce, WhatWeb, WAFW00F, urlcrazy.
+
+02 – Resource Development (chuẩn bị tài nguyên)
+SecLists, CeWL, Crunch, CUPP, maskprocessor, wordlists (rockyou, fasttrack,…), msfvenom (tạo payload), MSSFPC (msfpc), Laudanum (bộ web-shell mẫu).
+
+03 – Initial Access (xâm nhập ban đầu)
+Metasploit Framework, BeEF, Social-Engineer Toolkit (SET), SQLMap, Commix, WPScan, RouterSploit, xsser.
+
+04 – Execution (thực thi payload/lệnh)
+ncat, socat, Netcat-traditional, PowerShell (pwsh), Python (simple http/server & exec), socat-relay, rlwrap (bọc shell), Bash reverse-shell helpers.
+
+05 – Persistence (duy trì hiện diện)
+Weevely (web-shell), Laudanum (web-shell), Evil-WinRM (điểm bám Windows), SSH authorized_keys helpers, Chisel (giữ đường vào qua tunnel), reGeorg/Neo-reGeorg (HTTP pivot).
+
+06 – Privilege Escalation (leo thang đặc quyền)
+linux-exploit-suggester, unix-privesc-check, BeRoot (Windows), lse (Linux Smart Enum nếu đã cài), LinEnum, GTFOBins helper/gtfoblookup, kernel-exploit collections.
+
+07 – Defense Evasion (né phát hiện/che giấu)
+Veil-Evasion, Shellter, The Backdoor Factory, DKMC, UPX, msfvenom encoders, sRDI (DLL→shellcode), Obfuscation scripts (donut, unicorn nếu đã cài).
+
+08 – Credential Access (thu/bẻ mật khẩu)
+Mimikatz, Impacket (secretsdump.py, GetNPUsers.py, GetUserSPNs.py), Kerbrute, Hashcat, John the Ripper, Hydra, Medusa, Ncrack, LaZagne, gpp-decrypt, creddump7, hashid.
+
+09 – Discovery (khám phá nội bộ)
+Nmap, Masscan, netdiscover, arp-scan, nbtscan, smbmap, enum4linux-ng, snmp-check/snmpwalk, ike-scan, ldapsearch/ldap-utils, smbclient (liệt kê), nbtscan-unixwiz.
+
+10 – Lateral Movement (di chuyển ngang)
+CrackMapExec, Impacket (psexec.py, smbexec.py, wmiexec.py, atexec.py, dcomexec.py, mssqlclient.py), Evil-WinRM, xfreerdp/rdesktop, sshpass, proxychains4, rdp/rdpspray tools.
+
+11 – Collection (thu thập dữ liệu)
+Wireshark, tshark/tcpdump, netsniff-ng, exiftool (metadata), rclone (đồng bộ thu thập), smbclient/ftp/lftp (kéo file), catdoc/pdfinfo/strings (trích xuất nội dung).
+
+12 – Command & Control (C2 / điều khiển)
+Metasploit multi/handler, ncat listener, socat listener, Chisel, frp (nếu đã cài), ssh reverse-tunnel, iodine/dns2tcp, reGeorg/Neo-reGeorg, dnscat2.
+
+13 – Exfiltration (rút dữ liệu)
+scp/rsync, rclone, curl/wget (batch), httptunnel, iodine/dns2tcp, zip/7z (nén/chia nhỏ), steghide/outguess (ẩn dữ liệu).
+
+14 – Impact (tác động/DoS, gây gián đoạn)
+slowloris, thc-ssl-dos, t50, hping3, nping, MDK4 (Wi-Fi deauth/jam), aireplay-ng (deauth), yersinia, macof.
+
+15 – Forensics (pháp y số)
+Autopsy, SleuthKit/tsk-tools, Volatility/Volatility3, bulk-extractor, binwalk, foremost/scalpel, ddrescue/dc3dd, guymager, plaso (log2timeline), hashdeep, testdisk/photorec.
+
+16 – Services & Other Tools (dịch vụ & tiện ích)
+OpenVPN/WireGuard, OpenSSH (client/server), Docker/Podman, QEMU/KVM, tmux/screen, Git, curl/wget, editors (vim/nano), Python3/pip, jq.
