@@ -1,0 +1,108 @@
+# Kali Linux Tools – Tổng hợp theo mục đích
+
+> ✅ Danh sách công cụ Kali/Red Team chia theo giai đoạn tấn công. Mỗi tool có mô tả ngắn, cách cài, và lệnh nhanh.
+
+## Mục lục
+- [01. Reconnaissance](#01-reconnaissance)
+- [02. Resource Development](#02-resource-development)
+- [03. Initial Access](#03-initial-access)
+- [04. Execution](#04-execution)
+- [05. Persistence](#05-persistence)
+- [06. Privilege Escalation](#06-privilege-escalation)
+- [07. Defense Evasion](#07-defense-evasion)
+- [Góp ý & đóng góp](#góp-ý--đóng-góp)
+
+---
+
+## 01. Reconnaissance
+**Passive**: không/ít chạm vào hệ thống mục tiêu (OSINT, search engines, DNS công khai…) → ít gây log/ồn.  
+**Active**: truy vấn trực tiếp tới tài nguyên mục tiêu (DNS brute/force, HTTP fingerprint…) → nhanh, dữ liệu giàu hơn nhưng dễ bị phát hiện.
+
+| Tool | Mục đích | Cài đặt | Lệnh nhanh |
+|---|---|---|---|
+| theHarvester | OSINT emails, subdomains | `apt install theharvester` | `theHarvester -d domain.com -b all` |
+| Amass | Liệt kê subdomain | `apt install amass` | `amass enum -d domain.com` |
+| Sublist3r | Liệt kê subdomain | `pip3 install sublist3r` | `sublist3r -d domain.com` |
+| SpiderFoot | OSINT automation | Docker/GUI | `sf.py -s domain.com -m all` |
+| Maltego CE | OSINT đồ họa | GUI | — |
+| Recon-NG | OSINT framework | `apt install recon-ng` | `recon-ng` |
+| Metagoofil | Metadata tài liệu | `apt install metagoofil` | `metagoofil -d domain.com -t pdf -l 200 -n 20 -o out` |
+| DNSrecon/DNSenum/Fierce | DNS enum | `apt install dnsrecon dnsenum fierce` | `dnsrecon -d domain.com` |
+| WhatWeb / Wappalyzer | Fingerprint web | `apt install whatweb` | `whatweb https://target` |
+| wafw00f | Xác định WAF | `apt install wafw00f` | `wafw00f https://target` |
+| urlcrazy | Typosquatting | `apt install urlcrazy` | `urlcrazy domain.com` |
+
+---
+
+## 02. Resource Development
+Chuẩn bị tài nguyên: wordlists, payload/webshell mẫu, fuzzing, password spraying…
+
+| Bộ/Tiện ích | Dùng để | Cài đặt | Gợi ý |
+|---|---|---|---|
+| SecLists | Wordlists tổng hợp | `apt install seclists` | `/usr/share/seclists/` |
+| CeWL | Tạo wordlist từ web | `apt install cewl` | `cewl -w out.txt https://site` |
+| Crunch/CUPP | Tạo wordlist theo quy tắc | `apt install crunch cupp` | — |
+| maskprocessor | Tạo mask brute | `apt install maskprocessor` | `mp64 -o out ?l?l?l?d?d` |
+| msfvenom/MSFPC | Tạo payload nhanh | metasploit/msfpc | `msfvenom -p ...` |
+| Laudanum | Web-shell mẫu | trong Kali | `laudanum/` |
+| wordlists (rockyou, fasttrack…) | Tấn công mật khẩu | `apt install wordlists` | `zcat /usr/share/wordlists/rockyou.txt.gz` |
+
+---
+
+## 03. Initial Access
+| Tool | Mục đích | Lệnh nhanh |
+|---|---|---|
+| Metasploit Framework | Phát hiện/khai thác | `msfconsole` |
+| BeEF | Trình duyệt hook | `beef-xss` |
+| SEToolkit | Phishing/Clone | `setoolkit` |
+| sqlmap | SQLi | `sqlmap -u "http://site/?id=1" --batch` |
+| WPScan/RouterSploit/XSStrike | CMS/Router/XSS | `wpscan --url ...` |
+
+---
+
+## 04. Execution
+| Tool | Mục đích | Lệnh nhanh |
+|---|---|---|
+| ncat/socat | Reverse/Bindshell | `ncat -lvnp 4444` / `socat TCP-L:4444 -` |
+| Netcat-traditional | Shell nhanh | `nc -lvnp 4444` |
+| PowerShell (pwsh) | Thực thi Windows | `pwsh` |
+| Python SimpleHTTPServer | Serve file | `python3 -m http.server 8000` |
+| ssh + authorized_keys | Tải/đổi kênh | `ssh -i key user@host` |
+| Chisel | TCP/UDP tunnel | `chisel server -p 8000 --reverse` |
+| reGeorg / Neo-reGeorg | HTTP pivot | — |
+
+---
+
+## 05. Persistence
+| Kỹ thuật | Gợi ý |
+|---|---|
+| Web shell (weevely/laudanum) | `weevely generate pass shell.php` |
+| Dịch vụ/cron | Tạo service/cron chạy shell |
+| SSH keys | `~/.ssh/authorized_keys` |
+
+---
+
+## 06. Privilege Escalation
+| Tool | Mục đích | Lệnh nhanh |
+|---|---|---|
+| LinPEAS / WinPEAS | Enum leo quyền | `linpeas.sh` / `winpeas.exe` |
+| LinEnum / Linux-Smart-Enum | Enum Linux | `linEnum.sh` |
+| GTFOBins/LOLBas | Lạm dụng binary | tra cứu theo binary |
+| kernel-exploit collec. | Exploit kernel | — |
+
+---
+
+## 07. Defense Evasion
+| Tool | Mục đích |
+|---|---|
+| Veil-Evasion / Shelter | Tạo payload khó bị phát hiện |
+| The Backdoor Factory, DKMC, UPX | Pack/obfuscate |
+| Msvenom encoders, SRDI | Shellcode/Reflective |
+| Obfuscation scripts | donut, unicorn… |
+
+---
+
+## Góp ý & đóng góp
+- Thêm tool mới bằng PR, giữ format bảng (Tool, Mục đích, Cài đặt/Lệnh).
+- Gắn label: `recon`, `password`, `web`, `pivot`, `privesc`,…
+- Issue/PR bằng tiếng Việt đều ok.
